@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Next.js
+.next/
+apps/web/.next/
+.turbo/
+apps/web/.turbo/
+.vercel/
+apps/web/.vercel/
+package-lock.json
+
+# Env files
+.env
+.env.*
+apps/web/.env.local
+apps/web/.env.*
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+apps/api/.venv/
+
+# Misc
+coverage/
+logs/
+Thumbs.db
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

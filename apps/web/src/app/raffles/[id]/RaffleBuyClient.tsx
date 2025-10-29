@@ -13,6 +13,6 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
-  const allowManual = !(rule.includes('random_only') || rule.includes('no_manual'));
+  const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));
   return <RaffleBuyTabs raffleId={raffleId} currency={raffleQ.data.currency} totalTickets={raffleQ.data.total_tickets} unitPriceCents={raffleQ.data.ticket_price_cents} paymentInfo={payQ.data ?? null} allowManual={allowManual} />;
 }

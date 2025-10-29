@@ -29,6 +29,7 @@ create table if not exists raffles (
   ticket_price_cents integer not null default 100,
   image_url text null,
   payment_methods jsonb null default '{}'::jsonb,
+  allow_manual boolean null default true,
   total_tickets integer not null,
   is_free boolean not null default false,
   has_top_buyer_prize boolean not null default false,
@@ -58,6 +59,7 @@ create table if not exists payments (
   session_id uuid null references sessions(id) on delete set null,
   email text null,
   phone text null,
+  city text null,
   method text null,
   reference text null,
   evidence_url text null,
@@ -264,6 +266,7 @@ create or replace function create_payment_for_session(
   p_session_id uuid,
   p_email text,
   p_phone text,
+  p_city text,
   p_method text,
   p_reference text,
   p_evidence_url text,
@@ -278,8 +281,8 @@ as $$
 declare
   v_payment_id uuid;
 begin
-  insert into payments(raffle_id, session_id, email, phone, method, reference, evidence_url, amount_ves, rate_used, rate_source, currency, status)
-  values (p_raffle_id, p_session_id, p_email, p_phone, p_method, p_reference, p_evidence_url, p_amount_ves, p_rate_used, p_rate_source, p_currency, 'pending')
+  insert into payments(raffle_id, session_id, email, phone, city, method, reference, evidence_url, amount_ves, rate_used, rate_source, currency, status)
+  values (p_raffle_id, p_session_id, p_email, p_phone, p_city, p_method, p_reference, p_evidence_url, p_amount_ves, p_rate_used, p_rate_source, p_currency, 'pending')
   returning id into v_payment_id;
 
   -- asociar tickets reservados por esa sesión para esa rifa

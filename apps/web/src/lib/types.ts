@@ -7,6 +7,7 @@ export type Raffle = {
   ticket_price_cents: number;
   image_url: string | null;
   total_tickets: number;
+  allow_manual?: boolean; // si false, solo números aleatorios
 };
 
 export type RaffleTicketCounters = {

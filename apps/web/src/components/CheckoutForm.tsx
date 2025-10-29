@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { uploadEvidence } from '@/lib/data/payments';
 import { createPaymentForSession } from '@/lib/rpc';
 import { centsToUsd, getUsdVesRate, round2 } from '@/lib/data/rate';
+import { VE_CITIES } from '@/lib/data/cities';
 
 export const checkoutSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
   phone: z.string().min(6, 'Teléfono requerido'),
+  city: z.string().min(2, 'Ciudad requerida'),
   method: z.string().min(1, 'Selecciona un método'),
   reference: z.string().optional().or(z.literal('')),
   amount_ves: z.string().optional(),
@@ -39,6 +41,9 @@ export function CheckoutForm({
     resolver: zodResolver(checkoutSchema),
   });
 
+  // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
+  const [citySelect, setCitySelect] = useState<string>('');
+
   // Tasa USD->VES
   const [rateInfo, setRateInfo] = useState<{ rate: number; source?: string } | null>(null);
   useEffect(() => {
@@ -65,6 +70,7 @@ export function CheckoutForm({
       p_session_id: sessionId,
       p_email: values.email || null,
       p_phone: values.phone,
+      p_city: values.city,
       p_method: values.method,
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,
@@ -117,6 +123,37 @@ export function CheckoutForm({
           <label className="block text-sm font-medium">Teléfono</label>
           <input type="tel" className="mt-1 w-full border rounded-lg p-2" placeholder="0412-0000000" {...register('phone')} />
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Ciudad</label>
+          <select
+            className="mt-1 w-full border rounded-lg p-2"
+            value={citySelect || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCitySelect(val);
+              if (val && val !== 'OTRA') {
+                setValue('city', val, { shouldValidate: true });
+              } else {
+                setValue('city', '', { shouldValidate: true });
+              }
+            }}
+          >
+            <option value="" disabled>Selecciona tu ciudad</option>
+            {VE_CITIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+            <option value="OTRA">Otra…</option>
+          </select>
+          {citySelect === 'OTRA' && (
+            <input
+              type="text"
+              className="mt-2 w-full border rounded-lg p-2"
+              placeholder="Escribe tu ciudad"
+              {...register('city')}
+            />
+          )}
+          {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Método de pago</label>

@@ -325,7 +325,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
             disabled={isExpired}
             quantity={countSelected}
             unitPriceCents={unitPriceCents}
-            methodLabel={paymentInfo?.method_label || paymentInfo?.type || 'Pago'}
+            methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
             onCreated={() => {}}
           />
 

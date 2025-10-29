@@ -25,7 +25,7 @@ export function round2(n: number | undefined | null): number {
  */
 export async function getUsdVesRate(): Promise<RateInfo | null> {
   // 1) Endpoint externo configurable
-  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL;
+  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL || '/api/rate';
   if (typeof window !== 'undefined' && rateUrl) {
     try {
       const res = await fetch(rateUrl, { cache: 'no-store' });
@@ -82,5 +82,7 @@ export async function getUsdVesRate(): Promise<RateInfo | null> {
     }
   }
 
-  return null;
+  // 4) Fallback por defecto: 225 Bs/USD
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  return { rate: 225, source: 'default', date: today, rate_available: true, stale: true };
 }

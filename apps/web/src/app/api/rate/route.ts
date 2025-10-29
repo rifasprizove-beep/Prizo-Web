@@ -29,28 +29,45 @@ export async function GET() {
     'https://venezuela-exchange.vercel.app/api',
   ];
 
+  // Utilidades de parsing para valores numéricos que puedan venir como string
+  const toNumber = (val: unknown): number | null => {
+    if (typeof val === 'number' && isFinite(val) && val > 0) return val;
+    if (typeof val === 'string') {
+      // Normaliza: elimina espacios, cambia coma por punto, remueve separadores de miles
+      const s = val.trim().replace(/\./g, '').replace(/,/g, '.');
+      const num = parseFloat(s);
+      if (!isNaN(num) && isFinite(num) && num > 0) return num;
+    }
+    return null;
+  };
+
   for (const url of mirrors) {
-    const r = await tryJson(
-      url,
-      (j) => {
-        // Heurística de extracción: buscar un número en campos que incluyan 'bcv'/'official'
-        const scan = (obj: any): number | null => {
-          if (!obj || typeof obj !== 'object') return null;
-          for (const [k, v] of Object.entries(obj)) {
-            const key = String(k).toLowerCase();
-            if (typeof v === 'number' && (key.includes('bcv') || key.includes('official') || key.includes('oficial'))) {
-              return Number(v);
-            }
-            if (typeof v === 'object') {
-              const nested = scan(v);
-              if (nested) return nested;
-            }
+    const r = await tryJson(url, (j) => {
+      // Heurística de extracción: buscar un número en campos que incluyan 'bcv'/'official'
+      const scan = (obj: any): number | null => {
+        if (!obj || typeof obj !== 'object') return null;
+        for (const [k, v] of Object.entries(obj)) {
+          const key = String(k).toLowerCase();
+          // Si la clave sugiere BCV/Official, intenta convertir a número
+          if (key.includes('bcv') || key.includes('official') || key.includes('oficial')) {
+            const n = toNumber(v);
+            if (n) return n;
           }
-          return null;
-        };
-        return scan(j);
-      }
-    );
+          // Algunos mirrors anidan bajo { bcv: { price|promedio|value } }
+          if (key === 'bcv' && typeof v === 'object') {
+            const cand = (v as any)['price'] ?? (v as any)['promedio'] ?? (v as any)['value'] ?? (v as any)['venta'] ?? (v as any)['sell'];
+            const n = toNumber(cand);
+            if (n) return n;
+          }
+          if (typeof v === 'object') {
+            const nested = scan(v);
+            if (nested) return nested;
+          }
+        }
+        return null;
+      };
+      return scan(j);
+    });
     if (r) return NextResponse.json(r);
   }
 

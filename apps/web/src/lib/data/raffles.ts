@@ -6,7 +6,7 @@ export async function getRaffle(id: string): Promise<Raffle | null> {
   try { supabase = getSupabase(); } catch (e) { console.error('Supabase no configurado:', e); return null; }
   const { data, error } = await supabase
     .from('raffles')
-    .select('id,name,description,status,currency,ticket_price_cents,image_url,total_tickets')
+    .select('id,name,description,status,currency,ticket_price_cents,image_url,total_tickets,allow_manual')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -30,7 +30,7 @@ export async function listRaffles(): Promise<Raffle[]> {
   try { supabase = getSupabase(); } catch (e) { console.error('Supabase no configurado:', e); return []; }
   const { data, error } = await supabase
     .from('raffles')
-    .select('id,name,description,status,currency,ticket_price_cents,image_url,total_tickets')
+    .select('id,name,description,status,currency,ticket_price_cents,image_url,total_tickets,allow_manual')
     .in('status', ['published', 'selling'])
     .order('created_at', { ascending: false });
   if (error) throw error;

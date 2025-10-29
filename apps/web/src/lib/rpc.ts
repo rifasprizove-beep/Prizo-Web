@@ -5,6 +5,7 @@ export async function createPaymentForSession(args: {
   p_session_id: string;
   p_email: string | null;
   p_phone: string | null;
+  p_city: string | null;
   p_method: string | null;
   p_reference: string | null;
   p_evidence_url: string | null;

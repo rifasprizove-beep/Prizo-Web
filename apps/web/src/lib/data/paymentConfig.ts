@@ -22,7 +22,7 @@ export async function getRafflePaymentInfo(raffleId: string): Promise<RafflePaym
     if (error) throw error;
     if (!data) return null;
 
-    const pm = (data as any).payment_methods ?? null;
+    let pm = (data as any).payment_methods ?? null;
     if (!pm) return null;
 
     // Soportar objeto o array de métodos. Si es array, tomar el primero activo o el primero.
@@ -38,12 +38,24 @@ export async function getRafflePaymentInfo(raffleId: string): Promise<RafflePaym
         bank: first(obj, ['bank', 'pm_bank']),
         phone: first(obj, ['phone', 'pm_phone']),
         id_number: first(obj, ['id_number', 'id', 'pm_id', 'cedula', 'rif']),
-        holder: first(obj, ['holder', 'pm_holder', 'titular']),
-        type: first(obj, ['type', 'pm_type']),
+        // Muchos esquemas usan "name" para el titular
+        holder: first(obj, ['holder', 'pm_holder', 'titular', 'name']),
+        // Algunos esquemas usan "account_type" para el tipo de cuenta
+        type: first(obj, ['type', 'pm_type', 'account_type']),
         active: first(obj, ['active', 'pm_active']),
         method_label: first(obj, ['method_label', 'pm_method_label', 'label']),
       } as RafflePaymentInfo;
     };
+
+    // Si viene anidado bajo una clave como "pago_movil" u otra, tomar ese objeto
+    if (!Array.isArray(pm) && typeof pm === 'object') {
+      const keys = Object.keys(pm);
+      if (keys.length === 1 && typeof (pm as any)[keys[0]] === 'object') {
+        pm = (pm as any)[keys[0]];
+      } else if ((pm as any)['pago_movil']) {
+        pm = (pm as any)['pago_movil'];
+      }
+    }
 
     if (Array.isArray(pm)) {
       const firstActive = pm.find((m: any) => !!m?.active) ?? pm[0];

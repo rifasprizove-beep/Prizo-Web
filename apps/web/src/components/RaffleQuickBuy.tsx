@@ -484,7 +484,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             disabled={isExpired}
             quantity={reservedCount}
             unitPriceCents={unitPriceCents}
-            methodLabel={paymentInfo?.method_label || paymentInfo?.type || 'Pago'}
+            methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
             onCreated={() => {}}
           />
 

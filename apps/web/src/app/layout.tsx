@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body>
+    <html lang="es" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <div className="site-container py-4">
           <header className="h-14 flex items-center justify-between">
             <a href="/" className="font-bold text-brand-600">PRIZO</a>

@@ -67,6 +67,8 @@ create table if not exists payments (
   rate_used numeric null,
   rate_source text null,
   currency text null default 'VES',
+  ci text null,
+  is_top_buyer boolean not null default false,
   status payment_status not null default 'pending',
   created_at timestamptz null default now(),
   approved_by text null,
@@ -112,6 +114,8 @@ create table if not exists settings (
   value text null
 );
 
+-- NOTE: Tabla sessions ya existe arriba con más columnas; se elimina duplicado para evitar conflictos
+
 -- Indexes
 create index if not exists idx_tickets_raffle_status on tickets(raffle_id, status);
 create index if not exists idx_tickets_reserved_until on tickets(reserved_until);
@@ -129,6 +133,36 @@ select
 from raffles r
 left join tickets t on t.raffle_id = r.id
 group by r.id, r.total_tickets;
+
+-- Helper functions
+create or replace function ensure_session(p_session_id uuid)
+returns void
+language sql
+security definer
+as $$
+  insert into sessions (id) values (p_session_id)
+  on conflict (id) do nothing;
+$$;
+
+create or replace function ensure_tickets_for_raffle(
+  p_raffle_id uuid,
+  p_total int
+) returns int
+language plpgsql
+security definer
+as $$
+declare
+  inserted int := 0;
+begin
+  insert into tickets (raffle_id, ticket_number, status)
+  select p_raffle_id, gs, 'available'
+  from generate_series(1, p_total) as gs
+  on conflict (raffle_id, ticket_number) do nothing;
+
+  get diagnostics inserted = row_count;
+  return inserted;
+end;
+$$;
 
 -- RPC functions
 -- release_expired_reservations
@@ -154,19 +188,39 @@ begin
   -- Identificar rifas involucradas
   select array_agg(distinct raffle_id) into v_raffle_ids from tickets where id = any(p_ticket_ids);
 
+  -- Si alguna rifa no permite selección manual, bloquear
+  if exists (
+    select 1 from raffles r
+    where r.id = any(coalesce(v_raffle_ids, array[]::uuid[]))
+      and coalesce(r.allow_manual, true) = false
+  ) then
+    raise exception 'manual_selection_disabled';
+  end if;
+
   -- Defensa: liberar cualquier reserva previa de esta sesión dentro de esas rifas que NO esté en la lista solicitada
   update tickets
      set status='available', reserved_by=null, reserved_until=null
    where reserved_by = p_session_id
      and raffle_id = any(coalesce(v_raffle_ids, array[]::uuid[]))
-     and not (id = any(p_ticket_ids));
+     and not (id = any(p_ticket_ids))
+     and not exists (
+       select 1 from payment_tickets pt
+       join payments p on p.id = pt.payment_id
+       where pt.ticket_id = tickets.id and p.status = 'pending'
+     );
 
-  -- Reservar exactamente los tickets indicados (si están disponibles)
+  -- Reservar exactamente los tickets indicados (si están disponibles) con bloqueo optimista
   return query
+  with picked as (
+    select id
+    from tickets
+    where id = any(p_ticket_ids) and status='available'
+    for update skip locked
+  )
   update tickets t
-    set status='reserved', reserved_by=p_session_id, reserved_until=v_until
-  where t.id = any(p_ticket_ids)
-    and t.status='available'
+     set status='reserved', reserved_by=p_session_id, reserved_until=v_until
+  from picked
+  where t.id = picked.id
   returning t.*;
 end;
 $$;
@@ -228,7 +282,10 @@ language plpgsql
 security definer
 as $$
 declare
-  v_ids uuid[];
+  v_until timestamptz := now() + make_interval(mins => p_minutes);
+  v_reserved int := 0;
+  v_to_pick int := 0;
+  v_round int := 0;
 begin
   perform ensure_session(p_session_id);
   perform ensure_tickets_for_raffle(p_raffle_id, p_total);
@@ -236,29 +293,50 @@ begin
   -- Liberar cualquier reserva previa de esta sesión en esta rifa
   update tickets
      set status='available', reserved_by=null, reserved_until=null
-   where raffle_id = p_raffle_id and reserved_by = p_session_id;
+   where raffle_id = p_raffle_id and reserved_by = p_session_id
+     and not exists (
+       select 1 from payment_tickets pt
+       join payments p on p.id = pt.payment_id
+       where pt.ticket_id = tickets.id and p.status = 'pending'
+     );
 
-  -- Elegir aleatorios disponibles
-  select array_agg(id) into v_ids
-  from tickets
-  where raffle_id = p_raffle_id and status='available'
-  order by random()
-  limit p_quantity;
+  -- Intentos en bucle: reservar en tandas hasta alcanzar p_quantity o quedarse sin disponibles
+  loop
+    exit when v_reserved >= greatest(0, p_quantity);
+    v_round := v_round + 1;
+    v_to_pick := greatest(0, p_quantity - v_reserved);
 
-  if v_ids is null or array_length(v_ids,1) is null then
-    return;
-  end if;
+    with picked as (
+      select id
+      from tickets
+      where raffle_id = p_raffle_id
+        and status = 'available'
+      order by random()
+      limit v_to_pick
+      for update skip locked
+    ), upd as (
+      update tickets t
+         set status = 'reserved', reserved_by = p_session_id, reserved_until = v_until
+      from picked
+      where t.id = picked.id
+      returning t.id
+    )
+    select count(*) into v_to_pick from upd;
 
-  -- Reservar exactamente los elegidos
-  update tickets
-     set status='reserved', reserved_by=p_session_id, reserved_until=now() + make_interval(mins => p_minutes)
-   where id = any(v_ids) and status='available';
+    if v_to_pick = 0 then
+      exit; -- no hay más disponibles
+    end if;
+    v_reserved := v_reserved + v_to_pick;
+  end loop;
 
-  return query select * from tickets where id = any(v_ids);
+  -- Devolver exactamente los tickets reservados por esta sesión (hasta p_quantity)
+  return query
+  select * from tickets
+  where raffle_id = p_raffle_id and reserved_by = p_session_id and status = 'reserved'
+  order by reserved_until desc
+  limit greatest(0, p_quantity);
 end;
 $$;
-
--- create_payment_for_session: crea pago y relaciona tickets reservados
 
 -- create_payment_for_session: crea pago y relaciona tickets reservados
 create or replace function create_payment_for_session(
@@ -273,7 +351,8 @@ create or replace function create_payment_for_session(
   p_amount_ves numeric,
   p_rate_used numeric,
   p_rate_source text,
-  p_currency text default 'VES'
+  p_currency text default 'VES',
+  p_ci text default null
 ) returns uuid
 language plpgsql
 security definer
@@ -281,8 +360,8 @@ as $$
 declare
   v_payment_id uuid;
 begin
-  insert into payments(raffle_id, session_id, email, phone, city, method, reference, evidence_url, amount_ves, rate_used, rate_source, currency, status)
-  values (p_raffle_id, p_session_id, p_email, p_phone, p_city, p_method, p_reference, p_evidence_url, p_amount_ves, p_rate_used, p_rate_source, p_currency, 'pending')
+  insert into payments(raffle_id, session_id, email, phone, city, method, reference, evidence_url, amount_ves, rate_used, rate_source, currency, status, ci)
+  values (p_raffle_id, p_session_id, p_email, p_phone, p_city, p_method, p_reference, p_evidence_url, p_amount_ves, p_rate_used, p_rate_source, p_currency, 'pending', p_ci)
   returning id into v_payment_id;
 
   -- asociar tickets reservados por esa sesión para esa rifa
@@ -290,6 +369,13 @@ begin
   select v_payment_id, t.id
   from tickets t
   where t.raffle_id = p_raffle_id and t.reserved_by = p_session_id and t.status='reserved' and (t.reserved_until is null or t.reserved_until > now());
+
+  -- Congelar: quitar temporizador y desvincular de la sesión (siguen reservados hasta aprobación/rechazo)
+  update tickets t
+     set reserved_until = null,
+         reserved_by = null
+   where t.id in (select pt.ticket_id from payment_tickets pt where pt.payment_id = v_payment_id)
+     and t.status = 'reserved';
 
   return v_payment_id;
 end;
@@ -307,6 +393,23 @@ begin
 
   update tickets t
   set status='sold', reserved_by=null, reserved_until=null
+  from payment_tickets pt
+  where pt.payment_id = p_payment_id and pt.ticket_id = t.id;
+end;
+$$;
+
+-- reject_payment: marcar pago como rechazado y liberar tickets a disponibles
+create or replace function reject_payment(p_payment_id uuid, p_rejected_by text)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  update payments set status='rejected', approved_by = p_rejected_by, approved_at = now()
+  where id = p_payment_id;
+
+  update tickets t
+     set status='available', reserved_by=null, reserved_until=null
   from payment_tickets pt
   where pt.payment_id = p_payment_id and pt.ticket_id = t.id;
 end;
@@ -380,6 +483,15 @@ begin
   return v_winner_id;
 end;
 $$;
+
+-- Grants for RPC from anon/authenticated when frontend calls directly
+grant execute on function ensure_session(uuid) to anon, authenticated;
+grant execute on function ensure_tickets_for_raffle(uuid,int) to anon, authenticated;
+grant execute on function reserve_tickets(uuid[],uuid,int) to anon, authenticated;
+grant execute on function release_tickets(uuid[],uuid) to anon, authenticated;
+grant execute on function reserve_random_tickets(uuid,uuid,int,int) to anon, authenticated;
+grant execute on function ensure_and_reserve_random_tickets(uuid,int,uuid,int,int) to anon, authenticated;
+grant execute on function reject_payment(uuid,text) to anon, authenticated;
 
 -- RLS
 alter table raffles enable row level security;

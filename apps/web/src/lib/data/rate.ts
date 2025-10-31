@@ -56,7 +56,8 @@ export async function getUsdVesRate(): Promise<RateInfo | null> {
       .from('settings')
       .select('value')
       .eq('key', 'usdves_rate')
-      .single();
+      // Permite 0 filas sin provocar 406 (PGRST116):
+      .maybeSingle();
     if (error) throw error;
     const v = typeof data?.value === 'string' ? JSON.parse(data.value) : data?.value;
     const rate = Number(v?.rate);

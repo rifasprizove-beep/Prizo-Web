@@ -21,7 +21,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
   const [restoring, setRestoring] = useState(false);
   const [rehydrated, setRehydrated] = useState(false);
   const [restoreIds, setRestoreIds] = useState<string[] | null>(null);
-  const [restoreNums, setRestoreNums] = useState<number[] | null>(null);
+  // Nota: antes almacenábamos los números para mostrar, pero no se usan en UI.
   const [restoreDeadline, setRestoreDeadline] = useState<number | null>(null);
 
   const ticketsQ = useQuery({
@@ -43,14 +43,14 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
     (async () => {
       try {
         let idsFromStorage: string[] | null = null;
-        let numsFromStorage: number[] | null = null;
+  // let numsFromStorage: number[] | null = null;
         let deadlineFromStorage: number | null = null;
         try {
           const raw = localStorage.getItem(storageKey);
           if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed?.ids)) idsFromStorage = parsed.ids;
-            if (Array.isArray(parsed?.nums)) numsFromStorage = parsed.nums;
+            // if (Array.isArray(parsed?.nums)) numsFromStorage = parsed.nums;
             if (parsed?.deadline) deadlineFromStorage = Number(parsed.deadline);
           }
         } catch {}
@@ -70,7 +70,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
         } else {
           // Activar modo restauración automática
           setRestoreIds(idsFromStorage);
-          setRestoreNums(numsFromStorage ?? null);
+          // setRestoreNums(numsFromStorage ?? null);
           if (deadlineFromStorage) setRestoreDeadline(deadlineFromStorage);
           setRestoring(true);
         }
@@ -93,18 +93,33 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
         await releaseM.mutateAsync([id]);
         setSelectedIds((prev) => prev.filter((x) => x !== id));
       } else if (status === 'available') {
-        // Reserva segura de un solo ID y liberación de cualquier excedente devuelto por error del backend
-        const res = await reserveTickets([id], sessionId);
+        // Importante: reserve_tickets en el backend define el CONJUNTO exacto para la sesión,
+        // por lo que debemos enviar todos los IDs seleccionados + el nuevo ID, no solo uno.
+        const desired = Array.from(new Set([...selectedIds, id]));
+        const res = await reserveTickets(desired, sessionId);
         const arr = Array.isArray(res) ? res : [];
-        const hasMine = arr.some((t: any) => t.id === id);
-        const extras = arr.filter((t: any) => t.id !== id).map((t: any) => t.id);
+        // Liberar cualquier ticket que el backend haya devuelto que no está en nuestro objetivo (defensa)
+        const extras = arr.filter((t: any) => !desired.includes(t.id)).map((t: any) => t.id);
         if (extras.length) {
           try { await releaseTickets(extras, sessionId); } catch {}
         }
-        if (hasMine) {
-          setSelectedIds((prev) => [...prev, id]);
-        } else {
-          setErrorMsg('No se pudo reservar el ticket. Intenta otro.');
+        // Importante: reserve_tickets solo retorna filas ACTUALIZADAS en esta llamada.
+        // Para no perder selecciones previas, consultamos el estado real y quedamos con los IDs deseados reservados por mi sesión.
+        try {
+          const fresh = await listTickets(raffleId);
+          const mine = (fresh ?? [])
+            .filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && desired.includes(t.id))
+            .map((t: any) => t.id);
+          if (mine.length) {
+            setSelectedIds(mine);
+          } else {
+            setErrorMsg('No se pudo reservar el ticket. Intenta otro.');
+          }
+        } catch {
+          // Fallback: mantener al menos los que el RPC devolvió correctamente dentro del objetivo
+          const kept = arr.filter((t: any) => desired.includes(t.id)).map((t: any) => t.id);
+          if (kept.length) setSelectedIds((prev) => Array.from(new Set([...prev, ...kept])));
+          else setErrorMsg('No se pudo reservar el ticket. Intenta otro.');
         }
         qc.invalidateQueries({ queryKey: ['tickets', raffleId] });
       }
@@ -181,7 +196,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
           setRehydrated(true);
           setRestoring(false);
           setRestoreIds(null);
-          setRestoreNums(null);
+          // setRestoreNums(null);
         }
       } catch (e: any) {
         // Si falla, seguir en modo restoring basado en storage

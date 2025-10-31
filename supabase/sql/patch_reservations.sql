@@ -56,7 +56,9 @@ security definer
 set search_path = public
 as $$
 declare
-  v_ids uuid[];
+  v_until timestamptz := now() + make_interval(mins => p_minutes);
+  v_reserved int := 0;
+  v_to_pick int := 0;
 begin
   perform public.ensure_session(p_session_id);
   perform public.ensure_tickets_for_raffle(p_raffle_id, p_total);
@@ -66,27 +68,41 @@ begin
      set status = 'available', reserved_by = null, reserved_until = null
    where raffle_id = p_raffle_id and reserved_by = p_session_id;
 
-  -- Elegir aleatorios disponibles
-  select array_agg(id) into v_ids
-  from tickets
-  where raffle_id = p_raffle_id
-    and status = 'available'
-  order by random()
-  limit p_quantity;
+  -- Intentos en bucle: reservar en tandas hasta alcanzar p_quantity o quedarse sin disponibles
+  loop
+    exit when v_reserved >= greatest(0, p_quantity);
+    v_to_pick := greatest(0, p_quantity - v_reserved);
 
-  if v_ids is null or array_length(v_ids,1) is null then
-    return;
-  end if;
+    with picked as (
+      select id
+      from tickets
+      where raffle_id = p_raffle_id
+        and status = 'available'
+      order by random()
+      limit v_to_pick
+      for update skip locked
+    ), upd as (
+      update tickets t
+         set status = 'reserved',
+             reserved_by = p_session_id,
+             reserved_until = v_until
+      from picked
+      where t.id = picked.id
+      returning t.id
+    )
+    select count(*) into v_to_pick from upd;
 
-  -- Reservar exactamente los elegidos
-  update tickets
-     set status = 'reserved',
-         reserved_by = p_session_id,
-         reserved_until = now() + make_interval(mins => p_minutes)
-   where id = any(v_ids)
-     and status = 'available';
+    if v_to_pick = 0 then
+      exit; -- no hay más disponibles
+    end if;
+    v_reserved := v_reserved + v_to_pick;
+  end loop;
 
-  return query select * from tickets where id = any(v_ids);
+  return query
+  select * from tickets
+  where raffle_id = p_raffle_id and reserved_by = p_session_id and status = 'reserved'
+  order by reserved_until desc
+  limit greatest(0, p_quantity);
 end;
 $$;
 
@@ -105,6 +121,7 @@ set search_path = public
 as $$
 declare
   v_raffle_ids uuid[];
+  v_until timestamptz := now() + make_interval(mins => p_minutes);
 begin
   perform public.ensure_session(p_session_id);
 
@@ -123,16 +140,21 @@ begin
      and raffle_id = any(coalesce(v_raffle_ids, array[]::uuid[]))
      and not (id = any(p_ticket_ids));
 
-  -- Reservar exactamente los tickets indicados (si están disponibles)
-  update tickets
+  -- Reservar exactamente los tickets indicados (si están disponibles) con bloqueo optimista
+  return query
+  with picked as (
+    select id
+    from tickets
+    where id = any(p_ticket_ids) and status='available'
+    for update skip locked
+  )
+  update tickets t
      set status = 'reserved',
          reserved_by = p_session_id,
-         reserved_until = now() + make_interval(mins => p_minutes)
-   where id = any(p_ticket_ids)
-     and status = 'available';
-
-  -- Devolver únicamente los tickets solicitados
-  return query select * from tickets where id = any(p_ticket_ids);
+         reserved_until = v_until
+  from picked
+  where t.id = picked.id
+  returning t.*;
 end;
 $$;
 

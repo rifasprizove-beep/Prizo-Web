@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { ensureSession } from "@/lib/rpc";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { ensureSession, ensureAndReserveRandomTickets } from "@/lib/rpc";
 import type { RafflePaymentInfo } from "@/lib/data/paymentConfig";
 import { listTickets, releaseTickets, reserveTickets } from "@/lib/data/tickets";
 import { getSessionId } from "@/lib/session";
@@ -11,6 +11,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
   const [qty, setQty] = useState<number>(1);
+  const [availableTickets, setAvailableTickets] = useState<number>(totalTickets);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   const storageKey = `prizo_reservation_${raffleId}`;
   const [rehydrated, setRehydrated] = useState(false);
   const [restoreIds, setRestoreIds] = useState<string[] | null>(null);
-  const [restoreNums, setRestoreNums] = useState<number[] | null>(null);
+  // Nota: antes se guardaban/rehidrataban números de tickets, pero ya no se muestran en UI.
   const [restoreDeadline, setRestoreDeadline] = useState<number | null>(null);
   const [restoring, setRestoring] = useState<boolean>(false);
 
@@ -32,8 +33,27 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
     })();
   }, []);
 
-  const inc = (n = 1) => setQty((q) => Math.max(1, q + n));
+  const inc = (n = 1) => setQty((q) => Math.min(Math.max(1, q + n), availableTickets));
   const dec = () => setQty((q) => Math.max(1, q - 1));
+  const handleQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const val = Math.max(1, Math.min(Number(e.target.value || 1), availableTickets));
+    setQty(val);
+  };
+  // Actualizar el número de tickets disponibles al montar y cuando cambie la rifa
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await listTickets(raffleId);
+        const available = (all ?? []).filter((t: any) => t.status === 'available').length;
+        setAvailableTickets(available);
+        // Si la cantidad seleccionada es mayor a la disponible, ajusta manteniendo mínimo en 1
+        setQty((q) => {
+          if (available <= 0) return 1;
+          return Math.min(q, available);
+        });
+      } catch {}
+    })();
+  }, [raffleId, reserved.length]);
 
   async function enforceExactReservation(chosenIds: string[]) {
     // Intenta hasta 5 veces liberar cualquier extra que haya quedado reservado por mi sesión, con backoff corto
@@ -59,18 +79,51 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
     }
   }
 
+  // Toma 'count' IDs aleatorios disponibles y trata de reservarlos, manteniendo también los ya deseados
+  async function pickAndReserveAvailable(count: number, desiredSoFar: string[]): Promise<any[]> {
+    if (count <= 0) return [];
+    try {
+      const all = await listTickets(raffleId);
+      const avail = (all ?? []).filter((t: any) => t.status === 'available');
+      if (!avail.length) return [];
+      // Shuffle Fisher–Yates
+      for (let i = avail.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [avail[i], avail[j]] = [avail[j], avail[i]];
+      }
+      const chosen = avail.slice(0, Math.min(count, avail.length));
+      const chosenIds = chosen.map((t: any) => t.id);
+      const desired = Array.from(new Set([...(desiredSoFar ?? []), ...chosenIds]));
+      const res = await reserveTickets(desired, sessionId, 10);
+      const picked = Array.isArray(res) ? res : [];
+      // Liberar cualquier extra inesperado
+      const extras = picked.filter((t: any) => !desired.includes(t.id)).map((t: any) => t.id);
+      if (extras.length) { try { await releaseTickets(extras, sessionId); } catch {} }
+      // Leer estado real y devolver los míos del conjunto deseado
+      try {
+        const fresh = await listTickets(raffleId);
+        const mine = (fresh ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && desired.includes(t.id));
+        return mine;
+      } catch {
+        // Fallback mínimo
+        return picked.filter((t: any) => desired.includes(t.id));
+      }
+    } catch {
+      return [];
+    }
+  }
+
   // Al montar: recuperar reservas activas desde localStorage y validar en BD
   useEffect(() => {
     (async () => {
       try {
-        let idsFromStorage: string[] | null = null;
-        let numsFromStorage: number[] | null = null;
+  let idsFromStorage: string[] | null = null;
         try {
           const raw = localStorage.getItem(storageKey);
           if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed?.ids)) idsFromStorage = parsed.ids;
-            if (Array.isArray(parsed?.nums)) numsFromStorage = parsed.nums;
+            // if (Array.isArray(parsed?.nums)) { /* números no usados en UI */ }
             if (parsed?.deadline) setRestoreDeadline(Number(parsed.deadline));
           }
         } catch {}
@@ -89,7 +142,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
         } else if (idsFromStorage && idsFromStorage.length) {
           // No hay reservas activas, pero hay ids guardados: activar modo restauración automática
           setRestoreIds(idsFromStorage);
-          setRestoreNums(numsFromStorage ?? null);
+          // setRestoreNums(numsFromStorage ?? null);
           setRestoring(true);
         }
       } catch (e) {
@@ -123,66 +176,119 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
     setInfo(null);
     try {
       let newReserved: any[] = [];
-      // 0) Libera cualquier reserva previa de esta sesión para esta rifa
+      // Determinar si hay selección manual previa (no liberamos en ese caso)
+      let manualIds: string[] = [];
       try {
-        const current = await listTickets(raffleId);
-        const mineIds = (current ?? [])
-          .filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved')
-          .map((t: any) => t.id);
-        if (mineIds.length) {
-          await releaseTickets(mineIds, sessionId);
+        const raw = localStorage.getItem(`prizo_manual_${raffleId}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed?.ids)) manualIds = parsed.ids as string[];
         }
-      } catch (e) {
-        console.warn('Could not pre-release existing reservations:', e);
-      }
+      } catch {}
 
       // Asegurar que la sesión exista en la BD para no romper el FK
       try { await ensureSession(sessionId); } catch (e) { console.warn('ensureSession failed (continuing):', e); }
 
-      // Selección local segura de 'qty' tickets disponibles al azar y reserva exacta
-      let all: any[] = [];
-      try { all = await listTickets(raffleId) as any[]; } catch {}
-      const avail = (all ?? []).filter((t: any) => t.status === 'available');
-      if (!avail.length) {
-        setError("No hay tickets disponibles en este momento.");
-      } else {
-        // Barajar y tomar exactamente qty
-        const shuffled = [...avail];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        const chosen = shuffled.slice(0, Math.min(qty, shuffled.length));
-        const chosenIds = chosen.map((t: any) => t.id);
+      if (manualIds.length) {
+        // NO liberar reservas previas: el usuario ya escogió exactamente esos IDs
         try {
-          const res = await reserveTickets(chosenIds, sessionId, 10);
+          const res = await reserveTickets(manualIds, sessionId, 10);
           const arr = Array.isArray(res) ? res : [];
-          const keep = arr.filter((t: any) => chosenIds.includes(t.id));
-          const extras = arr.filter((t: any) => !chosenIds.includes(t.id)).map((t: any) => t.id);
-          if (extras.length) {
-            if (debugReservations) console.debug('[reservas] backend devolvió extras, liberando:', extras.length);
-            try { await releaseTickets(extras, sessionId); } catch {}
-          }
-          // Enforcement adicional con polling
-          await enforceExactReservation(chosenIds);
-          // Cargar estado final de mis reservas y quedarme con los escogidos
+          // Quédate solo con los IDs seleccionados
+          newReserved = arr.filter((t: any) => manualIds.includes(t.id));
+          // Liberar cualquier extra (defensa)
+          const extras = arr.filter((t: any) => !manualIds.includes(t.id)).map((t: any) => t.id);
+          if (extras.length) { try { await releaseTickets(extras, sessionId); } catch {} }
+          // Enforcement: asegurarse con snapshot en BD
           try {
             const fresh = await listTickets(raffleId);
-            const mine = (fresh ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && chosenIds.includes(t.id));
+            const mine = (fresh ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && manualIds.includes(t.id));
             newReserved = mine;
-          } catch {
-            newReserved = keep;
+          } catch {}
+          if ((newReserved?.length ?? 0) < manualIds.length) {
+            setInfo(`Solo pudimos reservar ${newReserved.length} de ${manualIds.length} seleccionados.`);
           }
-          if ((newReserved?.length ?? 0) < qty) {
-            setInfo(`Solo pudimos reservar ${newReserved.length} de ${qty} solicitados.`);
+        } catch (e: any) {
+          if (debugReservations) console.error('reserveTickets(manualIds) failed:', e);
+          const msg = e?.message || String(e);
+          setError(`Error al reservar (selección manual): ${msg}`);
+        }
+      } else {
+        // 0) No hay selección manual: si ya tengo reservas activas (p. ej., desde la vista manual), NO liberar; usa esas
+        try {
+          const current = await listTickets(raffleId);
+          const mine = (current ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved');
+          if (mine.length) {
+            newReserved = mine;
           }
-        } catch (e) {
-          console.error('reserveTickets random selection failed:', e);
+        } catch {}
+
+        if (!newReserved.length) {
+          // 0.1) Empezar limpio liberando reservas previas si las hubiera
+          try {
+            const current = await listTickets(raffleId);
+            const mineIds = (current ?? [])
+              .filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved')
+              .map((t: any) => t.id);
+            if (mineIds.length) {
+              await releaseTickets(mineIds, sessionId);
+            }
+          } catch (e) {
+            console.warn('Could not pre-release existing reservations:', e);
+          }
+        }
+        // 1) Si después de lo anterior sigo sin reservas, reservar EXACTAMENTE qty usando RPC aleatorio
+        if (!newReserved.length) {
+          try {
+            const res = await ensureAndReserveRandomTickets({ p_raffle_id: raffleId, p_total: totalTickets, p_session_id: sessionId, p_quantity: qty, p_minutes: 10 });
+            let arr = Array.isArray(res) ? res : [];
+            // Blindaje: si la RPC devolvió más de lo pedido, libera el excedente
+            if (arr.length > qty) {
+              const extras = arr.slice(qty).map((t: any) => t.id);
+              try { if (extras.length) await releaseTickets(extras, sessionId); } catch {}
+              arr = arr.slice(0, qty);
+            }
+            // Blindaje extra: asegurar en BD que solo queden exactamente esos IDs
+            const pickedIds = arr.map((t: any) => t.id);
+            if (pickedIds.length) {
+              try { await enforceExactReservation(pickedIds); } catch {}
+              try {
+                const fresh = await listTickets(raffleId);
+                const mine = (fresh ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && pickedIds.includes(t.id));
+                newReserved = mine;
+              } catch {}
+            } else {
+              newReserved = arr;
+            }
+
+            // Si aún faltan, intentar completar con picks locales (hasta 3 intentos rápidos)
+            let attempts = 0;
+            while ((newReserved?.length ?? 0) < qty && attempts < 3) {
+              attempts++;
+              const missing = qty - (newReserved?.length ?? 0);
+              const desiredSoFar = (newReserved ?? []).map((t: any) => t.id);
+              const extra = await pickAndReserveAvailable(missing, desiredSoFar);
+              const next = [...new Set([...(newReserved ?? []), ...extra])];
+              // normalizar por id
+              const map = new Map<string, any>();
+              next.forEach((t: any) => map.set(t.id, t));
+              newReserved = Array.from(map.values()).slice(0, qty);
+              try { await enforceExactReservation(newReserved.map((t: any) => t.id)); } catch {}
+            }
+
+            if ((newReserved?.length ?? 0) < qty) {
+              setInfo(`Solo pudimos reservar ${newReserved.length} de ${qty} solicitados.`);
+            }
+          } catch (e: any) {
+            if (debugReservations) console.error('ensureAndReserveRandomTickets failed:', e);
+            const msg = e?.message || String(e);
+            setError(`Error al reservar: ${msg}`);
+          }
         }
       }
 
       if (!newReserved.length) {
-        setError("No se pudieron reservar tickets. Puede que no haya disponibilidad suficiente o que tu usuario no tenga permiso para ejecutar la reserva.");
+        setError((prev) => prev ?? "No se pudieron reservar tickets. Puede que no haya disponibilidad suficiente o que tu usuario no tenga permiso para ejecutar la reserva.");
       } else {
         setReserved(newReserved);
       }
@@ -256,7 +362,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
       if (arr.length) {
         setReserved(arr);
         setRestoreIds(null);
-        setRestoreNums(null);
+  // setRestoreNums(null);
         setRehydrated(true);
         setRestoring(false);
       } else {
@@ -327,8 +433,9 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
               className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border"
               type="number"
               min={1}
+              max={availableTickets}
               value={qty}
-              onChange={(e) => setQty(Math.max(1, Number(e.target.value || 1)))}
+              onChange={handleQtyChange}
             />
             <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={() => inc(1)} disabled={busy}>+</button>
           </div>
@@ -485,7 +592,16 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             quantity={reservedCount}
             unitPriceCents={unitPriceCents}
             methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
-            onCreated={() => {}}
+            onCreated={(paymentId) => {
+              try {
+                // Limpiar estado local y cerrar temporizador sin liberar en la BD
+                localStorage.removeItem(storageKey);
+                localStorage.removeItem(`prizo_manual_${raffleId}`);
+              } catch {}
+              setReserved([]);
+              setQty(1);
+              setInfo('Pago enviado. Tus tickets quedan reservados sin temporizador hasta que el administrador apruebe o rechace. Puedes comprar más si deseas.');
+            }}
           />
 
           <div className="flex items-center justify-end">

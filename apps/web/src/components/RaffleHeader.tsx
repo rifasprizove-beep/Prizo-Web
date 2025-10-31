@@ -1,9 +1,15 @@
 "use client";
 import type { Raffle, RaffleTicketCounters } from "@/lib/types";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
+import { formatVES, raffleStatusEs } from "@/lib/i18n";
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
-  const price = (raffle.ticket_price_cents ?? 0) / 100;
+  const [rate, setRate] = useState<number | null>(null);
+  useEffect(() => { (async () => { try { const info = await getUsdVesRate(); if (info?.rate) setRate(info.rate); } catch {} })(); }, []);
+  const priceUSD = centsToUsd(raffle.ticket_price_cents ?? 0);
+  const priceVES = rate ? round2(priceUSD * rate) : 0;
   const percent = counters && counters.total_tickets > 0 ? Math.min(100, (counters.sold / counters.total_tickets) * 100) : 0;
 
   return (
@@ -26,8 +32,15 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-3 text-sm">
-          <span className="opacity-90">Ticket:</span> {raffle.currency} ${price.toFixed(2)} <span className="opacity-80">(tasa del día)</span>
+          <span className="opacity-90">Ticket:</span> {priceVES ? formatVES(priceVES) : '—'} <span className="opacity-80">(tasa del día)</span>
         </div>
+
+        {raffle.allow_manual === false && (
+          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white text-brand-700 text-xs font-semibold border border-white/40">
+            <span>🔀</span>
+            <span>Asignación aleatoria de números</span>
+          </div>
+        )}
 
         <div className="mt-2">
           <div className="flex items-center justify-between text-xs opacity-90 mb-1">
@@ -50,6 +63,9 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               )}
             </div>
           </div>
+        </div>
+        <div className="mt-2 text-xs opacity-80">
+          Estado: {raffleStatusEs(raffle.status)}
         </div>
       </div>
     </header>

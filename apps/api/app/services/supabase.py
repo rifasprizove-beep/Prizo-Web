@@ -39,6 +39,21 @@ class SupabaseClient:
                 return data[0] if data else None
             return data
 
+    def get_many(self, table: str, params: Dict[str, str], select: str = "*") -> Any:
+        """Consulta PostgREST con soporte de embeds (select con relaciones) y filtros.
+        Devuelve lista JSON tal cual.
+        """
+        url = f"{self.base_url}/rest/v1/{table}"
+        headers = self._headers()
+        query = {"select": select}
+        query.update(params)
+        with httpx.Client(timeout=25.0) as client:
+            res = client.get(url, headers=headers, params=query)
+            if res.status_code in (404, 406):
+                return []
+            res.raise_for_status()
+            return res.json()
+
 
 def get_supabase() -> SupabaseClient:
     s = get_settings()

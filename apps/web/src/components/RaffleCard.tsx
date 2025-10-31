@@ -1,19 +1,26 @@
 "use client";
 import type { Raffle } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { centsToUsd, getUsdVesRate, round2 } from '@/lib/data/rate';
+import { raffleStatusEs, formatVES } from '@/lib/i18n';
 
-function formatPrice(cents: number, currency: string) {
-  try {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 2,
-    }).format(cents / 100);
-  } catch {
-    return `${(cents / 100).toFixed(2)} ${currency}`;
-  }
+function useRate() {
+  const [rate, setRate] = useState<number | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const info = await getUsdVesRate();
+        if (info?.rate) setRate(info.rate);
+      } catch {}
+    })();
+  }, []);
+  return rate;
 }
 
 export function RaffleCard({ raffle }: { raffle: Raffle }) {
+  const rate = useRate();
+  const unitUSD = centsToUsd(raffle.ticket_price_cents);
+  const unitVES = rate ? round2(unitUSD * rate) : 0;
   return (
     <a
       href={`/raffles/${raffle.id}`}
@@ -37,10 +44,10 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         </div>
         <div className="mt-2 flex items-center justify-between">
           <span className="text-pink-600 font-semibold">
-            {formatPrice(raffle.ticket_price_cents, raffle.currency)}
+            {unitVES ? formatVES(unitVES) : '—'}
           </span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 capitalize">
-            {raffle.status}
+            {raffleStatusEs(raffle.status)}
           </span>
         </div>
       </div>

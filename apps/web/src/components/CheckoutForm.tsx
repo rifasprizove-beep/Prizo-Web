@@ -12,6 +12,7 @@ export const checkoutSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
   phone: z.string().min(6, 'Teléfono requerido'),
   city: z.string().min(2, 'Ciudad requerida'),
+  ci: z.string().min(5, 'Cédula requerida').optional().or(z.literal('')),
   method: z.string().min(1, 'Selecciona un método'),
   reference: z.string().optional().or(z.literal('')),
   amount_ves: z.string().optional(),
@@ -71,6 +72,7 @@ export function CheckoutForm({
       p_email: values.email || null,
       p_phone: values.phone,
       p_city: values.city,
+      p_ci: values.ci || null,
       p_method: values.method,
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,
@@ -123,6 +125,11 @@ export function CheckoutForm({
           <label className="block text-sm font-medium">Teléfono</label>
           <input type="tel" className="mt-1 w-full border rounded-lg p-2" placeholder="0412-0000000" {...register('phone')} />
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Cédula (opcional)</label>
+          <input type="text" className="mt-1 w-full border rounded-lg p-2" placeholder="V-12345678" {...register('ci')} />
+          {errors.ci && <p className="text-xs text-red-600 mt-1">{errors.ci.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Ciudad</label>

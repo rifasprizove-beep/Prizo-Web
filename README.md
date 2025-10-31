@@ -75,6 +75,43 @@ Cuando ambos servicios estén arriba:
 
 - Si ves errores con imágenes Next en el sitio estático, ya está activado `images.unoptimized: true` en `next.config.mjs`.
 - Si una página dinámica falla al exportar, revisa que no haya APIs de servidor en esas páginas. En este proyecto, los datos se cargan en el cliente con Supabase/Fetch.
+
+## Despliegue en DigitalOcean App Platform (alternativa a Render)
+
+Incluí un App Spec en `.do/app.yaml` con dos componentes:
+
+- `prizo-api`: Web Service (Python/FastAPI) servido bajo la ruta `/api`.
+- `prizo-web`: Static Site (Next.js export) servido en `/`.
+
+### Variables requeridas
+
+Backend (`prizo-api`):
+
+- SUPABASE_URL
+- SUPABASE_SERVICE_KEY
+- CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET (opcionales si subes evidencias a Cloudinary)
+- CLOUDINARY_UPLOAD_PRESET (opcional)
+
+Frontend (`prizo-web`):
+
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- NEXT_PUBLIC_RATE_URL (opcional; si no, el frontend usa `/api/rate`)
+
+Opcional:
+- NODE_VERSION=18.20.4 (asegura Node 18 LTS durante build).
+
+### Crear la App desde la consola de DO
+
+1. DigitalOcean > Apps > Create App > From GitHub > selecciona este repo.
+2. Elige “Use existing App Spec” y apunta a `.do/app.yaml`.
+3. Revisa que los componentes aparezcan como:
+  - Static Site → Source dir: `apps/web`, Output dir: `out`, Build: `npm ci && npm run build && npm run export`.
+  - Web Service → Source dir: `apps/api`, Run: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+4. Crea los Environment Variables (marca secretos donde aplique) con alcance `RUN_AND_BUILD` para que estén disponibles en el build del frontend.
+5. Deploy.
+
+Con este App Spec, el dominio principal sirve el estático (`/`) y las rutas de API bajo la misma base (`/api/...`). Como el frontend ya usa rutas relativas por defecto, no necesitas `NEXT_PUBLIC_API_URL` en App Platform.
 1) Variables de entorno
 
 - Copia `apps/web/.env.example` a `apps/web/.env.local` y completa los valores.

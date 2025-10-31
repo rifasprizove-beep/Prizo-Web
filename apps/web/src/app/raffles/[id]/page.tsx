@@ -1,5 +1,6 @@
 import { RaffleDetailClient } from './RaffleDetailClient';
 import { RaffleBuyClient } from './RaffleBuyClient';
+export { generateStaticParams } from './static-params';
 
 export default function RaffleDetailPage({ params }: { params: { id: string } }) {
   return (

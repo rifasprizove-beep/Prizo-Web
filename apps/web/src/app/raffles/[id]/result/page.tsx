@@ -4,6 +4,7 @@ import { getLastDraw } from '@/lib/data/draws';
 import { listWinners } from '@/lib/data/winners';
 import { LastDrawCard } from '@/components/LastDrawCard';
 import WinnerList from '@/components/WinnerList';
+export { generateStaticParams } from '../static-params';
 
 export default function RaffleResultPage({ params }: { params: { id: string } }) {
   const drawQ = useQuery({ queryKey: ['last-draw', params.id], queryFn: () => getLastDraw(params.id), enabled: !!params.id });

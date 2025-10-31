@@ -25,7 +25,7 @@ export function round2(n: number | undefined | null): number {
  */
 export async function getUsdVesRate(): Promise<RateInfo | null> {
   // 1) Endpoint externo configurable
-  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL || '/api/rate';
+  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL || `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rate`;
   if (typeof window !== 'undefined' && rateUrl) {
     try {
       const res = await fetch(rateUrl, { cache: 'no-store' });

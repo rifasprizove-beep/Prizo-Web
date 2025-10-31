@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: prizo-api
+    env: python
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: free
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_PRESET
+        sync: false
+
+  - type: static_site
+    name: prizo-web
+    rootDir: apps/web
+    buildCommand: |
+      npm ci
+      npm run build
+      npm run export
+    staticPublishPath: out
+    autoDeploy: true
+    envVars:
+      # Cambia este valor al URL del servicio prizo-api cuando esté desplegado
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      # O apunta directo al endpoint de tasa si prefieres
+      - key: NEXT_PUBLIC_RATE_URL
+        sync: false

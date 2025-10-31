@@ -4,7 +4,8 @@ import { getSupabase } from '../supabaseClient';
 export async function uploadEvidence(file: File, pathPrefix = 'evidence') {
   // 1) Siempre intentamos firmar con Cloudinary vía backend; si no está configurado, devuelve 500 y caemos a Supabase.
   try {
-    const res = await fetch('/api/cloudinary/sign', {
+    const base = process.env.NEXT_PUBLIC_API_URL || '';
+    const res = await fetch(`${base}/api/cloudinary/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folder: pathPrefix }),

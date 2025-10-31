@@ -20,6 +20,61 @@ supabase/
 
 ## Inicio rápido
 
+## Despliegue en Render (frontend estático + backend FastAPI)
+
+Esta repo ya incluye los ajustes para publicar:
+
+- Backend (FastAPI) como Web Service en Render.
+- Frontend (Next.js) exportado como sitio estático.
+
+Hay un blueprint `render.yaml` que te permite crear ambos servicios directamente.
+
+### 1) Preparar variables de entorno
+
+Backend (servicio `prizo-api`):
+
+- SUPABASE_URL: URL de tu proyecto Supabase
+- SUPABASE_SERVICE_KEY: Service role key
+- CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET (opcionales pero recomendados si usas subida de evidencias)
+- CLOUDINARY_UPLOAD_PRESET (opcional)
+
+Frontend (sitio `prizo-web`):
+
+- NEXT_PUBLIC_API_URL: URL pública del backend en Render (por ejemplo, `https://prizo-api.onrender.com`)
+- NEXT_PUBLIC_RATE_URL: opcional. Si no lo defines, el frontend usará `${NEXT_PUBLIC_API_URL}/api/rate`.
+
+### 2) Crear los servicios con el blueprint
+
+1. Entra a Render > Blueprints > New > Connect repo y selecciona esta repo.
+2. Render detectará `render.yaml` y te mostrará 2 servicios:
+   - prizo-api (Python Web Service)
+   - prizo-web (Static Site)
+3. Rellena las variables de entorno marcadas como `sync: false` durante la creación o luego en Settings.
+4. Despliega.
+
+Notas de build:
+- El frontend corre `npm ci && npm run build && npm run export` en `apps/web` y publica `apps/web/out`.
+- El backend instala `requirements.txt` y ejecuta `uvicorn app.main:app`.
+
+### 3) Rutas y comunicación Frontend ↔ Backend
+
+- El frontend llama al backend usando `NEXT_PUBLIC_API_URL`.
+- Endpoints expuestos en el backend:
+  - `GET /api/rate` → tasa USD→VES (BCV) desde mirrors públicos.
+  - `POST /api/cloudinary/sign` → firma para subir a Cloudinary.
+  - (Más los ya existentes: `/health`, `/reservations`, `/verify`, etc.)
+
+### 4) Verificación rápida
+
+Cuando ambos servicios estén arriba:
+
+1. Abre `https://<dominio-del-backend>/health` → debe responder `{"status":"ok"}`.
+2. Desde el sitio estático, prueba flujo de compra/carga de evidencia; si tienes CLOUDINARY_* configurado, la carga sube a Cloudinary; si no, cae a Supabase Storage (asegúrate de tener bucket `evidence`).
+
+### 5) Problemas comunes
+
+- Si ves errores con imágenes Next en el sitio estático, ya está activado `images.unoptimized: true` en `next.config.mjs`.
+- Si una página dinámica falla al exportar, revisa que no haya APIs de servidor en esas páginas. En este proyecto, los datos se cargan en el cliente con Supabase/Fetch.
 1) Variables de entorno
 
 - Copia `apps/web/.env.example` a `apps/web/.env.local` y completa los valores.

@@ -3,13 +3,30 @@
 @tailwind utilities;
 
 :root {
-  --bg: #fff;
+  --bg: #0b0b0e;
 }
 
 body {
-  background: var(--bg);
+  background: radial-gradient(1200px 800px at -20% -20%, rgba(215,255,0,0.06), transparent 60%),
+              radial-gradient(900px 600px at 120% 10%, rgba(215,255,0,0.05), transparent 60%),
+              radial-gradient(700px 500px at 50% 120%, rgba(215,255,0,0.04), transparent 60%),
+              var(--bg);
+  color: #f3f3f3;
 }
 
 .site-container {
   @apply mx-auto max-w-6xl px-4;
+}
+
+/* Utilidades de estilo neon */
+@layer utilities {
+  .btn-neon {
+    @apply rounded-full px-5 py-2 font-semibold bg-brand-500 text-black shadow-glow transition-transform hover:-translate-y-0.5;
+  }
+  .pill-outline {
+    @apply rounded-full px-5 py-2 border border-brand-300 text-brand-200 bg-transparent hover:bg-brand-500 hover:text-black shadow-glowSm transition;
+  }
+  .title-neon {
+    text-shadow: 0 0 20px rgba(215,255,0,0.4);
+  }
 }

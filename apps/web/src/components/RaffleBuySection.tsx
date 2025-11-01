@@ -265,7 +265,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
             <div className="flex items-center justify-center">
               <button
                 type="button"
-                className="px-6 py-3 rounded-lg bg-pink-600 text-white disabled:opacity-60"
+                className="btn-neon disabled:opacity-60"
                 disabled={busy}
                 onClick={async () => {
                   try {
@@ -335,7 +335,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
 
           {/* Instrucciones de pago: ocultas en rifas gratuitas */}
           {!isFree && paymentInfo && (
-            <div className="rounded-xl border p-3 bg-white">
+            <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700 text-white">
               <div className="font-semibold mb-2">Pago Móvil / Transferencia</div>
               <div className="space-y-2 text-sm">
                 {paymentInfo.bank && (
@@ -346,7 +346,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -359,7 +359,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -372,7 +372,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -385,7 +385,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -398,7 +398,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>

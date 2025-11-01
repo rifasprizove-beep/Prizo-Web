@@ -9,18 +9,28 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Paleta "neon" (amarillo eléctrico) + superficies oscuras
         brand: {
-          50: '#FFE5F0',
-          100: '#FFC9DE',
-          200: '#FF99BF',
-          300: '#FF6AA0',
-          400: '#FF3B82',
-          500: '#E11D71', // rosa principal
-          600: '#B0155A',
-          700: '#800E42',
-          800: '#4F0829',
-          900: '#200311',
+          50: '#F7FFE0',
+          100: '#EEFFC2',
+          200: '#E3FF99',
+          300: '#D9FF73',
+          400: '#D3FF4D',
+          500: '#D7FF00', // amarillo eléctrico principal
+          600: '#B3D600',
+          700: '#8FAA00',
+          800: '#6A8000',
+          900: '#465400',
         },
+        surface: {
+          900: '#0b0b0e',
+          800: '#111114',
+          700: '#151519',
+        },
+      },
+      boxShadow: {
+        glow: '0 0 0 2px rgba(215,255,0,0.3), 0 0 24px rgba(215,255,0,0.45)',
+        glowSm: '0 0 0 1px rgba(215,255,0,0.25), 0 0 14px rgba(215,255,0,0.35)',
       },
     },
   },

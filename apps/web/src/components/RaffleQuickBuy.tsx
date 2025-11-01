@@ -44,6 +44,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   useEffect(() => {
     (async () => {
       try {
+        if (isFree) return; // rifas gratis no dependen de tickets
         const all = await listTickets(raffleId);
         const available = (all ?? []).filter((t: any) => t.status === 'available').length;
         setAvailableTickets(available);
@@ -118,6 +119,13 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   useEffect(() => {
     (async () => {
       try {
+        if (isFree) {
+          // En rifas gratis no rehidratamos reservas ni guardamos nada
+          setReserved([]);
+          setRestoreIds(null);
+          setRestoring(false);
+          return;
+        }
   let idsFromStorage: string[] | null = null;
         try {
           const raw = localStorage.getItem(storageKey);
@@ -155,6 +163,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   // Persistir IDs y deadline mínimo en localStorage cuando cambia la reserva
   useEffect(() => {
     try {
+      if (isFree) return; // no persistimos nada para rifas gratis
       if (reserved?.length) {
         const ids = reserved.map((t: any) => t.id);
         const times = reserved
@@ -176,6 +185,12 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
     setError(null);
     setInfo(null);
     try {
+      // En rifas gratis, no hay tickets ni reservas: mostrar directamente el formulario
+      if (isFree) {
+        const count = Math.max(1, qty);
+        setReserved(Array.from({ length: count }, () => ({ __virtual: true })) as any[]);
+        return;
+      }
       let newReserved: any[] = [];
       // Determinar si hay selección manual previa (no liberamos en ese caso)
       let manualIds: string[] = [];
@@ -312,8 +327,8 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
     setBusy(true);
     setError(null);
     try {
-      const ids = reserved.map((t) => t.id);
-      if (ids.length) await releaseTickets(ids, sessionId);
+      const ids = reserved.map((t) => (t as any).id).filter((id: any) => typeof id === 'string' && id.length > 0);
+      if (!isFree && ids.length) await releaseTickets(ids, sessionId);
       setReserved([]);
     } catch (e: any) {
       setError(e?.message ?? "No se pudieron liberar los tickets");
@@ -450,7 +465,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   const totalVES = round2(unitVES * (reservedCount || qty));
 
   return (
-    <div className="rounded-2xl border p-4 bg-white">
+    <div className="rounded-2xl border border-brand-500/20 p-4 bg-surface-800 text-white">
       <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase">¿Cuántos tickets quieres?</h2>
 
       {error && (
@@ -465,7 +480,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
           {!isFree ? (
             <>
               <div className="flex items-center justify-center gap-3">
-                <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={dec} disabled={busy}>−</button>
+                <button type="button" className="w-12 h-12 rounded-lg bg-brand-100 text-black text-2xl font-bold" onClick={dec} disabled={busy}>−</button>
                 <input
                   className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border"
                   type="number"
@@ -474,11 +489,11 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                   value={qty}
                   onChange={handleQtyChange}
                 />
-                <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={() => inc(1)} disabled={busy}>+</button>
+                <button type="button" className="w-12 h-12 rounded-lg bg-brand-100 text-black text-2xl font-bold" onClick={() => inc(1)} disabled={busy}>+</button>
               </div>
               <div className="mt-3 flex items-center justify-center gap-2">
                 {[2,5,10].map((n) => (
-                  <button key={n} type="button" className="px-2 py-1 rounded-lg bg-pink-50 text-pink-700 text-sm border" onClick={() => inc(n)} disabled={busy}>
+                  <button key={n} type="button" className="px-2 py-1 rounded-lg bg-brand-50 text-black text-sm border border-brand-200" onClick={() => inc(n)} disabled={busy}>
                     +{n}
                   </button>
                 ))}
@@ -488,9 +503,9 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             <div className="mt-2 flex items-center justify-center">
               <button
                 type="button"
-                className="px-6 py-3 rounded-lg bg-pink-600 text-white disabled:opacity-60"
+                className="btn-neon disabled:opacity-60"
                 onClick={async () => { setQty(1); await handleContinue(); }}
-                disabled={busy || availableTickets <= 0}
+                disabled={busy || (!isFree && availableTickets <= 0)}
               >
                 {busy && (
                   <span className="inline-block w-4 h-4 mr-2 border-2 border-white/70 border-t-transparent rounded-full align-[-2px] animate-spin" />
@@ -500,7 +515,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             </div>
           )}
 
-          <p className="mt-4 text-center text-sm text-gray-700">
+          <p className="mt-4 text-center text-sm text-gray-300">
             {isFree ? (
               <>
                 Al continuar, registraremos tu participación. Solo te pediremos tus datos. Es <b>GRATIS</b>, no debes pagar nada.
@@ -518,8 +533,8 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
 
           {!isFree && (
             <div className="mt-4 flex items-center justify-center gap-3">
-              <button type="button" className="px-4 py-2 rounded-lg border" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Cerrar</button>
-              <button type="button" className="px-4 py-2 rounded-lg bg-pink-600 text-white disabled:opacity-60 flex items-center gap-2" onClick={handleContinue} disabled={busy}>
+              <button type="button" className="pill-outline" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Cerrar</button>
+              <button type="button" className="btn-neon disabled:opacity-60 flex items-center gap-2" onClick={handleContinue} disabled={busy}>
                 {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
                 Continuar
               </button>
@@ -546,13 +561,13 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
           )}
           {/* Resumen con números */}
           <div className="text-sm grid sm:grid-cols-2 gap-3">
-            <div className="p-3 rounded border bg-pink-50">
-              <div className="text-xs text-pink-700">Cantidad</div>
-              <div className="text-lg font-semibold text-pink-800">{reservedCount}</div>
+            <div className="p-3 rounded border border-brand-500/30 bg-surface-700">
+              <div className="text-xs text-brand-200">Cantidad</div>
+              <div className="text-lg font-semibold text-brand-100">{reservedCount}</div>
             </div>
-            <div className="p-3 rounded border bg-pink-50">
-              <div className="text-xs text-pink-700">Total (Bs)</div>
-              <div className="text-lg font-semibold text-pink-800">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
+            <div className="p-3 rounded border border-brand-500/30 bg-surface-700">
+              <div className="text-xs text-brand-200">Total (Bs)</div>
+              <div className="text-lg font-semibold text-brand-100">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
             </div>
           </div>
 
@@ -564,7 +579,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
 
           {/* Instrucciones de pago desde la rifa (con botones COPIAR) */}
           {!isFree && paymentInfo && (
-            <div className="rounded-xl border p-3 bg-white">
+            <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700">
               <div className="font-semibold mb-2">Pago Móvil / Transferencia</div>
 
               <div className="space-y-2 text-sm">
@@ -576,7 +591,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -590,7 +605,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -604,7 +619,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -618,7 +633,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
@@ -632,7 +647,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                     </div>
                     <button
                       type="button"
-                      className="px-2 py-1 rounded bg-white border text-pink-700"
+                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
                       onClick={async () => { await navigator.clipboard.writeText(paymentInfo.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}
                     >{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>

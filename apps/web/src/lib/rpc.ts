@@ -18,6 +18,7 @@ export async function createPaymentForSession(args: {
   p_rate_source: string | null;
   p_currency?: string;
   p_ci?: string | null;
+  p_instagram?: string | null;
 }): Promise<string> {
   const supabase = getSupabase();
   const { data, error } = await supabase.rpc('create_payment_for_session', args);

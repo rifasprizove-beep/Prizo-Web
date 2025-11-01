@@ -40,7 +40,9 @@ create table if not exists raffles (
   starts_at timestamptz null,
   ends_at timestamptz null,
   created_at timestamptz null default now(),
-  constraint chk_raffles_total_tickets check (total_tickets > 0),
+  constraint chk_raffles_total_tickets check (
+    total_tickets > 0 or (is_free = true and total_tickets >= 0)
+  ),
   constraint chk_raffles_price check (ticket_price_cents >= 0),
   constraint chk_raffles_prizes check (prize_amount_cents >= 0 and top_buyer_prize_cents >= 0),
   constraint chk_raffles_dates check (starts_at is null or ends_at is null or ends_at > starts_at)
@@ -157,7 +159,7 @@ select
   r.total_tickets,
   coalesce(sum(case when t.status = 'sold' then 1 else 0 end),0)::bigint as sold,
   coalesce(sum(case when t.status = 'reserved' and t.reserved_until is not null and t.reserved_until > now() then 1 else 0 end),0)::bigint as reserved,
-  (r.total_tickets - (coalesce(sum(case when t.status = 'sold' then 1 else 0 end),0) + coalesce(sum(case when t.status = 'reserved' and t.reserved_until is not null and t.reserved_until > now() then 1 else 0 end),0)))::bigint as available
+  greatest(0, (r.total_tickets - (coalesce(sum(case when t.status = 'sold' then 1 else 0 end),0) + coalesce(sum(case when t.status = 'reserved' and t.reserved_until is not null and t.reserved_until > now() then 1 else 0 end),0))))::bigint as available
 from raffles r
 left join tickets t on t.raffle_id = r.id
 group by r.id, r.total_tickets;
@@ -314,9 +316,40 @@ declare
   v_reserved int := 0;
   v_to_pick int := 0;
   v_round int := 0;
+  v_is_free boolean := false;
+  v_total_tickets int := 0;
 begin
   perform ensure_session(p_session_id);
   perform ensure_tickets_for_raffle(p_raffle_id, p_total);
+
+  -- Detectar modo "gratis ilimitado": is_free = true y total_tickets = 0
+  select r.is_free, coalesce(r.total_tickets,0) into v_is_free, v_total_tickets from raffles r where r.id = p_raffle_id;
+
+  if v_is_free = true and v_total_tickets = 0 then
+    -- Bloqueamos la fila de la rifa para evitar carreras al numerar
+    perform 1 from raffles where id = p_raffle_id for update;
+
+    -- Crear exactamente p_quantity tickets nuevos reservados para esta sesión
+    with base as (
+      select coalesce(max(ticket_number), 0) as maxn from tickets where raffle_id = p_raffle_id
+    ), nums as (
+      select generate_series((select maxn from base) + 1, (select maxn from base) + greatest(0, p_quantity)) as n
+    ), ins as (
+      insert into tickets (raffle_id, ticket_number, status, reserved_by, reserved_until)
+      select p_raffle_id, n, 'reserved', p_session_id, v_until
+      from nums
+      on conflict (raffle_id, ticket_number) do nothing
+      returning id
+    )
+    select count(*) into v_reserved from ins;
+
+    -- Devolver los recién creados/reservados por esta sesión
+    return query
+    select * from tickets
+    where raffle_id = p_raffle_id and reserved_by = p_session_id and status = 'reserved'
+    order by reserved_until desc
+    limit greatest(0, p_quantity);
+  end if;
 
   -- Liberar cualquier reserva previa de esta sesión en esta rifa
   update tickets

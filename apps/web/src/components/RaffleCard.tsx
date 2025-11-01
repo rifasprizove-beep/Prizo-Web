@@ -19,6 +19,7 @@ function useRate() {
 
 export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const rate = useRate();
+  const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
   const unitUSD = centsToUsd(raffle.ticket_price_cents);
   const unitVES = rate ? round2(unitUSD * rate) : 0;
   const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
@@ -58,7 +59,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         )}
         <div className="mt-2 flex items-center justify-between">
           <span className="text-pink-600 font-semibold">
-            {unitVES ? formatVES(unitVES) : '—'}
+            {isFree ? 'Gratis' : unitVES ? formatVES(unitVES) : '—'}
           </span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 capitalize">
             {raffleStatusEs(raffle.status)}

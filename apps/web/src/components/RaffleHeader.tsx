@@ -8,6 +8,7 @@ import { formatVES, raffleStatusEs } from "@/lib/i18n";
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
   const [rate, setRate] = useState<number | null>(null);
   useEffect(() => { (async () => { try { const info = await getUsdVesRate(); if (info?.rate) setRate(info.rate); } catch {} })(); }, []);
+  const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
   const priceUSD = centsToUsd(raffle.ticket_price_cents ?? 0);
   const priceVES = rate ? round2(priceUSD * rate) : 0;
   const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
@@ -37,7 +38,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
         <div className="mt-3 text-sm space-y-1">
           <div>
-            <span className="opacity-90">Ticket:</span> {priceVES ? formatVES(priceVES) : '—'} <span className="opacity-80">(tasa del día)</span>
+            <span className="opacity-90">Ticket:</span> {isFree ? 'Gratis' : (priceVES ? formatVES(priceVES) : '—')} {!isFree && <span className="opacity-80">(tasa del día)</span>}
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
@@ -71,7 +72,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         <div className="mt-4">
           <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
             <div className="flex items-center gap-2">
-              <a href="#sec-buy" className="flex-1 text-center font-semibold px-4 py-3 rounded-full bg-white text-brand-700">COMPRAR</a>
+              <a href="#sec-buy" className="flex-1 text-center font-semibold px-4 py-3 rounded-full bg-white text-brand-700">{isFree ? 'PARTICIPAR' : 'COMPRAR'}</a>
               {raffle.status === 'drawn' ? (
                 <Link href={`/raffles/${raffle.id}/result`} className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/80 hover:text-white">GANADOR</Link>
               ) : (

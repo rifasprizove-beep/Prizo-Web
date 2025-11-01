@@ -25,7 +25,6 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const unitUSD = centsToUsd(raffle.ticket_price_cents);
   const unitVES = rate ? round2(unitUSD * rate) : 0;
   const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
-  const prizeVES = rate ? round2(prizeUSD * rate) : 0;
   const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
   const _topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
   return (
@@ -57,7 +56,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       {(raffle.prize_amount_cents ?? 0) > 0 && (
         <div className="px-4 py-3">
           <div className="text-xs text-gray-300">Premio</div>
-          <div className="font-semibold">{prizeVES ? formatVES(prizeVES) : `$${prizeUSD.toFixed(2)}`}</div>
+          <div className="font-semibold">{`$${prizeUSD.toFixed(2)}`}</div>
         </div>
       )}
     </a>

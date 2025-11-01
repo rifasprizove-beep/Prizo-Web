@@ -13,7 +13,6 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const priceUSD = centsToUsd(raffle.ticket_price_cents ?? 0);
   const priceVES = rate ? round2(priceUSD * rate) : 0;
   const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
-  const prizeVES = rate ? round2(prizeUSD * rate) : 0;
   const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
   const topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
   const percent = counters && counters.total_tickets > 0 ? Math.min(100, (counters.sold / counters.total_tickets) * 100) : 0;
@@ -43,7 +42,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {prizeVES ? formatVES(prizeVES) : `$${prizeUSD.toFixed(2)}`}
+              <span className="opacity-90">Premio:</span> {`$${prizeUSD.toFixed(2)}`}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (

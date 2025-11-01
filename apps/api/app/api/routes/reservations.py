@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+import httpx
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from ...services.supabase import get_supabase
@@ -19,6 +20,13 @@ def reserve_by_ids(body: ReserveByIdsBody) -> Any:
     try:
         data = sb.call_rpc("reserve_tickets", body.model_dump())
         return {"ok": True, "data": data}
+    except httpx.HTTPStatusError as e:
+        # Propaga el estado real que devuelve Supabase y su cuerpo para facilitar el diagnóstico
+        status = e.response.status_code if e.response is not None else 500
+        detail = e.response.text if e.response is not None else str(e)
+        raise HTTPException(status_code=status, detail=f"Supabase error {status}: {detail}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Supabase request error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -34,6 +42,12 @@ def release_ids(body: ReleaseBody) -> Any:
     try:
         data = sb.call_rpc("release_tickets", body.model_dump())
         return {"ok": True, "data": data}
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code if e.response is not None else 500
+        detail = e.response.text if e.response is not None else str(e)
+        raise HTTPException(status_code=status, detail=f"Supabase error {status}: {detail}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Supabase request error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -52,5 +66,11 @@ def reserve_random(body: ReserveRandomBody) -> Any:
     try:
         data = sb.call_rpc("ensure_and_reserve_random_tickets", body.model_dump())
         return {"ok": True, "data": data}
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code if e.response is not None else 500
+        detail = e.response.text if e.response is not None else str(e)
+        raise HTTPException(status_code=status, detail=f"Supabase error {status}: {detail}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Supabase request error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -4,7 +4,7 @@ import { RaffleQuickBuy } from "./RaffleQuickBuy";
 import type { RafflePaymentInfo } from "@/lib/data/paymentConfig";
 import { RaffleBuySection } from "./RaffleBuySection";
 
-export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents, paymentInfo, allowManual = true }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null; allowManual?: boolean }) {
+export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents, paymentInfo, allowManual = true, isFree = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null; allowManual?: boolean; isFree?: boolean }) {
   const [tab, setTab] = useState<"quick" | "manual">("quick");
 
   return (
@@ -33,14 +33,14 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
       )}
 
       {!allowManual || tab === 'quick' ? (
-        <RaffleQuickBuy raffleId={raffleId} currency={currency} totalTickets={totalTickets} unitPriceCents={unitPriceCents} paymentInfo={paymentInfo ?? undefined} />
+        <RaffleQuickBuy raffleId={raffleId} currency={currency} totalTickets={totalTickets} unitPriceCents={unitPriceCents} paymentInfo={paymentInfo ?? undefined} isFree={isFree} />
       ) : (
         <div className="space-y-4">
           <div className="rounded-2xl border p-4 bg-white">
             <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase">Elige tus números</h2>
             <p className="text-sm text-gray-600 mt-1">Pulsa en un número disponible para reservarlo por 10 minutos.</p>
           </div>
-          <RaffleBuySection raffleId={raffleId} currency={currency} unitPriceCents={unitPriceCents} paymentInfo={paymentInfo}
+          <RaffleBuySection raffleId={raffleId} currency={currency} unitPriceCents={unitPriceCents} paymentInfo={paymentInfo} isFree={isFree}
           />
         </div>
       )}

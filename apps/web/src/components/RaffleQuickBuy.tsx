@@ -5,9 +5,10 @@ import type { RafflePaymentInfo } from "@/lib/data/paymentConfig";
 import { listTickets, releaseTickets, reserveTickets } from "@/lib/data/tickets";
 import { getSessionId } from "@/lib/session";
 import { CheckoutForm } from "./CheckoutForm";
+import { FreeParticipationForm } from "./FreeParticipationForm";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 
-export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCents, paymentInfo }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo }) {
+export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean }) {
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
   const [qty, setQty] = useState<number>(1);
@@ -408,6 +409,40 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   const mm = String(Math.floor(timeLeftMs / 60000)).padStart(2, "0");
   const ss = String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, "0");
 
+  // Auto-liberar reservas cuando expira el tiempo (solo rifas pagas)
+  const [autoReleased, setAutoReleased] = useState(false);
+  useEffect(() => {
+    if (isFree) return; // no aplica para rifas gratuitas
+    if (!isExpired) return;
+    if (!reserved.length) return;
+    if (autoReleased) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setAutoReleased(true);
+        const ids = reserved.map((t: any) => t.id);
+        if (ids.length) {
+          try { await releaseTickets(ids, sessionId); } catch {}
+        }
+        if (!cancelled) {
+          setReserved([]);
+          setInfo('Tu reserva expiró y tus tickets fueron liberados automáticamente.');
+          try {
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem(`prizo_manual_${raffleId}`);
+          } catch {}
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpired, reserved.length, isFree]);
+
+  // Si vuelve a haber reservas nuevas, permitir nuevamente el auto-release en futuras expiraciones
+  useEffect(() => {
+    if (reserved.length) setAutoReleased(false);
+  }, [reserved.length]);
+
   const reservedCount = reserved.length || (restoring && restoreIds ? restoreIds.length : 0);
   const unitUSD = centsToUsd(unitPriceCents);
   const rate = rateInfo?.rate ?? 0;
@@ -449,7 +484,15 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
           </div>
 
           <p className="mt-4 text-center text-sm text-gray-700">
-            Al continuar, reservaremos tus tickets por <b>10 minutos</b>. En el siguiente paso ingresarás tus datos y el comprobante.
+            {isFree ? (
+              <>
+                Al continuar, registraremos tu participación. Solo te pediremos tus datos. Es <b>GRATIS</b>, no debes pagar nada.
+              </>
+            ) : (
+              <>
+                Al continuar, reservaremos tus tickets por <b>10 minutos</b>. En el siguiente paso ingresarás tus datos y el comprobante.
+              </>
+            )}
           </p>
 
           {restoreIds && restoreIds.length > 0 && (
@@ -466,17 +509,21 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
         </div>
       ) : (
         <div className="mt-4 space-y-4 max-w-xl mx-auto">
-          <div className={`text-sm p-2 rounded border ${isExpired ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
-            {isExpired ? (
-              <span>La reserva expiró. Vuelve a seleccionar tus tickets.</span>
-            ) : (
-              <span>Reserva activa: {mm}:{ss} restantes.</span>
-            )}
-          </div>
-          {!isExpired && (rehydrated || restoring) && (
-            <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2">
-              {restoring ? 'Restaurando reserva basada en tu última sesión. Si estás sin conexión, verás datos temporales hasta reconectar.' : 'Reserva recuperada de tu sesión anterior.'}
-            </div>
+          {!isFree && (
+            <>
+              <div className={`text-sm p-2 rounded border ${isExpired ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                {isExpired ? (
+                  <span>La reserva expiró. Vuelve a seleccionar tus tickets.</span>
+                ) : (
+                  <span>Reserva activa: {mm}:{ss} restantes.</span>
+                )}
+              </div>
+              {!isExpired && (rehydrated || restoring) && (
+                <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2">
+                  {restoring ? 'Restaurando reserva basada en tu última sesión. Si estás sin conexión, verás datos temporales hasta reconectar.' : 'Reserva recuperada de tu sesión anterior.'}
+                </div>
+              )}
+            </>
           )}
           {/* Resumen con números */}
           <div className="text-sm grid sm:grid-cols-2 gap-3">
@@ -486,18 +533,18 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             </div>
             <div className="p-3 rounded border bg-pink-50">
               <div className="text-xs text-pink-700">Total (Bs)</div>
-              <div className="text-lg font-semibold text-pink-800">{rate ? totalVES.toFixed(2) : '—'}</div>
+              <div className="text-lg font-semibold text-pink-800">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
             </div>
           </div>
 
           {/* Listado de números reservados oculto por requerimiento */}
 
-          {rateInfo && (
+          {!isFree && rateInfo && (
             <p className="text-xs text-gray-600">Tasa BCV: {rateInfo.rate.toFixed(2)} Bs/USD</p>
           )}
 
           {/* Instrucciones de pago desde la rifa (con botones COPIAR) */}
-          {paymentInfo && (
+          {!isFree && paymentInfo && (
             <div className="rounded-xl border p-3 bg-white">
               <div className="font-semibold mb-2">Pago Móvil / Transferencia</div>
 
@@ -584,25 +631,43 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             </div>
           )}
 
-          <CheckoutForm
-            raffleId={raffleId}
-            sessionId={sessionId}
-            currency={'VES'}
-            disabled={isExpired}
-            quantity={reservedCount}
-            unitPriceCents={unitPriceCents}
-            methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
-            onCreated={(paymentId) => {
-              try {
-                // Limpiar estado local y cerrar temporizador sin liberar en la BD
-                localStorage.removeItem(storageKey);
-                localStorage.removeItem(`prizo_manual_${raffleId}`);
-              } catch {}
-              setReserved([]);
-              setQty(1);
-              setInfo('Pago enviado. Tus tickets quedan reservados sin temporizador hasta que el administrador apruebe o rechace. Puedes comprar más si deseas.');
-            }}
-          />
+          {isFree ? (
+            <FreeParticipationForm
+              raffleId={raffleId}
+              sessionId={sessionId}
+              disabled={false}
+              quantity={reservedCount}
+              onCreated={() => {
+                try {
+                  localStorage.removeItem(storageKey);
+                  localStorage.removeItem(`prizo_manual_${raffleId}`);
+                } catch {}
+                setReserved([]);
+                setQty(1);
+                setInfo('Participación registrada. Tus tickets quedan reservados sin temporizador hasta la confirmación.');
+              }}
+            />
+          ) : (
+            <CheckoutForm
+              raffleId={raffleId}
+              sessionId={sessionId}
+              currency={'VES'}
+              disabled={isExpired}
+              quantity={reservedCount}
+              unitPriceCents={unitPriceCents}
+              methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
+              onCreated={() => {
+                try {
+                  // Limpiar estado local y cerrar temporizador sin liberar en la BD
+                  localStorage.removeItem(storageKey);
+                  localStorage.removeItem(`prizo_manual_${raffleId}`);
+                } catch {}
+                setReserved([]);
+                setQty(1);
+                setInfo('Pago enviado. Tus tickets quedan reservados sin temporizador hasta que el administrador apruebe o rechace. Puedes comprar más si deseas.');
+              }}
+            />
+          )}
 
           <div className="flex items-center justify-end">
             <button type="button" className="text-sm px-3 py-1.5 rounded border" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Liberar y cerrar</button>
@@ -623,7 +688,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
                 className="px-4 py-2 rounded-lg border"
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={busy}
-              >Seguir con la compra</button>
+              >{isFree ? 'Seguir' : 'Seguir con la compra'}</button>
               <button
                 type="button"
                 className="px-4 py-2 rounded-lg bg-red-600 text-white disabled:opacity-60"

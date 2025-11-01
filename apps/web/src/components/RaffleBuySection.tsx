@@ -7,9 +7,10 @@ import { getSessionId } from '@/lib/session';
 import { TicketLegend } from './TicketLegend';
 import { TicketNumber } from './TicketNumber';
 import { CheckoutForm } from './CheckoutForm';
+import { FreeParticipationForm } from './FreeParticipationForm';
 import type { RafflePaymentInfo } from '@/lib/data/paymentConfig';
 
-export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentInfo }: { raffleId: string; currency: string; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null }) {
+export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean }) {
   const qc = useQueryClient();
   const sessionId = getSessionId();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -179,6 +180,35 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
   const ss = String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0');
   const countSelected = selectedIds.length || (restoring && restoreIds ? restoreIds.length : 0);
 
+  // Auto-liberar selección cuando expira el tiempo (solo rifas pagas)
+  const [autoReleased, setAutoReleased] = useState(false);
+  useEffect(() => {
+    if (isFree) return; // no aplica para rifas gratuitas
+    if (!isExpired) return;
+    if (!selectedIds.length) return;
+    if (autoReleased) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setAutoReleased(true);
+        try { await releaseM.mutateAsync(selectedIds); } catch {}
+        if (!cancelled) {
+          setSelectedIds([]);
+          setShowCancelConfirm(false);
+          setErrorMsg('Tu reserva expiró y tus tickets fueron liberados automáticamente.');
+          try { localStorage.removeItem(storageKey); } catch {}
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpired, selectedIds.length, isFree]);
+
+  // Si vuelve a haber selección nueva, permitir nuevamente el auto-release en futuras expiraciones
+  useEffect(() => {
+    if (selectedIds.length) setAutoReleased(false);
+  }, [selectedIds.length]);
+
   // Restauración automática: intenta reservar de nuevo los IDs guardados usando minutos restantes
   useEffect(() => {
     (async () => {
@@ -233,17 +263,21 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
 
       {(!!selectedIds.length || (restoring && restoreIds && restoreIds.length)) && (
         <div className="max-w-xl mx-auto w-full space-y-3">
-          <div className={`text-sm p-2 rounded border ${isExpired ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
-            {isExpired ? (
-              <span>La reserva expiró. Vuelve a seleccionar tus tickets.</span>
-            ) : (
-              <span>Reserva activa: {mm}:{ss} restantes.</span>
-            )}
-          </div>
-          {!isExpired && (rehydrated || restoring) && (
-            <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2">
-              {restoring ? 'Restaurando tu selección anterior…' : 'Selección recuperada de tu sesión anterior.'}
-            </div>
+          {!isFree && (
+            <>
+              <div className={`text-sm p-2 rounded border ${isExpired ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                {isExpired ? (
+                  <span>La reserva expiró. Vuelve a seleccionar tus tickets.</span>
+                ) : (
+                  <span>Reserva activa: {mm}:{ss} restantes.</span>
+                )}
+              </div>
+              {!isExpired && (rehydrated || restoring) && (
+                <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2">
+                  {restoring ? 'Restaurando tu selección anterior…' : 'Selección recuperada de tu sesión anterior.'}
+                </div>
+              )}
+            </>
           )}
           {/* Resumen y números */}
           <div className="grid grid-cols-3 gap-3 text-sm">
@@ -254,8 +288,8 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
           </div>
           {/* Oculto: no mostrar los números seleccionados explícitamente */}
 
-          {/* Instrucciones de pago desde la rifa (con botones COPIAR) */}
-          {paymentInfo && (
+          {/* Instrucciones de pago: ocultas en rifas gratuitas */}
+          {!isFree && paymentInfo && (
             <div className="rounded-xl border p-3 bg-white">
               <div className="font-semibold mb-2">Pago Móvil / Transferencia</div>
               <div className="space-y-2 text-sm">
@@ -333,16 +367,29 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
             </div>
           )}
 
-          <CheckoutForm
-            raffleId={raffleId}
-            sessionId={sessionId}
-            currency={currency}
-            disabled={isExpired}
-            quantity={countSelected}
-            unitPriceCents={unitPriceCents}
-            methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
-            onCreated={() => {}}
-          />
+          {isFree ? (
+            <FreeParticipationForm
+              raffleId={raffleId}
+              sessionId={sessionId}
+              disabled={false}
+              quantity={countSelected}
+              onCreated={() => {
+                try { localStorage.removeItem(storageKey); } catch {}
+                setSelectedIds([]);
+              }}
+            />
+          ) : (
+            <CheckoutForm
+              raffleId={raffleId}
+              sessionId={sessionId}
+              currency={currency}
+              disabled={isExpired}
+              quantity={countSelected}
+              unitPriceCents={unitPriceCents}
+              methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
+              onCreated={() => {}}
+            />
+          )}
 
           <div className="flex items-center justify-end">
             <button

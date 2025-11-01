@@ -14,5 +14,6 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));
-  return <RaffleBuyTabs raffleId={raffleId} currency={raffleQ.data.currency} totalTickets={raffleQ.data.total_tickets} unitPriceCents={raffleQ.data.ticket_price_cents} paymentInfo={payQ.data ?? null} allowManual={allowManual} />;
+  const isFree = (raffleQ.data as any)?.is_free === true || (raffleQ.data.ticket_price_cents ?? 0) === 0;
+  return <RaffleBuyTabs raffleId={raffleId} currency={raffleQ.data.currency} totalTickets={raffleQ.data.total_tickets} unitPriceCents={raffleQ.data.ticket_price_cents} paymentInfo={payQ.data ?? null} allowManual={allowManual} isFree={isFree} />;
 }

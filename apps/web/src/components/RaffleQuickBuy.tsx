@@ -6,7 +6,6 @@ import { listTickets, releaseTickets, reserveTickets } from "@/lib/data/tickets"
 import { getSessionId } from "@/lib/session";
 import { CheckoutForm } from "./CheckoutForm";
 import { FreeParticipationForm } from "./FreeParticipationForm";
-import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 
 export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean }) {
   const sessionId = getSessionId();
@@ -19,8 +18,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   const [reserved, setReserved] = useState<any[]>([]);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [rateInfo, setRateInfo] = useState<{ rate: number; source?: string } | null>(null);
-  const [loadingRate, setLoadingRate] = useState<boolean>(true);
+  
   const storageKey = `prizo_reservation_${raffleId}`;
   const [rehydrated, setRehydrated] = useState(false);
   const [restoreIds, setRestoreIds] = useState<string[] | null>(null);
@@ -28,13 +26,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   const [restoreDeadline, setRestoreDeadline] = useState<number | null>(null);
   const [restoring, setRestoring] = useState<boolean>(false);
 
-  useEffect(() => {
-    (async () => {
-      const info = await getUsdVesRate();
-      if (info?.rate) setRateInfo({ rate: info.rate, source: info.source });
-      setLoadingRate(false);
-    })();
-  }, []);
+  
 
   const inc = (n = 1) => setQty((q) => Math.min(Math.max(1, q + n), availableTickets));
   const dec = () => setQty((q) => Math.max(1, q - 1));
@@ -471,14 +463,10 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   }, [reserved.length]);
 
   const reservedCount = reserved.length || (restoring && restoreIds ? restoreIds.length : 0);
-  const unitUSD = centsToUsd(unitPriceCents);
-  const rate = rateInfo?.rate ?? 0;
-  const unitVES = rate ? round2(unitUSD * rate) : 0;
-  const totalVES = round2(unitVES * (reservedCount || qty));
 
   return (
     <div className="rounded-2xl border border-brand-500/20 p-4 bg-surface-800 text-white">
-      <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase">¿Cuántos tickets quieres?</h2>
+  <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase text-center">¿Cuántos tickets quieres?</h2>
 
       {error && (
         <div className="mt-3 p-2 text-sm rounded border bg-red-50 text-red-700">{error}</div>
@@ -572,29 +560,11 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
               )}
             </>
           )}
-          {/* Resumen con números */}
-          <div className="text-sm grid sm:grid-cols-2 gap-3">
-            <div className="p-3 rounded border border-brand-600 bg-brand-500 text-center">
-              <div className="text-xs text-black/70">Cantidad</div>
-              <div className="text-lg font-semibold text-black">{reservedCount}</div>
-            </div>
-            <div className="p-3 rounded border border-brand-600 bg-brand-500 text-center">
-              <div className="text-xs text-black/70">Total (Bs)</div>
-              <div className="text-lg font-semibold text-black">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
-            </div>
-          </div>
+          {/* Resumen removido por redundante */}
 
           {/* Listado de números reservados oculto por requerimiento */}
 
-          {!isFree && (
-            loadingRate ? (
-              <p className="text-xs text-gray-500 animate-pulse">Cargando tasa…</p>
-            ) : rateInfo ? (
-              <p className="text-xs text-gray-600">Tasa referencial: {rateInfo.rate.toFixed(2)} Bs/USD</p>
-            ) : (
-              <p className="text-xs text-gray-500">Tasa referencial no disponible. Usando valor por defecto.</p>
-            )
-          )}
+          {/* Texto de tasa referencial removido por redundante */}
 
           {/* Instrucciones de pago desde la rifa (con botones COPIAR) */}
           {!isFree && paymentInfo && (
@@ -737,13 +707,13 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowCancelConfirm(false)} />
-          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl">
+          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl text-black">
             <h3 className="text-lg font-semibold">¿Cancelar y liberar tus tickets?</h3>
             <p className="mt-2 text-sm text-gray-600">Si cancelas ahora, perderás los tickets reservados y volverán a estar disponibles para otros usuarios.</p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
                 type="button"
-                className="px-4 py-2 rounded-lg border"
+                className="px-4 py-2 rounded-lg border text-black"
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={busy}
               >{isFree ? 'Seguir' : 'Seguir con la compra'}</button>

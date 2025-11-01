@@ -463,13 +463,13 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowCancelConfirm(false)} />
-          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl">
+          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl text-black">
             <h3 className="text-lg font-semibold">¿Cancelar y liberar tus tickets?</h3>
             <p className="mt-2 text-sm text-gray-600">Si cancelas ahora, perderás los tickets reservados y volverán a estar disponibles para otros usuarios.</p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
                 type="button"
-                className="px-4 py-2 rounded-lg border"
+                className="px-4 py-2 rounded-lg border text-black"
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={busy}
               >Seguir con la compra</button>

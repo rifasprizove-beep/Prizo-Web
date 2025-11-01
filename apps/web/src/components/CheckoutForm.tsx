@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -88,6 +88,7 @@ export function CheckoutForm({
   });
 
   const evidence = watch('evidence');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const count = quantity ?? 0;
   const unitUSD = centsToUsd(unitPriceCents ?? 0);
@@ -99,14 +100,10 @@ export function CheckoutForm({
     <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-4 bg-surface-700 text-white shadow-sm">
       <h2 className="text-lg font-semibold">Confirmar pago</h2>
       {count > 0 && (
-        <div className="grid grid-cols-3 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Cantidad</div>
             <div className="font-semibold">{count}</div>
-          </div>
-          <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
-            <div className="text-xs text-gray-600">Precio unitario (Bs)</div>
-            <div className="font-semibold">{rate ? unitVES.toFixed(2) : '—'} Bs</div>
           </div>
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Total (Bs)</div>
@@ -117,7 +114,10 @@ export function CheckoutForm({
       {rateInfo?.rate && (
         <p className="text-xs text-gray-600">Tasa BCV usada: {Number(rateInfo.rate).toFixed(2)} Bs/USD</p>
       )}
-      <div className="grid sm:grid-cols-2 gap-4">
+  {/* Mantener método como campo oculto (ya mostrado arriba) */}
+  <input type="hidden" value={methodLabel ?? ''} {...register('method')} />
+
+  <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Email (opcional)</label>
           <input type="email" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="tucorreo@mail.com" {...register('email')} />
@@ -169,11 +169,7 @@ export function CheckoutForm({
           )}
           {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city.message as string}</p>}
         </div>
-        <div>
-          <label className="block text-sm font-medium">Método de pago</label>
-          <div className="mt-1 w-full border rounded-lg p-2 bg-surface-800">{methodLabel ?? ''}</div>
-          <input type="hidden" value={methodLabel ?? ''} {...register('method')} />
-        </div>
+        {/* Campo visible de método removido por redundante */}
         <div>
           <label className="block text-sm font-medium">Referencia (opcional)</label>
           <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="N° referencia o hash" {...register('reference')} />
@@ -182,11 +178,39 @@ export function CheckoutForm({
         <input type="hidden" value={rate ? String(totalVES) : ''} {...register('amount_ves')} />
         <div>
           <label className="block text-sm font-medium">Evidencia (imagen/pdf)</label>
-          <input type="file" accept="image/*,.pdf" className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) setValue('evidence', f as any, { shouldValidate: false }); }} />
-          {evidence && typeof evidence !== 'string' && (
-            <p className="text-xs text-gray-500 mt-1">Archivo: {(evidence as File).name}</p>
-          )}
+          {/* Input real oculto */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) setValue('evidence', f as any, { shouldValidate: false });
+            }}
+          />
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="px-3 py-2 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >Seleccionar archivo</button>
+            {evidence && typeof evidence !== 'string' ? (
+              <>
+                <span className="text-xs text-gray-300 truncate max-w-[12rem]">{(evidence as File).name}</span>
+                <button
+                  type="button"
+                  className="text-xs text-red-300 hover:text-red-200 underline"
+                  onClick={() => {
+                    setValue('evidence', undefined as any, { shouldValidate: false });
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                >Quitar</button>
+              </>
+            ) : (
+              <span className="text-xs text-gray-400">Opcional (imagen o PDF)</span>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-3">

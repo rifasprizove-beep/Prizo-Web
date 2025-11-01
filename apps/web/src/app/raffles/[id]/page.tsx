@@ -1,6 +1,13 @@
 import { RaffleDetailClient } from './RaffleDetailClient';
 import { RaffleBuyClient } from './RaffleBuyClient';
-export { generateStaticParams } from './static-params';
+import { generateStaticParams as generateStaticParamsImpl } from './static-params';
+
+// Next.js con `output: 'export'` requiere que los segmentos dinámicos
+// definan generateStaticParams directamente en el módulo de la ruta.
+// Declaramos la función aquí para que el builder la detecte.
+export async function generateStaticParams() {
+  return generateStaticParamsImpl();
+}
 
 export default function RaffleDetailPage({ params }: { params: { id: string } }) {
   return (

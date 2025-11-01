@@ -22,14 +22,14 @@ services:
       - key: CLOUDINARY_UPLOAD_PRESET
         sync: false
 
-  - type: static_site
+  - type: web
     name: prizo-web
+    env: node
     rootDir: apps/web
     buildCommand: |
       npm ci
       npm run build
-      npm run export
-    staticPublishPath: out
+    startCommand: npm run start
     autoDeploy: true
     envVars:
       # Cambia este valor al URL del servicio prizo-api cuando esté desplegado

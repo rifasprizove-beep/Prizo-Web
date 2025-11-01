@@ -9,9 +9,9 @@ const nextConfig = {
       bodySizeLimit: '2mb'
     }
   },
-  output: 'export',
+  // Ejecutaremos Next.js como servicio web (no export estático)
   images: {
-    unoptimized: true,
+    // Ajusta dominios si usas next/image remoto; dejamos defaults
   },
 };
 

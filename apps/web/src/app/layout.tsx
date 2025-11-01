@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 height={36}
                 className="h-7 w-auto"
                 priority
+                unoptimized
               />
               <span className="text-xl font-extrabold text-brand-500 title-neon hidden sm:inline">PRIZO</span>
             </a>

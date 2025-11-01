@@ -12,6 +12,7 @@ export default function RaffleLoading() {
             height={42}
             className="h-9 w-auto"
             priority
+            unoptimized
           />
         </div>
         <div className="relative h-16 w-16">

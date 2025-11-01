@@ -462,26 +462,43 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
 
       {!reserved.length && !restoring ? (
         <div className="mt-4 max-w-md mx-auto">
-          <div className="flex items-center justify-center gap-3">
-            <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={dec} disabled={busy}>−</button>
-            <input
-              className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border"
-              type="number"
-              min={1}
-              max={availableTickets}
-              value={qty}
-              onChange={handleQtyChange}
-            />
-            <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={() => inc(1)} disabled={busy}>+</button>
-          </div>
-
-          <div className="mt-3 flex items-center justify-center gap-2">
-            {[2,5,10].map((n) => (
-              <button key={n} type="button" className="px-2 py-1 rounded-lg bg-pink-50 text-pink-700 text-sm border" onClick={() => inc(n)} disabled={busy}>
-                +{n}
+          {!isFree ? (
+            <>
+              <div className="flex items-center justify-center gap-3">
+                <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={dec} disabled={busy}>−</button>
+                <input
+                  className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border"
+                  type="number"
+                  min={1}
+                  max={availableTickets}
+                  value={qty}
+                  onChange={handleQtyChange}
+                />
+                <button type="button" className="w-12 h-12 rounded-lg bg-pink-100 text-pink-700 text-2xl font-bold" onClick={() => inc(1)} disabled={busy}>+</button>
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                {[2,5,10].map((n) => (
+                  <button key={n} type="button" className="px-2 py-1 rounded-lg bg-pink-50 text-pink-700 text-sm border" onClick={() => inc(n)} disabled={busy}>
+                    +{n}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 flex items-center justify-center">
+              <button
+                type="button"
+                className="px-6 py-3 rounded-lg bg-pink-600 text-white disabled:opacity-60"
+                onClick={async () => { setQty(1); await handleContinue(); }}
+                disabled={busy || availableTickets <= 0}
+              >
+                {busy && (
+                  <span className="inline-block w-4 h-4 mr-2 border-2 border-white/70 border-t-transparent rounded-full align-[-2px] animate-spin" />
+                )}
+                Participar
               </button>
-            ))}
-          </div>
+            </div>
+          )}
 
           <p className="mt-4 text-center text-sm text-gray-700">
             {isFree ? (
@@ -499,13 +516,15 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
             <div className="mt-3 text-center text-xs text-gray-700">Detectamos una reserva previa. Restaurando…</div>
           )}
 
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <button type="button" className="px-4 py-2 rounded-lg border" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Cerrar</button>
-            <button type="button" className="px-4 py-2 rounded-lg bg-pink-600 text-white disabled:opacity-60 flex items-center gap-2" onClick={handleContinue} disabled={busy}>
-              {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
-              Continuar
-            </button>
-          </div>
+          {!isFree && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button type="button" className="px-4 py-2 rounded-lg border" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Cerrar</button>
+              <button type="button" className="px-4 py-2 rounded-lg bg-pink-600 text-white disabled:opacity-60 flex items-center gap-2" onClick={handleContinue} disabled={busy}>
+                {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
+                Continuar
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-4 space-y-4 max-w-xl mx-auto">

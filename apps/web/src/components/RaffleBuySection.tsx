@@ -240,15 +240,15 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
 
   return (
     <div className="space-y-6">
-      <TicketLegend />
+  {!isFree && <TicketLegend />}
 
       {errorMsg && (
         <div className="p-2 text-sm rounded border bg-red-50 text-red-700">{errorMsg}</div>
       )}
 
-      {ticketsQ.isLoading && !restoring ? (
+      {!isFree && ticketsQ.isLoading && !restoring ? (
         <div className="p-4">Cargando tickets…</div>
-      ) : (
+      ) : !isFree ? (
         <div className="grid gap-2" style={gridStyle as any}>
           {(ticketsQ.data ?? []).map((t: any) => (
             <TicketNumber
@@ -258,6 +258,51 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
               onClick={() => handleClick(t.id, t.status)}
             />
           ))}
+        </div>
+      ) : (
+        <div className="max-w-xl mx-auto w-full">
+          {!selectedIds.length && (
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                className="px-6 py-3 rounded-lg bg-pink-600 text-white disabled:opacity-60"
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    setBusy(true);
+                    setErrorMsg(null);
+                    try { await ensureSession(sessionId); } catch {}
+                    // Elegir un ticket disponible al azar y reservarlo
+                    const all = await listTickets(raffleId);
+                    const avail = (all ?? []).filter((t: any) => t.status === 'available');
+                    if (!avail.length) {
+                      setErrorMsg('No hay tickets disponibles en este momento.');
+                      return;
+                    }
+                    const idx = Math.floor(Math.random() * avail.length);
+                    const pick = avail[idx];
+                    const res = await reserveTickets([pick.id], sessionId, 10);
+                    const arr = Array.isArray(res) ? res : [];
+                    const ok = arr.find((t: any) => t.id === pick.id);
+                    if (ok) {
+                      setSelectedIds([pick.id]);
+                    } else {
+                      setErrorMsg('No se pudo reservar el ticket. Intenta nuevamente.');
+                    }
+                  } catch (e: any) {
+                    setErrorMsg(e?.message ?? 'No se pudo realizar la participación.');
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {busy && (
+                  <span className="inline-block w-4 h-4 mr-2 border-2 border-white/70 border-t-transparent rounded-full align-[-2px] animate-spin" />
+                )}
+                Participar
+              </button>
+            </div>
+          )}
         </div>
       )}
 

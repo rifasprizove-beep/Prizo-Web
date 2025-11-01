@@ -52,22 +52,24 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           )}
         </div>
 
-        {raffle.allow_manual === false && (
+        {!isFree && raffle.allow_manual === false && (
           <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white text-brand-700 text-xs font-semibold border border-white/40">
             <span>🔀</span>
             <span>Asignación aleatoria de números</span>
           </div>
         )}
 
-        <div className="mt-2">
-          <div className="flex items-center justify-between text-xs opacity-90 mb-1">
-            <span>Avance del sorteo</span>
-            <span>{percent.toFixed(1)}%</span>
+        {!isFree && (
+          <div className="mt-2">
+            <div className="flex items-center justify-between text-xs opacity-90 mb-1">
+              <span>Avance del sorteo</span>
+              <span>{percent.toFixed(1)}%</span>
+            </div>
+            <div className="h-3 w-full rounded-full bg-white/30">
+              <div className="h-3 rounded-full bg-white" style={{ width: `${percent}%` }} />
+            </div>
           </div>
-          <div className="h-3 w-full rounded-full bg-white/30">
-            <div className="h-3 rounded-full bg-white" style={{ width: `${percent}%` }} />
-          </div>
-        </div>
+        )}
 
         <div className="mt-4">
           <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">

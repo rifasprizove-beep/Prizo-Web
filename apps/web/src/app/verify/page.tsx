@@ -46,33 +46,57 @@ export default function VerifyPage() {
   };
 
   return (
-    <main className="mt-6 space-y-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <span className="inline-flex w-8 h-8 items-center justify-center rounded-full bg-pink-600 text-white">🔎</span>
+    <main className="mt-6 space-y-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold flex items-center gap-2 title-neon">
+        <span className="inline-flex w-8 h-8 items-center justify-center rounded-full bg-brand-500 text-white">🔎</span>
         Verificar tickets
       </h1>
 
+      {/* Barra de búsqueda mejorada */}
       <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
         <label className="block">
-          <div className="text-sm text-gray-600">Correo o Cédula</div>
-          <input value={q} onChange={(e) => setQ(e.target.value)} className="mt-1 w-full p-2 border rounded" placeholder="ej. micorreo@mail.com o V-12345678" />
+          <div className="text-sm text-gray-300">Correo o Cédula</div>
+          <div className="mt-1 flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-3 py-2 shadow-sm">
+            <span className="text-gray-500">🔎</span>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCheck(); }}
+              className="w-full outline-none bg-transparent text-black placeholder:text-gray-500"
+              placeholder="ej. micorreo@mail.com o V-12345678"
+            />
+          </div>
         </label>
-        <button className="px-4 py-2 rounded bg-black text-white flex items-center gap-2" onClick={handleCheck} disabled={busy}>
-          <span>🔎</span>
-          <span>Buscar</span>
+        <button
+          className="px-5 py-2.5 rounded-lg bg-black text-white flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-glowSm"
+          onClick={handleCheck}
+          disabled={busy}
+          aria-label="Buscar"
+        >
+          {busy ? (
+            <span className="inline-flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+              Buscando…
+            </span>
+          ) : (
+            <>
+              <span>🔎</span>
+              <span>Buscar</span>
+            </>
+          )}
         </button>
       </div>
 
       {err && (
-        <div className="p-3 rounded border bg-red-50 text-red-700 text-sm">{err}</div>
+        <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm">{err}</div>
       )}
       {busy && (
-        <div className="p-3 rounded border bg-white text-sm">Buscando…</div>
+        <div className="p-3 rounded-lg border bg-white text-black text-sm shadow-sm">Buscando…</div>
       )}
       {data && data.length > 0 && (
-        <div className="space-y-3">
-          {/* Resumen profesional */}
-          <div className="rounded-xl border bg-white p-3 text-sm flex flex-wrap items-center gap-3">
+        <div className="space-y-4">
+          {/* Resumen */}
+          <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-wrap items-center gap-3 shadow-sm">
             <span className="font-semibold">Resultados: {data.length}</span>
             <span className="inline-flex items-center gap-2 text-xs">
               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Aprobado: {data.filter(r => r.payment_status === 'approved').length}</span>
@@ -81,55 +105,84 @@ export default function VerifyPage() {
             </span>
           </div>
 
-          <div className="rounded-2xl border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-700">
-              <tr>
-                <th className="text-left p-2 border-b">Rifa</th>
-                <th className="text-left p-2 border-b">Ticket</th>
-                <th className="text-left p-2 border-b">Estado Ticket</th>
-                <th className="text-left p-2 border-b">Estado Pago</th>
-                <th className="text-left p-2 border-b">Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((r) => (
-                <tr key={`${r.payment_id}-${r.ticket_id}`} className="odd:bg-white even:bg-gray-50">
-                  <td className="p-2 border-b">{r.raffle_name}</td>
-                  <td className="p-2 border-b">{r.ticket_number}</td>
-                  <td className="p-2 border-b">
-                    {r.ticket_status === 'sold' && (
-                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">VENDIDO</span>
-                    )}
-                    {r.ticket_status === 'reserved' && (
-                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">RESERVADO</span>
-                    )}
-                    {r.ticket_status === 'available' && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">DISPONIBLE</span>
-                    )}
-                    {!(r.ticket_status === 'sold' || r.ticket_status === 'reserved' || r.ticket_status === 'available') && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{String(r.ticket_status).toUpperCase()}</span>
-                    )}
-                  </td>
-                  <td className="p-2 border-b">
-                    {r.payment_status === 'approved' && (
-                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">APROBADO</span>
-                    )}
-                    {r.payment_status === 'pending' && (
-                      <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">EN REVISIÓN</span>
-                    )}
-                    {r.payment_status === 'rejected' && (
-                      <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800">RECHAZADO</span>
-                    )}
-                    {r.payment_status === 'cancelled' && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">CANCELADO</span>
-                    )}
-                  </td>
-                  <td className="p-2 border-b">{new Date(r.created_at).toLocaleString()}</td>
+          {/* Vista tarjetas para móvil */}
+          <div className="sm:hidden grid grid-cols-1 gap-3">
+            {data.map((r) => (
+              <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-xl border bg-white p-3 text-black shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold">{r.raffle_name}</div>
+                  <div className="text-xs text-gray-600">#{r.ticket_number}</div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">Ticket: {r.ticket_status === 'sold' ? 'VENDIDO' : r.ticket_status === 'reserved' ? 'RESERVADO' : r.ticket_status === 'available' ? 'DISPONIBLE' : String(r.ticket_status).toUpperCase()}</span>
+                  <span className={
+                    `px-2 py-0.5 rounded-full border text-xs ` +
+                    (r.payment_status === 'approved'
+                      ? 'bg-green-100 text-green-800 border-green-200'
+                      : r.payment_status === 'pending'
+                      ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      : r.payment_status === 'rejected'
+                      ? 'bg-red-100 text-red-800 border-red-200'
+                      : 'bg-gray-100 text-gray-800 border-gray-200')
+                  }>
+                    Pago: {r.payment_status === 'approved' ? 'APROBADO' : r.payment_status === 'pending' ? 'EN REVISIÓN' : r.payment_status === 'rejected' ? 'RECHAZADO' : 'CANCELADO'}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-gray-600">{new Date(r.created_at).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabla para pantallas grandes */}
+          <div className="hidden sm:block rounded-2xl border overflow-hidden bg-white">
+            <table className="w-full text-sm text-gray-900">
+              <thead className="bg-gray-50 text-gray-700">
+                <tr>
+                  <th className="text-left p-3 border-b">Rifa</th>
+                  <th className="text-left p-3 border-b">Ticket</th>
+                  <th className="text-left p-3 border-b">Estado Ticket</th>
+                  <th className="text-left p-3 border-b">Estado Pago</th>
+                  <th className="text-left p-3 border-b">Fecha</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.map((r) => (
+                  <tr key={`${r.payment_id}-${r.ticket_id}`} className="odd:bg-white even:bg-gray-50">
+                    <td className="p-3 border-b">{r.raffle_name}</td>
+                    <td className="p-3 border-b">{r.ticket_number}</td>
+                    <td className="p-3 border-b">
+                      {r.ticket_status === 'sold' && (
+                        <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">VENDIDO</span>
+                      )}
+                      {r.ticket_status === 'reserved' && (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">RESERVADO</span>
+                      )}
+                      {r.ticket_status === 'available' && (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">DISPONIBLE</span>
+                      )}
+                      {!(r.ticket_status === 'sold' || r.ticket_status === 'reserved' || r.ticket_status === 'available') && (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">{String(r.ticket_status).toUpperCase()}</span>
+                      )}
+                    </td>
+                    <td className="p-3 border-b">
+                      {r.payment_status === 'approved' && (
+                        <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">APROBADO</span>
+                      )}
+                      {r.payment_status === 'pending' && (
+                        <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">EN REVISIÓN</span>
+                      )}
+                      {r.payment_status === 'rejected' && (
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-200">RECHAZADO</span>
+                      )}
+                      {r.payment_status === 'cancelled' && (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">CANCELADO</span>
+                      )}
+                    </td>
+                    <td className="p-3 border-b">{new Date(r.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

@@ -11,7 +11,10 @@ const nextConfig = {
   },
   // Ejecutaremos Next.js como servicio web (no export estático)
   images: {
-    // Ajusta dominios si usas next/image remoto; dejamos defaults
+    // Permitir imágenes remotas (ej. vehicle-images.dealersinspire.com y otras)
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+    ],
   },
 };
 

@@ -8,7 +8,7 @@ import { CheckoutForm } from "./CheckoutForm";
 import { FreeParticipationForm } from "./FreeParticipationForm";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 
-export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean }) {
+export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean }) {
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
   const [qty, setQty] = useState<number>(1);
@@ -20,6 +20,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [rateInfo, setRateInfo] = useState<{ rate: number; source?: string } | null>(null);
+  const [loadingRate, setLoadingRate] = useState<boolean>(true);
   const storageKey = `prizo_reservation_${raffleId}`;
   const [rehydrated, setRehydrated] = useState(false);
   const [restoreIds, setRestoreIds] = useState<string[] | null>(null);
@@ -31,6 +32,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
     (async () => {
       const info = await getUsdVesRate();
       if (info?.rate) setRateInfo({ rate: info.rate, source: info.source });
+      setLoadingRate(false);
     })();
   }, []);
 
@@ -55,7 +57,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
         });
       } catch {}
     })();
-  }, [raffleId, reserved.length]);
+  }, [raffleId, reserved.length, isFree]);
 
   async function enforceExactReservation(chosenIds: string[]) {
     // Intenta hasta 5 veces liberar cualquier extra que haya quedado reservado por mi sesión, con backoff corto
@@ -158,7 +160,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
         console.warn('Could not load existing reservations:', e);
       }
     })();
-  }, [raffleId, sessionId]);
+  }, [raffleId, sessionId, isFree, storageKey]);
 
   // Persistir IDs y deadline mínimo en localStorage cuando cambia la reserva
   useEffect(() => {
@@ -178,13 +180,22 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
         localStorage.removeItem(storageKey);
       }
     } catch {}
-  }, [reserved, storageKey]);
+  }, [reserved, storageKey, isFree]);
 
   const handleContinue = async () => {
     setBusy(true);
     setError(null);
     setInfo(null);
     try {
+      // Guard: exigir aceptación de TyC
+      try {
+        const accepted = typeof window !== 'undefined' && localStorage.getItem('prizo_terms_accepted_v1') === '1';
+        if (!accepted) {
+          setBusy(false);
+          setError('Debes aceptar los Términos y Condiciones para continuar.');
+          return;
+        }
+      } catch {}
       // En rifas gratis, no hay tickets ni reservas: mostrar directamente el formulario
       if (isFree) {
         const count = Math.max(1, qty);
@@ -368,7 +379,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
           const chosen = shuffled.slice(0, Math.min(qty, shuffled.length));
           const chosenIds = chosen.map((t: any) => t.id);
           const res = await reserveTickets(chosenIds, sessionId, 10);
-          let picked = Array.isArray(res) ? res : [];
+          const picked = Array.isArray(res) ? res : [];
           const keep = picked.filter((t: any) => chosenIds.includes(t.id));
           const extras = picked.filter((t: any) => !chosenIds.includes(t.id)).map((t: any) => t.id);
           if (extras.length) { try { await releaseTickets(extras, sessionId); } catch {} }
@@ -482,7 +493,7 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
               <div className="flex items-center justify-center gap-3">
                 <button type="button" className="w-12 h-12 rounded-lg bg-brand-100 text-black text-2xl font-bold" onClick={dec} disabled={busy}>−</button>
                 <input
-                  className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border"
+                  className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border bg-white text-black focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   type="number"
                   min={1}
                   max={availableTickets}
@@ -533,7 +544,6 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
 
           {!isFree && (
             <div className="mt-4 flex items-center justify-center gap-3">
-              <button type="button" className="pill-outline" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Cerrar</button>
               <button type="button" className="btn-neon disabled:opacity-60 flex items-center gap-2" onClick={handleContinue} disabled={busy}>
                 {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
                 Continuar
@@ -561,20 +571,26 @@ export function RaffleQuickBuy({ raffleId, currency, totalTickets, unitPriceCent
           )}
           {/* Resumen con números */}
           <div className="text-sm grid sm:grid-cols-2 gap-3">
-            <div className="p-3 rounded border border-brand-500/30 bg-surface-700">
-              <div className="text-xs text-brand-200">Cantidad</div>
-              <div className="text-lg font-semibold text-brand-100">{reservedCount}</div>
+            <div className="p-3 rounded border border-brand-600 bg-brand-500">
+              <div className="text-xs text-black/70">Cantidad</div>
+              <div className="text-lg font-semibold text-black">{reservedCount}</div>
             </div>
-            <div className="p-3 rounded border border-brand-500/30 bg-surface-700">
-              <div className="text-xs text-brand-200">Total (Bs)</div>
-              <div className="text-lg font-semibold text-brand-100">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
+            <div className="p-3 rounded border border-brand-600 bg-brand-500">
+              <div className="text-xs text-black/70">Total (Bs)</div>
+              <div className="text-lg font-semibold text-black">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
             </div>
           </div>
 
           {/* Listado de números reservados oculto por requerimiento */}
 
-          {!isFree && rateInfo && (
-            <p className="text-xs text-gray-600">Tasa BCV: {rateInfo.rate.toFixed(2)} Bs/USD</p>
+          {!isFree && (
+            loadingRate ? (
+              <p className="text-xs text-gray-500 animate-pulse">Cargando tasa…</p>
+            ) : rateInfo ? (
+              <p className="text-xs text-gray-600">Tasa referencial: {rateInfo.rate.toFixed(2)} Bs/USD</p>
+            ) : (
+              <p className="text-xs text-gray-500">Tasa referencial no disponible. Usando valor por defecto.</p>
+            )
           )}
 
           {/* Instrucciones de pago desde la rifa (con botones COPIAR) */}

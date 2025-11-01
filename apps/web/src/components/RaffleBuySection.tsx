@@ -271,6 +271,15 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
                   try {
                     setBusy(true);
                     setErrorMsg(null);
+                    // Guard: exigir aceptación de TyC para participar gratis
+                    try {
+                      const accepted = typeof window !== 'undefined' && localStorage.getItem('prizo_terms_accepted_v1') === '1';
+                      if (!accepted) {
+                        setErrorMsg('Debes aceptar los Términos y Condiciones para participar.');
+                        setBusy(false);
+                        return;
+                      }
+                    } catch {}
                     try { await ensureSession(sessionId); } catch {}
                     // Elegir un ticket disponible al azar y reservarlo
                     const all = await listTickets(raffleId);

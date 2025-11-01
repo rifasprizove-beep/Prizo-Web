@@ -1,6 +1,7 @@
 "use client";
 import type { Raffle, RaffleTicketCounters } from "@/lib/types";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 import { formatVES, raffleStatusEs } from "@/lib/i18n";
@@ -20,20 +21,20 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   return (
     <header className="space-y-4">
       <div>
-        <Link href="/" className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white">
-          ← Cambiar de rifa
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white text-brand-700 border-white/60 hover:bg-brand-50 hover:border-brand-200 transition-colors"
+        >
+          ← <span>Cambiar de rifa</span>
         </Link>
       </div>
 
       <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
         {raffle.image_url && (
-          <img
-            src={raffle.image_url}
-            alt={raffle.name}
-            className="w-full h-64 md:h-80 object-cover rounded-xl mt-3 bg-white"
-            loading="lazy"
-          />
+          <div className="relative w-full h-64 md:h-80 rounded-xl mt-3 overflow-hidden bg-white">
+            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="100vw" />
+          </div>
         )}
 
         <div className="mt-3 text-sm space-y-1">
@@ -47,7 +48,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="opacity-90">Top comprador:</span> {topBuyerVES ? formatVES(topBuyerVES) : `$${topBuyerUSD.toFixed(2)}`}
+              <span className="text-brand-300">Top comprador:</span> {topBuyerVES ? formatVES(topBuyerVES) : `$${topBuyerUSD.toFixed(2)}`}
             </div>
           )}
         </div>

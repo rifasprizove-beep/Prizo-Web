@@ -50,6 +50,8 @@ dist-ssr
 # Next.js
 .next/
 apps/web/.next/
+.next_bak*/
+apps/web/.next_bak*/
 .turbo/
 apps/web/.turbo/
 .vercel/

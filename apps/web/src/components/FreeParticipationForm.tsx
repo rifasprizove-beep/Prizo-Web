@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,6 +39,14 @@ export function FreeParticipationForm({
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
+    // Guard: TyC aceptados
+    try {
+      const accepted = typeof window !== 'undefined' && localStorage.getItem('prizo_terms_accepted_v1') === '1';
+      if (!accepted) {
+        setServerError('Debes aceptar los Términos y Condiciones antes de enviar.');
+        return;
+      }
+    } catch {}
     try {
       const paymentId = await createPaymentForSession({
       p_raffle_id: raffleId,

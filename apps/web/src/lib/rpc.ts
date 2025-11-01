@@ -4,6 +4,24 @@ function apiBase() {
   return process.env.NEXT_PUBLIC_API_URL || '';
 }
 
+export async function getApiHealth(timeoutMs: number = 2000): Promise<{ ok: boolean; detail?: string } | null> {
+  const base = apiBase();
+  if (!base) return null; // sin API externa configurada
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${base}/health`, { cache: 'no-store', signal: controller.signal });
+    clearTimeout(t);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      return { ok: false, detail: `${res.status} ${txt}`.trim() };
+    }
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, detail: e?.message ?? String(e) };
+  }
+}
+
 export async function createPaymentForSession(args: {
   p_raffle_id: string;
   p_session_id: string;

@@ -40,7 +40,15 @@ export async function reserveRandomTickets(args: {
       body: JSON.stringify({ ...args, p_total: args.p_quantity }),
       cache: 'no-store',
     });
-    if (!res.ok) throw new Error(`reserveRandomTickets api failed: ${res.status}`);
+    if (!res.ok) {
+      try {
+        const err = await res.json();
+        throw new Error(`reserveRandomTickets api failed: ${res.status} ${err?.detail ?? ''}`.trim());
+      } catch {
+        const txt = await res.text();
+        throw new Error(`reserveRandomTickets api failed: ${res.status} ${txt}`.trim());
+      }
+    }
     const json = await res.json();
     return json?.data ?? [];
   } else {
@@ -66,7 +74,15 @@ export async function ensureAndReserveRandomTickets(args: {
       body: JSON.stringify(args),
       cache: 'no-store',
     });
-    if (!res.ok) throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status}`);
+    if (!res.ok) {
+      try {
+        const err = await res.json();
+        throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${err?.detail ?? ''}`.trim());
+      } catch {
+        const txt = await res.text();
+        throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${txt}`.trim());
+      }
+    }
     const json = await res.json();
     return json?.data ?? [];
   } else {

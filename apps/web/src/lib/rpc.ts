@@ -59,13 +59,13 @@ export async function reserveRandomTickets(args: {
       cache: 'no-store',
     });
     if (!res.ok) {
+      const raw = await res.text().catch(() => '');
+      let detail = raw;
       try {
-        const err = await res.json();
-        throw new Error(`reserveRandomTickets api failed: ${res.status} ${err?.detail ?? ''}`.trim());
-      } catch {
-        const txt = await res.text();
-        throw new Error(`reserveRandomTickets api failed: ${res.status} ${txt}`.trim());
-      }
+        const err = raw ? JSON.parse(raw) : null;
+        if (err && typeof err === 'object' && 'detail' in err) detail = (err as any).detail ?? raw;
+      } catch {}
+      throw new Error(`reserveRandomTickets api failed: ${res.status} ${detail}`.trim());
     }
     const json = await res.json();
     return json?.data ?? [];
@@ -93,13 +93,13 @@ export async function ensureAndReserveRandomTickets(args: {
       cache: 'no-store',
     });
     if (!res.ok) {
+      const raw = await res.text().catch(() => '');
+      let detail = raw;
       try {
-        const err = await res.json();
-        throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${err?.detail ?? ''}`.trim());
-      } catch {
-        const txt = await res.text();
-        throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${txt}`.trim());
-      }
+        const err = raw ? JSON.parse(raw) : null;
+        if (err && typeof err === 'object' && 'detail' in err) detail = (err as any).detail ?? raw;
+      } catch {}
+      throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${detail}`.trim());
     }
     const json = await res.json();
     return json?.data ?? [];

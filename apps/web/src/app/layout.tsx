@@ -10,8 +10,26 @@ import Image from 'next/image'
 const grotesk = Space_Grotesk({ subsets: ['latin'], weight: ['400','600','700'] })
 
 export const metadata: Metadata = {
-  title: 'Prizo',
+  title: {
+    default: 'Prizo',
+    template: '%s · Prizo',
+  },
   description: 'Transparencia en sorteos',
+  icons: {
+    icon: [
+      {
+        url: 'https://res.cloudinary.com/dzaokhfcw/image/upload/v1762024154/Prizo_l32y0t.png',
+        type: 'image/png',
+      },
+    ],
+    apple: [
+      {
+        url: 'https://res.cloudinary.com/dzaokhfcw/image/upload/v1762024154/Prizo_l32y0t.png',
+        type: 'image/png',
+      },
+    ],
+  },
+  themeColor: '#0b0b0e',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

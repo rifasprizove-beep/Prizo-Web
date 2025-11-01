@@ -19,16 +19,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
   return (
     <header className="space-y-4">
-      <div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white text-brand-700 border-white/60 hover:bg-brand-50 hover:border-brand-200 transition-colors"
-        >
-          ← <span>Cambiar de rifa</span>
-        </Link>
-      </div>
-
-      <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
+      <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm text-center">
         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
         {raffle.image_url && (
           <div className="relative w-full h-64 md:h-80 rounded-xl mt-3 overflow-hidden bg-white">
@@ -36,7 +27,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
         )}
 
-        <div className="mt-3 text-sm space-y-1">
+        <div className="mt-3 text-sm space-y-1 text-center">
           <div>
             <span className="opacity-90">Ticket:</span> {isFree ? 'Gratis' : (priceVES ? formatVES(priceVES) : '—')} {!isFree && <span className="opacity-80">(tasa del día)</span>}
           </div>
@@ -83,7 +74,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             </div>
           </div>
         </div>
-        <div className="mt-2 text-xs opacity-80">
+        <div className="mt-2 text-xs opacity-80 text-center">
           Estado: {raffleStatusEs(raffle.status)}
         </div>
       </div>

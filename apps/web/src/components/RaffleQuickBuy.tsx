@@ -432,6 +432,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   const timeLeftMs = deadline ? Math.max(0, deadline - now) : 0;
   const isExpired = deadline === 0 || timeLeftMs <= 0;
+  const urgent = !isExpired && timeLeftMs <= 60_000; // último minuto
   const mm = String(Math.floor(timeLeftMs / 60000)).padStart(2, "0");
   const ss = String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, "0");
 
@@ -555,11 +556,13 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
         <div className="mt-4 space-y-4 max-w-xl mx-auto">
           {!isFree && (
             <>
-              <div className={`text-sm p-2 rounded border ${isExpired ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+              <div className={`sticky top-2 z-20 text-base md:text-xl font-extrabold tracking-wide text-center p-3 rounded-lg border-2 shadow ${isExpired ? 'bg-red-600/10 border-red-500 text-red-600' : urgent ? 'bg-red-600/20 border-red-500 text-red-200 animate-pulse' : 'bg-brand-500/20 border-brand-500 text-brand-200'}`}>
                 {isExpired ? (
                   <span>La reserva expiró. Vuelve a seleccionar tus tickets.</span>
                 ) : (
-                  <span>Reserva activa: {mm}:{ss} restantes.</span>
+                  <span>
+                    ⏳ Reserva activa: <span className="font-black tabular-nums">{mm}:{ss}</span> restantes
+                  </span>
                 )}
               </div>
               {!isExpired && (rehydrated || restoring) && (
@@ -571,11 +574,11 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           )}
           {/* Resumen con números */}
           <div className="text-sm grid sm:grid-cols-2 gap-3">
-            <div className="p-3 rounded border border-brand-600 bg-brand-500">
+            <div className="p-3 rounded border border-brand-600 bg-brand-500 text-center">
               <div className="text-xs text-black/70">Cantidad</div>
               <div className="text-lg font-semibold text-black">{reservedCount}</div>
             </div>
-            <div className="p-3 rounded border border-brand-600 bg-brand-500">
+            <div className="p-3 rounded border border-brand-600 bg-brand-500 text-center">
               <div className="text-xs text-black/70">Total (Bs)</div>
               <div className="text-lg font-semibold text-black">{isFree ? '0.00' : (rate ? totalVES.toFixed(2) : '—')}</div>
             </div>
@@ -720,7 +723,12 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           )}
 
           <div className="flex items-center justify-end">
-            <button type="button" className="text-sm px-3 py-1.5 rounded border" onClick={() => setShowCancelConfirm(true)} disabled={busy}>Liberar y cerrar</button>
+            <button
+              type="button"
+              className="text-base px-4 py-2 rounded-lg border-2 border-red-500 text-red-200 hover:bg-red-600 hover:text-white transition-colors shadow-sm"
+              onClick={() => setShowCancelConfirm(true)}
+              disabled={busy}
+            >Liberar y cerrar</button>
           </div>
         </div>
       )}

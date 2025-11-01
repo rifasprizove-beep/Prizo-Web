@@ -5,6 +5,8 @@ export type Raffle = {
   status: 'draft' | 'published' | 'selling' | 'closed' | 'drawn' | 'archived';
   currency: string;
   ticket_price_cents: number;
+  prize_amount_cents?: number; // nuevo: monto del premio en centavos
+  top_buyer_prize_cents?: number; // nuevo: premio para el Top Comprador en centavos
   image_url: string | null;
   total_tickets: number;
   allow_manual?: boolean; // si false, solo números aleatorios

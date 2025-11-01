@@ -21,6 +21,10 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const rate = useRate();
   const unitUSD = centsToUsd(raffle.ticket_price_cents);
   const unitVES = rate ? round2(unitUSD * rate) : 0;
+  const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
+  const prizeVES = rate ? round2(prizeUSD * rate) : 0;
+  const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
+  const topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
   return (
     <a
       href={`/raffles/${raffle.id}`}
@@ -42,6 +46,16 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         <div className="mt-1 text-sm text-gray-600 line-clamp-2 min-h-[2.5rem]">
           {raffle.description ?? ''}
         </div>
+        {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
+          <div className="mt-2 text-xs text-gray-700">
+            Premio: {prizeVES ? formatVES(prizeVES) : `$${prizeUSD.toFixed(2)}`}
+          </div>
+        )}
+        {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
+          <div className="mt-1 text-xs text-gray-700">
+            Top comprador: {topBuyerVES ? formatVES(topBuyerVES) : `$${topBuyerUSD.toFixed(2)}`}
+          </div>
+        )}
         <div className="mt-2 flex items-center justify-between">
           <span className="text-pink-600 font-semibold">
             {unitVES ? formatVES(unitVES) : '—'}

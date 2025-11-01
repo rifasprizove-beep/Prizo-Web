@@ -27,17 +27,22 @@ create table if not exists raffles (
   status raffle_status not null default 'draft',
   currency text not null default 'USD',
   ticket_price_cents integer not null default 100,
+  -- Nuevo: monto del premio principal en centavos (según currency)
+  prize_amount_cents integer not null default 0,
   image_url text null,
   payment_methods jsonb null default '{}'::jsonb,
   allow_manual boolean null default true,
   total_tickets integer not null,
   is_free boolean not null default false,
   has_top_buyer_prize boolean not null default false,
+  -- Nuevo: monto del premio para el Top Comprador en centavos (según currency)
+  top_buyer_prize_cents integer not null default 0,
   starts_at timestamptz null,
   ends_at timestamptz null,
   created_at timestamptz null default now(),
   constraint chk_raffles_total_tickets check (total_tickets > 0),
   constraint chk_raffles_price check (ticket_price_cents >= 0),
+  constraint chk_raffles_prizes check (prize_amount_cents >= 0 and top_buyer_prize_cents >= 0),
   constraint chk_raffles_dates check (starts_at is null or ends_at is null or ends_at > starts_at)
 );
 
@@ -113,6 +118,29 @@ create table if not exists settings (
   key text primary key,
   value text null
 );
+
+-- Trigger: sincroniza has_top_buyer_prize según top_buyer_prize_cents
+create or replace function set_has_top_buyer_prize()
+returns trigger
+language plpgsql
+as $$
+begin
+  if TG_OP = 'INSERT' or TG_OP = 'UPDATE' then
+    NEW.has_top_buyer_prize := coalesce(NEW.top_buyer_prize_cents, 0) > 0;
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_sync_has_top_buyer_prize on raffles;
+create trigger trg_sync_has_top_buyer_prize
+before insert or update of top_buyer_prize_cents, has_top_buyer_prize
+on raffles
+for each row
+execute function set_has_top_buyer_prize();
+
+-- Inicializa consistencia para datos existentes
+update raffles set has_top_buyer_prize = (coalesce(top_buyer_prize_cents,0) > 0);
 
 -- NOTE: Tabla sessions ya existe arriba con más columnas; se elimina duplicado para evitar conflictos
 

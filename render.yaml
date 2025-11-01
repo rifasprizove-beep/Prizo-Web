@@ -27,7 +27,7 @@ services:
     env: node
     rootDir: apps/web
     buildCommand: |
-      npm ci
+      npm install --no-audit --no-fund
       npm run build
     startCommand: npm run start
     autoDeploy: true

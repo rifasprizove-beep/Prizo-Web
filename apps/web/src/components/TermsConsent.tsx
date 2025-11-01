@@ -22,9 +22,16 @@ export function TermsConsent() {
   const canContinue = ageOk && accept;
 
   return (
-    <div className="fixed inset-0 z-[1000]">
-      <div className="absolute inset-0 bg-black/60" />
-      <div className="relative z-10 max-w-lg w-[92%] mx-auto mt-20 rounded-2xl border border-brand-500/30 bg-surface-700 text-white p-5 shadow-glow">
+    <div className="fixed inset-0 z-[1000] flex items-start sm:items-center justify-center overflow-y-auto">
+      {/* Fondo oscuro */}
+      <div className="fixed inset-0 bg-black/60" />
+      {/* Contenedor scrollable para móviles pequeños */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative z-10 my-6 w-full max-w-lg px-3"
+      >
+        <div className="rounded-2xl border border-brand-500/30 bg-surface-700 text-white p-5 shadow-glow max-h-[85vh] overflow-y-auto overscroll-contain">
         <h2 className="text-xl font-bold mb-2">Términos y condiciones</h2>
         <p className="text-sm text-gray-300 mb-3">
           Para usar esta web debes leer y aceptar los Términos y Condiciones. En especial:
@@ -64,6 +71,7 @@ export function TermsConsent() {
               setOpen(false);
             }}
           >Aceptar y continuar</button>
+        </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,9 @@
 "use client";
 
 export function Footer() {
-  const ig = process.env.NEXT_PUBLIC_INSTAGRAM_URL || '';
+  const igRaw = process.env.NEXT_PUBLIC_INSTAGRAM_URL || '';
+  // Sanitiza por si alguien dejó comillas en .env ("https://...")
+  const ig = igRaw.replace(/^['"]|['"]$/g, '');
   return (
     <footer className="mt-10 py-8 border-t border-white/10 text-sm text-gray-300">
       <div className="site-container grid gap-4 md:grid-cols-3 items-center">

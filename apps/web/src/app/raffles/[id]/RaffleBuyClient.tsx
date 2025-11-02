@@ -6,9 +6,29 @@ import { RaffleBuyTabs } from '@/components/RaffleBuyTabs';
 import { getRafflePaymentInfo } from '@/lib/data/paymentConfig';
 
 export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
-  const raffleQ = useQuery({ queryKey: ['raffle', raffleId], queryFn: () => getRaffle(raffleId) });
-  const drawQ = useQuery({ queryKey: ['raffle-last-draw', raffleId], queryFn: () => getLastDraw(raffleId), enabled: !!raffleQ.data });
-  const payQ = useQuery({ queryKey: ['raffle-payment', raffleId], queryFn: () => getRafflePaymentInfo(raffleId), enabled: !!raffleQ.data });
+  const raffleQ = useQuery({
+    queryKey: ['raffle', raffleId],
+    queryFn: () => getRaffle(raffleId),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const drawQ = useQuery({
+    queryKey: ['raffle-last-draw', raffleId],
+    queryFn: () => getLastDraw(raffleId),
+    enabled: !!raffleQ.data,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const payQ = useQuery({
+    queryKey: ['raffle-payment', raffleId],
+    queryFn: () => getRafflePaymentInfo(raffleId),
+    enabled: !!raffleQ.data,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
   if (raffleQ.isLoading) return <div className="p-4">Cargando…</div>;
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
   // Si el sorteo está cerrado o ya fue sorteado, no permitir comprar/participar

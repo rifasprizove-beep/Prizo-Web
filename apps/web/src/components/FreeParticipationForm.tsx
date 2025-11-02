@@ -126,7 +126,7 @@ export function FreeParticipationForm({
           {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city.message as string}</p>}
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center gap-3">
         <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled}>Enviar participación</button>
       </div>
     </form>

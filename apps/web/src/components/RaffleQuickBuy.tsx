@@ -517,9 +517,6 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   >+{n}</button>
                 ))}
               </div>
-              <div className="mt-2 text-center text-xs text-gray-400">
-                Min 1 • Max {Math.max(1, availableTickets)}
-              </div>
             </>
           ) : (
             <div className="mt-2 flex items-center justify-center">

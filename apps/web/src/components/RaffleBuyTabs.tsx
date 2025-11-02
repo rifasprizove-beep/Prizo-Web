@@ -27,9 +27,13 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
           </button>
         </div>
       ) : (
-        <div className="rounded-2xl border p-4 bg-white text-sm text-gray-700">
-          Esta rifa asigna los números <b>al azar</b>. Puedes indicar cuántos quieres y los reservaremos por 10 minutos.
-        </div>
+        <>
+          {!isFree && (
+            <div className="rounded-2xl border p-4 bg-white text-sm text-gray-700">
+              Esta rifa asigna los números <b>al azar</b>. Puedes indicar cuántos quieres y los reservaremos por 10 minutos.
+            </div>
+          )}
+        </>
       )}
 
       {!allowManual || tab === 'quick' ? (

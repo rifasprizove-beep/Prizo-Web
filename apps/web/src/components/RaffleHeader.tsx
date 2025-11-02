@@ -5,8 +5,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 import { formatVES, raffleStatusEs } from "@/lib/i18n";
+import { useCurrency } from "@/lib/currency";
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
+  const { currency } = useCurrency();
   const [rate, setRate] = useState<number | null>(null);
   useEffect(() => { (async () => { try { const info = await getUsdVesRate(); if (info?.rate) setRate(info.rate); } catch {} })(); }, []);
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
@@ -33,12 +35,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {`$${prizeUSD.toFixed(2)}`}
+              <span className="opacity-90">Premio:</span> {currency === 'USD' ? `$${prizeUSD.toFixed(2)}` : (rate ? formatVES(round2(prizeUSD * rate)) : '—')}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="text-brand-300">Top comprador:</span> {topBuyerVES ? formatVES(topBuyerVES) : `$${topBuyerUSD.toFixed(2)}`}
+              <span className="text-brand-300">Top comprador:</span> {currency === 'USD' ? `$${topBuyerUSD.toFixed(2)}` : (topBuyerVES ? formatVES(topBuyerVES) : '—')}
             </div>
           )}
         </div>

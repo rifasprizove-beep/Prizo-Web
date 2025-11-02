@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { centsToUsd, getUsdVesRate, round2 } from '@/lib/data/rate';
 import { raffleStatusEs, formatVES } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
+import { useCurrency } from '@/lib/currency';
 
 function useRate() {
   const [rate, setRate] = useState<number | null>(null);
@@ -20,6 +21,7 @@ function useRate() {
 }
 
 export function RaffleCard({ raffle }: { raffle: Raffle }) {
+  const { currency } = useCurrency();
   const rate = useRate();
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
   const unitUSD = centsToUsd(raffle.ticket_price_cents);
@@ -56,7 +58,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       {(raffle.prize_amount_cents ?? 0) > 0 && (
         <div className="px-4 py-3">
           <div className="text-xs text-gray-300">Premio</div>
-          <div className="font-semibold">{`$${prizeUSD.toFixed(2)}`}</div>
+          <div className="font-semibold">{currency === 'USD' ? `$${prizeUSD.toFixed(2)}` : (rate ? formatVES(round2(prizeUSD * rate)) : '—')}</div>
         </div>
       )}
     </a>

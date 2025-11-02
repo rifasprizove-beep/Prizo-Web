@@ -6,6 +6,8 @@ import { TermsConsent } from '../components/TermsConsent'
 import { Footer } from '../components/Footer'
 import { WhatsAppHelp } from '../components/WhatsAppHelp'
 import Image from 'next/image'
+import { CurrencyProvider } from '../lib/currency'
+import { CurrencyToggle } from '../components/CurrencyToggle'
 
 const grotesk = Space_Grotesk({ subsets: ['latin'], weight: ['400','600','700'] })
 
@@ -51,7 +53,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="text-xl font-extrabold text-brand-500 title-neon hidden sm:inline">PRIZO</span>
             </a>
             <nav className="flex items-center gap-3 text-sm">
-              <a href="/" className="pill-outline">Home</a>
+              {/* Toggle de moneda (reemplaza Home) */}
+              {/* Cliente: controla visualización de premios VES/USD */}
+              <CurrencyToggle />
             </nav>
             <a
               href="/verify"
@@ -66,7 +70,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </header>
 
           <ReactQueryClientProvider>
-            {children}
+            <CurrencyProvider>
+              {children}
+            </CurrencyProvider>
           </ReactQueryClientProvider>
         </div>
         {/* Modal de TyC bloqueante al entrar */}

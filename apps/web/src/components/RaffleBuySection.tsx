@@ -336,8 +336,8 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
               )}
             </>
           )}
-          {/* Resumen y números */}
-          <div className="grid grid-cols-3 gap-3 text-sm">
+          {/* Resumen y números (centrado para una mejor lectura en pagos) */}
+          <div className="grid grid-cols-1 place-items-center gap-3 text-sm">
             <div className="p-2 rounded border bg-gray-50 text-center">
               <div className="text-xs text-gray-600">Cantidad</div>
               <div className="font-semibold">{countSelected}</div>

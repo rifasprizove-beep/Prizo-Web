@@ -8,6 +8,7 @@ import { WhatsAppHelp } from '../components/WhatsAppHelp'
 import Image from 'next/image'
 import { CurrencyProvider } from '../lib/currency'
 import { HeaderActions } from '../components/HeaderActions'
+import { ThemeProvider } from '../lib/theme'
 
 const grotesk = Space_Grotesk({ subsets: ['latin'], weight: ['400','600','700'] })
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${grotesk.className} min-h-dvh flex flex-col`} suppressHydrationWarning>
+  <ThemeProvider lockedMode="dark">
         <CurrencyProvider>
         <div className="site-container py-4 flex-1 w-full">
           <header className="relative h-16 flex items-center justify-center">
@@ -75,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <WhatsAppHelp />
         </CurrencyProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

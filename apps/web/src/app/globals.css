@@ -3,7 +3,20 @@
 @tailwind utilities;
 
 :root {
+  --bg: #0b0b0e; /* fondo oscuro por defecto */
+  --text: #f3f3f3; /* texto claro */
+}
+
+/* Modo oscuro explícito (predeterminado) */
+.theme-dark:root {
   --bg: #0b0b0e;
+  --text: #f3f3f3;
+}
+
+/* Modo claro */
+.theme-light:root {
+  --bg: #ffffff;
+  --text: #0b0b0e;
 }
 
 body {
@@ -11,7 +24,13 @@ body {
               radial-gradient(900px 600px at 120% 10%, rgba(215,0,86,0.05), transparent 60%),
               radial-gradient(700px 500px at 50% 120%, rgba(215,0,86,0.04), transparent 60%),
               var(--bg);
-  color: #f3f3f3;
+  color: var(--text);
+}
+
+/* En tema claro usamos fondo blanco plano para evitar manchas fuertes del gradiente */
+.theme-light body {
+  background: var(--bg);
+  color: var(--text);
 }
 
 .site-container {

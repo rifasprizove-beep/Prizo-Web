@@ -8,7 +8,7 @@ type VerifyRow = {
   ticket_number: number;
   ticket_status: 'available' | 'reserved' | 'sold' | 'void' | 'refunded';
   payment_id: string;
-  payment_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  payment_status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'underpaid' | 'overpaid' | 'ref_mismatch';
   created_at: string;
 };
 
@@ -102,6 +102,9 @@ export default function VerifyPage() {
               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Aprobado: {data.filter(r => r.payment_status === 'approved').length}</span>
               <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">En revisión: {data.filter(r => r.payment_status === 'pending').length}</span>
               <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800">Rechazado: {data.filter(r => r.payment_status === 'rejected').length}</span>
+              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800" title="Monto recibido menor al debido">Monto menor: {data.filter(r => r.payment_status === 'underpaid').length}</span>
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Monto recibido mayor al debido">Monto mayor: {data.filter(r => r.payment_status === 'overpaid').length}</span>
+              <span className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800" title="La referencia no coincide o no se puede verificar">Ref. inválida: {data.filter(r => r.payment_status === 'ref_mismatch').length}</span>
             </span>
           </div>
 
@@ -115,17 +118,42 @@ export default function VerifyPage() {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">Ticket: {r.ticket_status === 'sold' ? 'VENDIDO' : r.ticket_status === 'reserved' ? 'RESERVADO' : r.ticket_status === 'available' ? 'DISPONIBLE' : String(r.ticket_status).toUpperCase()}</span>
-                  <span className={
-                    `px-2 py-0.5 rounded-full border text-xs ` +
-                    (r.payment_status === 'approved'
-                      ? 'bg-green-100 text-green-800 border-green-200'
-                      : r.payment_status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                      : r.payment_status === 'rejected'
-                      ? 'bg-red-100 text-red-800 border-red-200'
-                      : 'bg-gray-100 text-gray-800 border-gray-200')
-                  }>
-                    Pago: {r.payment_status === 'approved' ? 'APROBADO' : r.payment_status === 'pending' ? 'EN REVISIÓN' : r.payment_status === 'rejected' ? 'RECHAZADO' : 'CANCELADO'}
+                  <span
+                    className={
+                      `px-2 py-0.5 rounded-full border text-xs ` +
+                      (r.payment_status === 'approved'
+                        ? 'bg-green-100 text-green-800 border-green-200'
+                        : r.payment_status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                        : r.payment_status === 'rejected'
+                        ? 'bg-red-100 text-red-800 border-red-200'
+                        : r.payment_status === 'underpaid'
+                        ? 'bg-orange-100 text-orange-800 border-orange-200'
+                        : r.payment_status === 'overpaid'
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : r.payment_status === 'ref_mismatch'
+                        ? 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200'
+                        : 'bg-gray-100 text-gray-800 border-gray-200')
+                    }
+                    title={
+                      r.payment_status === 'underpaid'
+                        ? 'Monto recibido menor al debido'
+                        : r.payment_status === 'overpaid'
+                        ? 'Monto recibido mayor al debido'
+                        : r.payment_status === 'ref_mismatch'
+                        ? 'La referencia no coincide o no se puede verificar'
+                        : undefined
+                    }
+                  >
+                    Pago: {
+                      r.payment_status === 'approved' ? 'APROBADO' :
+                      r.payment_status === 'pending' ? 'EN REVISIÓN' :
+                      r.payment_status === 'rejected' ? 'RECHAZADO' :
+                      r.payment_status === 'underpaid' ? 'MONTO MENOR' :
+                      r.payment_status === 'overpaid' ? 'MONTO MAYOR' :
+                      r.payment_status === 'ref_mismatch' ? 'REF. NO COINCIDE' :
+                      'CANCELADO'
+                    }
                   </span>
                 </div>
                 <div className="mt-2 text-xs text-gray-600">{new Date(r.created_at).toLocaleString()}</div>
@@ -173,6 +201,15 @@ export default function VerifyPage() {
                       )}
                       {r.payment_status === 'rejected' && (
                         <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-200">RECHAZADO</span>
+                      )}
+                      {r.payment_status === 'underpaid' && (
+                        <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200" title="Monto recibido menor al debido">MONTO MENOR</span>
+                      )}
+                      {r.payment_status === 'overpaid' && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200" title="Monto recibido mayor al debido">MONTO MAYOR</span>
+                      )}
+                      {r.payment_status === 'ref_mismatch' && (
+                        <span className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200" title="La referencia no coincide o no se puede verificar">REF. NO COINCIDE</span>
                       )}
                       {r.payment_status === 'cancelled' && (
                         <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">CANCELADO</span>

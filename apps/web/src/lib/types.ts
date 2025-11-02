@@ -44,5 +44,6 @@ export type Winner = {
   ticket_number_snapshot: number | null;
   winner_name: string | null;
   instagram_user: string | null;
+  image_url?: string | null; // URL de imagen asociada al ganador (opcional)
   created_at: string;
 };

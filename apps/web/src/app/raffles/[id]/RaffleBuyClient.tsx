@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getRaffle } from '@/lib/data/raffles';
 import { getLastDraw } from '@/lib/data/draws';
@@ -13,6 +14,16 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
+  // Escucha de hash '#ganador' para ocultar sección inferior cuando el panel de ganadores está abierto
+  const [hiddenByWinner, setHiddenByWinner] = useState<boolean>(() => typeof window !== 'undefined' && window.location.hash === '#ganador');
+  useEffect(() => {
+    const handler = () => setHiddenByWinner(typeof window !== 'undefined' && window.location.hash === '#ganador');
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hashchange', handler);
+      handler();
+    }
+    return () => { if (typeof window !== 'undefined') window.removeEventListener('hashchange', handler); };
+  }, []);
   const drawQ = useQuery({
     queryKey: ['raffle-last-draw', raffleId],
     queryFn: () => getLastDraw(raffleId),
@@ -44,15 +55,30 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));
   const isFree = (raffleQ.data as any)?.is_free === true || (raffleQ.data.ticket_price_cents ?? 0) === 0;
-  // En 'drawn' mostramos solo un aviso en la sección de compra (sin botón Participar)
-  if (raffleQ.data.status === 'drawn') {
-    return (
-      <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
-        Sorteo realizado. Revisa los ganadores arriba o en el{' '}
-        <a href={`/raffles/${raffleId}/result`} className="text-pink-700 font-semibold underline">resultado</a>.
-      </div>
-    );
+  // En 'drawn' mantenemos la sección (deshabilitada), pero si el usuario abrió GANADOR arriba (#ganador), ocultamos todo para no duplicar información en pantalla.
+  if (raffleQ.data.status === 'drawn' && hiddenByWinner) {
+    return null;
   }
 
-  return <RaffleBuyTabs raffleId={raffleId} currency={raffleQ.data.currency} totalTickets={raffleQ.data.total_tickets} unitPriceCents={raffleQ.data.ticket_price_cents} paymentInfo={payQ.data ?? null} allowManual={allowManual} isFree={isFree} disabledAll={disabledAll} />;
+  return (
+    <div className="space-y-3">
+      {raffleQ.data.status === 'drawn' && (
+        <div className="rounded-xl border p-3 bg-white text-center text-gray-700">
+          Sorteo realizado. La sección de participación se muestra solo a modo informativo.
+          Consulta los ganadores en el botón GANADOR arriba o en el{' '}
+          <a href={`/raffles/${raffleId}/result`} className="text-pink-700 font-semibold underline">resultado</a>.
+        </div>
+      )}
+      <RaffleBuyTabs
+        raffleId={raffleId}
+        currency={raffleQ.data.currency}
+        totalTickets={raffleQ.data.total_tickets}
+        unitPriceCents={raffleQ.data.ticket_price_cents}
+        paymentInfo={payQ.data ?? null}
+        allowManual={allowManual}
+        isFree={isFree}
+        disabledAll={disabledAll}
+      />
+    </div>
+  );
 }

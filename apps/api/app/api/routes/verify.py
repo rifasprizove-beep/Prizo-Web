@@ -31,9 +31,11 @@ def verify_tickets(q: str = Query(..., min_length=2), include_pending: bool = Tr
         )
         # Filtro: por email o ci (ilike) y por estado approved o pending
         term = f"*{q}*"
+        # Incluir estados en revisión/ampliados cuando include_pending=True
+        pending_set = "approved,pending,underpaid,overpaid,ref_mismatch" if include_pending else "approved"
         params = {
             "or": f"(payments.email.ilike.{term},payments.ci.ilike.{term})",
-            "payments.status": "in.(approved,pending)" if include_pending else "in.(approved)",
+            "payments.status": f"in.({pending_set})",
         }
         try:
             rows: List[Dict[str, Any]] = sb.get_many("payment_tickets", params, select=select)

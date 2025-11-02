@@ -34,7 +34,10 @@ as $$
     or (p.ci is not null and p.ci ilike '%' || p_query || '%')
   )
   and (
-    p.status = 'approved' or (p_include_pending and p.status = 'pending')
+    p.status = 'approved'
+    or (
+      p_include_pending and p.status in ('pending','underpaid','overpaid','ref_mismatch')
+    )
   )
   order by p.created_at desc, r.name asc, t.ticket_number asc;
 $$;

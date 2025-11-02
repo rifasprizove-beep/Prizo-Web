@@ -86,13 +86,28 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               <div className="flex items-center gap-2">
                 <a
                   href="#sec-buy"
+                  onClick={() => setShowWinners(false)}
                   className={`flex-1 text-center font-semibold px-4 py-3 rounded-full ${showWinners ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
                 >
                   {isFree ? 'PARTICIPAR' : 'COMPRAR'}
                 </a>
                 <button
                   type="button"
-                  onClick={() => setShowWinners((v) => !v)}
+                  onClick={() => {
+                    setShowWinners((v) => {
+                      const next = !v;
+                      try {
+                        if (next) {
+                          // Señal global para ocultar la sección de compra
+                          if (typeof window !== 'undefined') window.location.hash = 'ganador';
+                        } else {
+                          // Quitar el hash sin cambiar la ruta ni recargar
+                          if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                        }
+                      } catch {}
+                      return next;
+                    });
+                  }}
                   className={`flex-1 text-center font-extrabold px-4 py-3 rounded-full ${showWinners ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
                 >
                   GANADOR

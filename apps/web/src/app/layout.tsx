@@ -37,9 +37,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={grotesk.className} suppressHydrationWarning>
+      <body className={`${grotesk.className} min-h-dvh flex flex-col`} suppressHydrationWarning>
         <CurrencyProvider>
-        <div className="site-container py-4">
+        <div className="site-container py-4 flex-1 w-full">
           <header className="relative h-16 flex items-center justify-center">
             <a href="/" aria-label="Inicio" className="absolute left-4 inline-flex items-center gap-2">
               <Image

@@ -78,6 +78,10 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             <Link href={`/raffles/${raffle.id}/result`} className="block text-center font-extrabold px-4 py-3 rounded-full bg-white text-brand-700">
               VER GANADOR
             </Link>
+          ) : raffle.status === 'closed' ? (
+            <div className="rounded-full px-4 py-3 text-center font-semibold border border-white/30 bg-white/10 text-white">
+              Sorteo cerrado — pendiente de ganador
+            </div>
           ) : (
             <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
               <div className="flex items-center gap-2">

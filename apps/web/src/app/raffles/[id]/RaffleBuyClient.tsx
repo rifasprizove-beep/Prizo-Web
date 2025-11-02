@@ -11,6 +11,26 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   const payQ = useQuery({ queryKey: ['raffle-payment', raffleId], queryFn: () => getRafflePaymentInfo(raffleId), enabled: !!raffleQ.data });
   if (raffleQ.isLoading) return <div className="p-4">Cargando…</div>;
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
+  // Si el sorteo está cerrado o ya fue sorteado, no permitir comprar/participar
+  if (raffleQ.data.status === 'closed') {
+    return (
+      <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
+        Ventas cerradas — pendiente de ganador
+      </div>
+    );
+  }
+  if (raffleQ.data.status === 'drawn') {
+    return (
+      <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
+        Este sorteo ya fue sorteado. Revisa el
+        {' '}
+        <a href={`/raffles/${raffleId}/result`} className="text-pink-700 font-semibold underline">
+          resultado aquí
+        </a>
+        .
+      </div>
+    );
+  }
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));

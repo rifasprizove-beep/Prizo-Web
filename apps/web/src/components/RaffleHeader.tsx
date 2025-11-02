@@ -75,9 +75,19 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
         <div className="mt-4">
           {raffle.status === 'drawn' ? (
-            <Link href={`/raffles/${raffle.id}/result`} className="block text-center font-extrabold px-4 py-3 rounded-full bg-white text-brand-700">
-              VER GANADOR
-            </Link>
+            <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
+              <div className="flex items-center gap-2">
+                <span className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/50">
+                  {isFree ? 'PARTICIPAR' : 'COMPRAR'}
+                </span>
+                <Link
+                  href={`/raffles/${raffle.id}/result`}
+                  className="flex-1 text-center font-extrabold px-4 py-3 rounded-full bg-white text-brand-700"
+                >
+                  GANADOR
+                </Link>
+              </div>
+            </div>
           ) : raffle.status === 'closed' ? (
             <div className="rounded-full px-4 py-3 text-center font-semibold border border-white/30 bg-white/10 text-white">
               Sorteo cerrado — pendiente de ganador

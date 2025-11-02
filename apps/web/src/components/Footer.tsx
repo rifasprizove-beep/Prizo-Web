@@ -6,13 +6,8 @@ export function Footer() {
   const ig = igRaw.replace(/^['"]|['"]$/g, '');
   return (
     <footer className="mt-10 py-8 border-t border-white/10 text-sm text-[var(--text)]">
-      <div className="site-container grid gap-4 md:grid-cols-3 items-center">
+      <div className="site-container grid gap-4 md:grid-cols-2 items-center">
         <div className="font-semibold">PRIZO</div>
-        <nav className="flex flex-wrap gap-3">
-          <a href="/" className="hover:underline">Inicio</a>
-          <a href="/verify" className="hover:underline">Verificar</a>
-          <a href="/terms" className="hover:underline">Términos</a>
-        </nav>
         <div className="md:text-right opacity-80 flex md:justify-end items-center gap-3">
           {/* Instagram */}
           {ig && (

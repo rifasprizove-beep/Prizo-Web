@@ -80,7 +80,7 @@ export function FreeParticipationForm({
       {/* En rifas gratis no mostramos cantidad/total */}
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium">Email (opcional)</label>
+          <label className="block text-sm font-medium">Email</label>
           <input type="email" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="tucorreo@mail.com" {...register('email')} />
           {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message as string}</p>}
         </div>
@@ -90,12 +90,12 @@ export function FreeParticipationForm({
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Usuario de Instagram (opcional)</label>
+          <label className="block text-sm font-medium">Usuario de Instagram</label>
           <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Cédula (opcional)</label>
+          <label className="block text-sm font-medium">Cédula</label>
           <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="V-12345678" {...register('ci')} />
           {errors.ci && <p className="text-xs text-red-600 mt-1">{errors.ci.message as string}</p>}
         </div>

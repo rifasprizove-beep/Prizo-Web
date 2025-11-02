@@ -153,11 +153,35 @@ function WinnersInline({ raffleId, raffleImage, raffleName }: { raffleId: string
     <section className="space-y-3">
       <h3 className="text-base font-semibold text-white">Ganadores</h3>
       <WinnerTable winners={winnersQ.data ?? []} />
-      {raffleImage && (
-        <div className="mt-2">
-          <img src={raffleImage} alt={`Imagen del sorteo ${raffleName}`} className="w-full rounded-xl border" />
-        </div>
-      )}
+      {/* Imagen destacada del ticket ganador debajo del listado */}
+      {(() => {
+        const winners = winnersQ.data ?? [];
+        const primary = winners.find(w => w.type === 'public_draw' && w.position === 1) || winners[0];
+        const ticketImg = primary?.image_url || null;
+        if (!ticketImg) return null;
+        const label = primary?.ticket_number_snapshot != null
+          ? `Ticket ganador #${primary.ticket_number_snapshot}`
+          : 'Ticket ganador';
+        return (
+          <div className="mt-2 rounded-2xl border border-white/15 bg-white/5 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="inline-flex items-center gap-2 text-white/90 font-semibold">
+                {/* ícono ticket */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                  <path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4 2 2 0 01-2-2V8z"/>
+                </svg>
+                <span>{label}</span>
+              </div>
+              <span className="text-xs text-white/60">
+                {primary?.winner_name || primary?.instagram_user || 'Ganador'}
+              </span>
+            </div>
+            <div className="relative w-full rounded-xl overflow-hidden bg-black/20 border border-white/10">
+              <img src={ticketImg} alt={label} className="w-full h-auto object-contain max-h-[28rem]" />
+            </div>
+          </div>
+        );
+      })()}
       <div className="text-xs opacity-80 mt-1 text-white/80">
         Para ver más detalles, visita la página de resultados.
         {' '}<Link href={`/raffles/${raffleId}/result`} className="underline">Abrir resultados</Link>

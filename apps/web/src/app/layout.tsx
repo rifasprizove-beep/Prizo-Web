@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={grotesk.className} suppressHydrationWarning>
+        <CurrencyProvider>
         <div className="site-container py-4">
           <header className="relative h-16 flex items-center justify-center">
             <a href="/" aria-label="Inicio" className="absolute left-4 inline-flex items-center gap-2">
@@ -70,15 +71,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </header>
 
           <ReactQueryClientProvider>
-            <CurrencyProvider>
               {children}
-            </CurrencyProvider>
           </ReactQueryClientProvider>
         </div>
         {/* Modal de TyC bloqueante al entrar */}
         <TermsConsent />
         <Footer />
         <WhatsAppHelp />
+        </CurrencyProvider>
       </body>
     </html>
   )

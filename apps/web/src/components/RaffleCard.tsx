@@ -29,8 +29,9 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
   const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
   const _topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
+  const cardHref = raffle.status === 'drawn' ? `/raffles/${raffle.id}/result` : `/raffles/${raffle.id}`;
   return (
-    <a href={`/raffles/${raffle.id}`} className="block rounded-3xl overflow-hidden border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
+    <a href={cardHref} className="block rounded-3xl overflow-hidden border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
       <div className="p-4 pb-0 space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           {isFree ? (
@@ -41,6 +42,9 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
           {raffle.status && (
             <BadgePill>{raffleStatusEs(raffle.status)}</BadgePill>
           )}
+          {raffle.status === 'drawn' ? (
+            <BadgePill tone="brand">Ganador</BadgePill>
+          ) : null}
           {raffle.top_buyer_prize_cents ? (
             <BadgePill tone="brand">Top comprador</BadgePill>
           ) : null}

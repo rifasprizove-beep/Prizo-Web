@@ -74,16 +74,18 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-4">
-          <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
-            <div className="flex items-center gap-2">
-              <a href="#sec-buy" className="flex-1 text-center font-semibold px-4 py-3 rounded-full bg-white text-brand-700">{isFree ? 'PARTICIPAR' : 'COMPRAR'}</a>
-              {raffle.status === 'drawn' ? (
-                <Link href={`/raffles/${raffle.id}/result`} className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/80 hover:text-white">GANADOR</Link>
-              ) : (
+          {raffle.status === 'drawn' ? (
+            <Link href={`/raffles/${raffle.id}/result`} className="block text-center font-extrabold px-4 py-3 rounded-full bg-white text-brand-700">
+              VER GANADOR
+            </Link>
+          ) : (
+            <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
+              <div className="flex items-center gap-2">
+                <a href="#sec-buy" className="flex-1 text-center font-semibold px-4 py-3 rounded-full bg-white text-brand-700">{isFree ? 'PARTICIPAR' : 'COMPRAR'}</a>
                 <span className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/50">GANADOR</span>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <div className="mt-2 text-xs opacity-80">
           Estado: {raffleStatusEs(raffle.status)}

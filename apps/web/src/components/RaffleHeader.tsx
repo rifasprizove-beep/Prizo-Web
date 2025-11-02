@@ -22,6 +22,18 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
   const percent = counters && counters.total_tickets > 0 ? Math.min(100, (counters.sold / counters.total_tickets) * 100) : 0;
 
+  // Ganador efectivo: si el estado es 'drawn' o ya existen ganadores en BD
+  const winnersQ = useQuery({
+    queryKey: ['winners', raffle.id],
+    queryFn: () => listWinners(raffle.id),
+    enabled: !!raffle.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const hasWinner = (winnersQ.data?.length ?? 0) > 0;
+  const isDrawnEffective = raffle.status === 'drawn' || hasWinner;
+
   return (
     <header className="space-y-4">
       <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
@@ -77,7 +89,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-4">
-          {raffle.status === 'drawn' ? (
+          {isDrawnEffective ? (
             <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
               <div className="flex items-center gap-2">
                 <span className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/50">
@@ -104,14 +116,14 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             </div>
           )}
         </div>
-        {raffle.status === 'drawn' && (
+        {isDrawnEffective && (
           <div className="mt-3 space-y-2">
             <div className="text-sm opacity-90">Ganador</div>
             <DrawnWinnerInline raffleId={raffle.id} />
           </div>
         )}
         <div className="mt-2 text-xs opacity-80">
-          Estado: {raffleStatusEs(raffle.status)}
+          Estado: {isDrawnEffective ? 'sorteado' : raffleStatusEs(raffle.status)}
         </div>
       </div>
     </header>
@@ -123,6 +135,9 @@ function DrawnWinnerInline({ raffleId }: { raffleId: string }) {
     queryKey: ['winners', raffleId],
     queryFn: () => listWinners(raffleId),
     enabled: !!raffleId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
   if (winnersQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700">Cargando…</div>;
   const w = winnersQ.data?.[0];

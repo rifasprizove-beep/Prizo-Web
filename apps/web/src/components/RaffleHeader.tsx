@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 import { formatVES, raffleStatusEs } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
-// no winners query here; we keep UI identical and only toggle buttons based on status
+import { useQuery } from "@tanstack/react-query";
+import { listWinners } from "@/lib/data/winners";
+import WinnerList from "./WinnerList";
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
   const { currency } = useCurrency();
@@ -22,6 +24,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
   // Estado visual según la rifa
   const isDrawnEffective = raffle.status === 'drawn';
+  const [showWinners, setShowWinners] = useState(false);
 
   return (
     <header className="space-y-4">
@@ -81,15 +84,14 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           {isDrawnEffective ? (
             <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
               <div className="flex items-center gap-2">
-                <span className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/50">
-                  {isFree ? 'PARTICIPAR' : 'COMPRAR'}
-                </span>
-                <Link
-                  href={`/raffles/${raffle.id}/result`}
-                  className="flex-1 text-center font-extrabold px-4 py-3 rounded-full bg-white text-brand-700"
+                <a href="#sec-buy" className="flex-1 text-center font-semibold px-4 py-3 rounded-full bg-white text-brand-700">{isFree ? 'PARTICIPAR' : 'COMPRAR'}</a>
+                <button
+                  type="button"
+                  onClick={() => setShowWinners((v) => !v)}
+                  className={`flex-1 text-center font-extrabold px-4 py-3 rounded-full ${showWinners ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
                 >
                   GANADOR
-                </Link>
+                </button>
               </div>
             </div>
           ) : raffle.status === 'closed' ? (
@@ -105,11 +107,37 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             </div>
           )}
         </div>
+        {isDrawnEffective && showWinners && (
+          <div className="mt-3">
+            <WinnersInline raffleId={raffle.id} />
+          </div>
+        )}
         <div className="mt-2 text-xs opacity-80">
           Estado: {raffleStatusEs(raffle.status)}
         </div>
       </div>
     </header>
+  );
+}
+function WinnersInline({ raffleId }: { raffleId: string }) {
+  const winnersQ = useQuery({
+    queryKey: ['winners', raffleId],
+    queryFn: () => listWinners(raffleId),
+    enabled: !!raffleId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  if (winnersQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700">Cargando…</div>;
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-white">Ganadores</h3>
+      <WinnerList winners={winnersQ.data ?? []} />
+      <div className="text-xs opacity-80 mt-1">
+        Para ver más detalles, visita la página de resultados.
+        {' '}<Link href={`/raffles/${raffleId}/result`} className="underline">Abrir resultados</Link>
+      </div>
+    </section>
   );
 }
  

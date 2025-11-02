@@ -479,24 +479,46 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
         <div className="mt-4 max-w-md mx-auto">
           {!isFree ? (
             <>
-              <div className="flex items-center justify-center gap-3">
-                <button type="button" className="w-12 h-12 rounded-lg bg-brand-100 text-black text-2xl font-bold" onClick={dec} disabled={busy}>−</button>
-                <input
-                  className="w-16 h-12 text-center text-2xl font-semibold rounded-lg border bg-white text-black focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  type="number"
-                  min={1}
-                  max={availableTickets}
-                  value={qty}
-                  onChange={handleQtyChange}
-                />
-                <button type="button" className="w-12 h-12 rounded-lg bg-brand-100 text-black text-2xl font-bold" onClick={() => inc(1)} disabled={busy}>+</button>
+              <div className="mt-2 flex justify-center">
+                <div className="inline-flex items-center overflow-hidden rounded-2xl bg-white text-black shadow-md ring-1 ring-brand-500/20">
+                  <button
+                    type="button"
+                    className="px-5 h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
+                    aria-label="Disminuir cantidad"
+                    onClick={dec}
+                    disabled={busy}
+                  >−</button>
+                  <input
+                    className="w-24 h-14 text-center text-3xl font-semibold bg-transparent focus:outline-none"
+                    type="number"
+                    min={1}
+                    max={availableTickets}
+                    value={qty}
+                    onChange={handleQtyChange}
+                    aria-label="Cantidad de tickets"
+                  />
+                  <button
+                    type="button"
+                    className="px-5 h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
+                    aria-label="Aumentar cantidad"
+                    onClick={() => inc(1)}
+                    disabled={busy}
+                  >+</button>
+                </div>
               </div>
-              <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="mt-4 flex items-center justify-center gap-2">
                 {[2,5,10].map((n) => (
-                  <button key={n} type="button" className="px-2 py-1 rounded-lg bg-brand-50 text-black text-sm border border-brand-200" onClick={() => inc(n)} disabled={busy}>
-                    +{n}
-                  </button>
+                  <button
+                    key={n}
+                    type="button"
+                    className="rounded-full px-3 py-1.5 text-sm bg-white/95 text-black ring-1 ring-brand-500/30 hover:bg-brand-100 transition disabled:opacity-60"
+                    onClick={() => inc(n)}
+                    disabled={busy}
+                  >+{n}</button>
                 ))}
+              </div>
+              <div className="mt-2 text-center text-xs text-gray-400">
+                Min 1 • Max {Math.max(1, availableTickets)}
               </div>
             </>
           ) : (

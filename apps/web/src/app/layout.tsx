@@ -1,5 +1,5 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { ReactQueryClientProvider } from '../lib/query'
 import { Space_Grotesk } from 'next/font/google'
 import { TermsConsent } from '../components/TermsConsent'
@@ -32,6 +32,10 @@ export const metadata: Metadata = {
       },
     ],
   },
+}
+
+// Next.js 14: themeColor debe ir en viewport, no en metadata
+export const viewport: Viewport = {
   themeColor: '#0b0b0e',
 }
 

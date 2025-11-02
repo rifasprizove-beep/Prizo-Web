@@ -36,7 +36,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
           {isFree ? (
             <BadgePill tone="brand">Gratis</BadgePill>
           ) : (
-            <BadgePill>{unitVES ? formatVES(unitVES) : '—'}</BadgePill>
+            <BadgePill>{currency === 'USD' ? `$${unitUSD.toFixed(2)}` : (unitVES ? formatVES(unitVES) : '—')}</BadgePill>
           )}
           {raffle.status && (
             <BadgePill>{raffleStatusEs(raffle.status)}</BadgePill>

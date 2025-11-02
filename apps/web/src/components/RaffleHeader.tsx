@@ -31,7 +31,16 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
   <div className="mt-3 text-sm space-y-1">
           <div>
-            <span className="opacity-90">Ticket:</span> {isFree ? 'Gratis' : (priceVES ? formatVES(priceVES) : '—')} {!isFree && <span className="opacity-80">(tasa del día)</span>}
+            <span className="opacity-90">Ticket:</span>{' '}
+            {isFree
+              ? 'Gratis'
+              : (
+                currency === 'USD'
+                  ? `$${priceUSD.toFixed(2)}`
+                  : (priceVES ? formatVES(priceVES) : '—')
+              )
+            }
+            {!isFree && currency === 'VES' && <span className="opacity-80"> (tasa del día)</span>}
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>

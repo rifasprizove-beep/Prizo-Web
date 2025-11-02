@@ -6,9 +6,7 @@ import { useEffect, useState } from "react";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
 import { formatVES, raffleStatusEs } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
-import { useQuery } from "@tanstack/react-query";
-import { listWinners } from "@/lib/data/winners";
-import WinnerBadge from "./WinnerBadge";
+// no winners query here; we keep UI identical and only toggle buttons based on status
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
   const { currency } = useCurrency();
@@ -107,12 +105,6 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             </div>
           )}
         </div>
-        {raffle.status === 'drawn' && (
-          <div className="mt-3 space-y-2">
-            <div className="text-sm opacity-90">Ganador</div>
-            <DrawnWinnerInline raffleId={raffle.id} />
-          </div>
-        )}
         <div className="mt-2 text-xs opacity-80">
           Estado: {raffleStatusEs(raffle.status)}
         </div>
@@ -120,18 +112,4 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
     </header>
   );
 }
-
-function DrawnWinnerInline({ raffleId }: { raffleId: string }) {
-  const winnersQ = useQuery({
-    queryKey: ['winners', raffleId],
-    queryFn: () => listWinners(raffleId),
-    enabled: !!raffleId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-  });
-  if (winnersQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700">Cargando…</div>;
-  const w = winnersQ.data?.[0];
-  if (!w) return <div className="rounded-xl border p-3 bg-white text-brand-700">Aún no hay ganadores registrados.</div>;
-  return <WinnerBadge w={w} />;
-}
+ 

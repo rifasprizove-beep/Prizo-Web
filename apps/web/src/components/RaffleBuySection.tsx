@@ -10,7 +10,7 @@ import { CheckoutForm } from './CheckoutForm';
 import { FreeParticipationForm } from './FreeParticipationForm';
 import type { RafflePaymentInfo } from '@/lib/data/paymentConfig';
 
-export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean }) {
+export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean; disabledAll?: boolean }) {
   const qc = useQueryClient();
   const sessionId = getSessionId();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -82,6 +82,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
   }, [raffleId, sessionId, storageKey]);
 
   const handleClick = async (id: string, status: string) => {
+    if (disabledAll) return; // bloqueado (ej. rifa sorteada)
     if (busy) return;
     setErrorMsg(null);
     const isSel = selectedIds.includes(id);
@@ -267,8 +268,9 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
               <button
                 type="button"
                 className="btn-neon disabled:opacity-60"
-                disabled={busy}
+                disabled={busy || disabledAll}
                 onClick={async () => {
+                  if (disabledAll) return;
                   try {
                     setBusy(true);
                     setErrorMsg(null);
@@ -428,7 +430,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
             <FreeParticipationForm
               raffleId={raffleId}
               sessionId={sessionId}
-              disabled={false}
+              disabled={disabledAll}
               quantity={countSelected}
               onCreated={() => {
                 try { localStorage.removeItem(storageKey); } catch {}

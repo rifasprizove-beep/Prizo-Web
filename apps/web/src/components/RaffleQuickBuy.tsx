@@ -7,7 +7,7 @@ import { getSessionId } from "@/lib/session";
 import { CheckoutForm } from "./CheckoutForm";
 import { FreeParticipationForm } from "./FreeParticipationForm";
 
-export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, paymentInfo, isFree = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean }) {
+export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean; disabledAll?: boolean }) {
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
   const [qty, setQty] = useState<number>(1);
@@ -28,8 +28,8 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   
 
-  const inc = (n = 1) => setQty((q) => Math.min(Math.max(1, q + n), availableTickets));
-  const dec = () => setQty((q) => Math.max(1, q - 1));
+  const inc = (n = 1) => { if (disabledAll) return; setQty((q) => Math.min(Math.max(1, q + n), availableTickets)); };
+  const dec = () => { if (disabledAll) return; setQty((q) => Math.max(1, q - 1)); };
   const handleQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = Math.max(1, Math.min(Number(e.target.value || 1), availableTickets));
     setQty(val);
@@ -175,6 +175,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   }, [reserved, storageKey, isFree]);
 
   const handleContinue = async () => {
+    if (disabledAll) return; // bloqueado (ej. rifa sorteada)
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -486,7 +487,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     className="px-5 h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
                     aria-label="Disminuir cantidad"
                     onClick={dec}
-                    disabled={busy}
+                    disabled={busy || disabledAll}
                   >−</button>
                   <input
                     className="w-24 h-14 text-center text-3xl font-semibold bg-transparent focus:outline-none"
@@ -496,13 +497,14 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     value={qty}
                     onChange={handleQtyChange}
                     aria-label="Cantidad de tickets"
+                    disabled={disabledAll}
                   />
                   <button
                     type="button"
                     className="px-5 h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
                     aria-label="Aumentar cantidad"
                     onClick={() => inc(1)}
-                    disabled={busy}
+                    disabled={busy || disabledAll}
                   >+</button>
                 </div>
               </div>
@@ -513,7 +515,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     type="button"
                     className="rounded-full px-3 py-1.5 text-sm bg-white/95 text-black ring-1 ring-brand-500/30 hover:bg-brand-100 transition disabled:opacity-60"
                     onClick={() => inc(n)}
-                    disabled={busy}
+                    disabled={busy || disabledAll}
                   >+{n}</button>
                 ))}
               </div>
@@ -524,7 +526,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                 type="button"
                 className="btn-neon disabled:opacity-60"
                 onClick={async () => { setQty(1); await handleContinue(); }}
-                disabled={busy || (!isFree && availableTickets <= 0)}
+                disabled={disabledAll || busy || (!isFree && availableTickets <= 0)}
               >
                 {busy && (
                   <span className="inline-block w-4 h-4 mr-2 border-2 border-white/70 border-t-transparent rounded-full align-[-2px] animate-spin" />
@@ -677,7 +679,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             <FreeParticipationForm
               raffleId={raffleId}
               sessionId={sessionId}
-              disabled={false}
+              disabled={disabledAll}
               quantity={reservedCount}
               onCreated={() => {
                 try {

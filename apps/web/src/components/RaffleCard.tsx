@@ -29,7 +29,8 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
   const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
   const _topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
-  const cardHref = raffle.status === 'drawn' ? `/raffles/${raffle.id}/result` : `/raffles/${raffle.id}`;
+  // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
+  const cardHref = `/raffles/${raffle.id}`;
   return (
     <a href={cardHref} className="block rounded-3xl overflow-hidden border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
       <div className="p-4 pb-0 space-y-2">

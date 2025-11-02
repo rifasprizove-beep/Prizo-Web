@@ -466,7 +466,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   return (
     <div className="rounded-2xl border border-brand-500/20 p-4 bg-surface-800 text-white">
-  <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase text-center">¿Cuántos tickets quieres?</h2>
+  {!isFree && <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase text-center">¿Cuántos tickets quieres?</h2>}
 
       {error && (
         <div className="mt-3 p-2 text-sm rounded border bg-red-50 text-red-700">{error}</div>

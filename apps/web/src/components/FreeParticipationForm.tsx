@@ -77,20 +77,7 @@ export function FreeParticipationForm({
       {serverError && (
         <div className="p-2 text-sm rounded border bg-red-50 text-red-700">{serverError}</div>
       )}
-      {/* Resumen para rifas gratuitas */}
-      <div className="text-sm grid sm:grid-cols-2 gap-3">
-        <div className="p-3 rounded border border-brand-500/30 bg-surface-800">
-          <div className="text-xs text-brand-200">Cantidad</div>
-          <div className="text-lg font-semibold text-brand-100">{quantity}</div>
-        </div>
-        <div className="p-3 rounded border border-brand-500/30 bg-surface-800">
-          <div className="text-xs text-brand-200">Total (Bs)</div>
-          <div className="text-lg font-semibold text-brand-100">
-            0.00
-            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-brand-500 text-black align-middle">Gratis</span>
-          </div>
-        </div>
-      </div>
+      {/* En rifas gratis no mostramos cantidad/total */}
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Email (opcional)</label>

@@ -32,7 +32,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
   const cardHref = `/raffles/${raffle.id}`;
   return (
-    <a href={cardHref} className="block rounded-3xl overflow-hidden border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
+    <a href={cardHref} className="block rounded-3xl border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
       <div className="p-4 pb-0 space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           {isFree ? (
@@ -54,11 +54,11 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         <p className="text-sm text-gray-300 line-clamp-2 min-h-[2.5rem]">{raffle.description ?? ''}</p>
       </div>
       {raffle.image_url ? (
-        <div className="relative w-full aspect-[16/11] rounded-t-3xl overflow-hidden">
+        <div className="relative w-full aspect-[16/11] rounded-3xl overflow-hidden -mb-2">
           <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={false} />
         </div>
       ) : (
-        <div className="w-full aspect-[16/11] bg-surface-800 rounded-t-3xl" />
+        <div className="w-full aspect-[16/11] bg-surface-800 rounded-3xl -mb-2" />
       )}
       {raffle.status === 'closed' && (
         <div className="px-4 py-2 bg-yellow-500/10 text-yellow-200 text-xs border-t border-yellow-500/20">

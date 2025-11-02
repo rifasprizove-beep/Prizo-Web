@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getLastDraw } from '@/lib/data/draws';
 import { listWinners } from '@/lib/data/winners';
 import { LastDrawCard } from '@/components/LastDrawCard';
-import WinnerList from '@/components/WinnerList';
+import WinnerTable from '@/components/WinnerTable';
 import { getRaffle } from '@/lib/data/raffles';
 
 export default function ClientResultPage({ id }: { id: string }) {
@@ -30,7 +30,7 @@ export default function ClientResultPage({ id }: { id: string }) {
         {winnersQ.isLoading ? (
           <div className="p-4 border rounded-xl bg-white">Cargando ganadores…</div>
         ) : (
-          <WinnerList winners={winnersQ.data ?? []} />
+          <WinnerTable winners={winnersQ.data ?? []} />
         )}
       </section>
     </main>

@@ -8,7 +8,7 @@ import { formatVES, raffleStatusEs } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
-import WinnerList from "./WinnerList";
+import WinnerTable from "./WinnerTable";
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
   const { currency } = useCurrency();
@@ -114,7 +114,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         </div>
         {isDrawnEffective && showWinners && (
           <div className="mt-3">
-            <WinnersInline raffleId={raffle.id} />
+            <WinnersInline raffleId={raffle.id} raffleImage={raffle.image_url} raffleName={raffle.name} />
           </div>
         )}
         <div className="mt-2 text-xs opacity-80">
@@ -124,7 +124,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
     </header>
   );
 }
-function WinnersInline({ raffleId }: { raffleId: string }) {
+function WinnersInline({ raffleId, raffleImage, raffleName }: { raffleId: string; raffleImage: string | null; raffleName: string }) {
   const winnersQ = useQuery({
     queryKey: ['winners', raffleId],
     queryFn: () => listWinners(raffleId),
@@ -135,10 +135,15 @@ function WinnersInline({ raffleId }: { raffleId: string }) {
   });
   if (winnersQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700">Cargando…</div>;
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-semibold text-white">Ganadores</h3>
-      <WinnerList winners={winnersQ.data ?? []} />
-      <div className="text-xs opacity-80 mt-1">
+    <section className="space-y-3">
+      <h3 className="text-base font-semibold text-white">Ganadores</h3>
+      <WinnerTable winners={winnersQ.data ?? []} />
+      {raffleImage && (
+        <div className="mt-2">
+          <img src={raffleImage} alt={`Imagen del sorteo ${raffleName}`} className="w-full rounded-xl border" />
+        </div>
+      )}
+      <div className="text-xs opacity-80 mt-1 text-white/80">
         Para ver más detalles, visita la página de resultados.
         {' '}<Link href={`/raffles/${raffleId}/result`} className="underline">Abrir resultados</Link>
       </div>

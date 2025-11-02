@@ -80,12 +80,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                 <span className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/50">
                   {isFree ? 'PARTICIPAR' : 'COMPRAR'}
                 </span>
-                <Link
-                  href={`/raffles/${raffle.id}/result`}
+                <a
+                  href="#sec-result"
                   className="flex-1 text-center font-extrabold px-4 py-3 rounded-full bg-white text-brand-700"
                 >
                   GANADOR
-                </Link>
+                </a>
               </div>
             </div>
           ) : raffle.status === 'closed' ? (

@@ -1,5 +1,6 @@
 import { RaffleDetailClient } from './RaffleDetailClient';
 import { RaffleBuyClient } from './RaffleBuyClient';
+import ClientResultPage from './result/ClientResultPage';
 import { generateStaticParams as generateStaticParamsImpl } from './static-params';
 
 // Next.js con `output: 'export'` requiere que los segmentos dinámicos
@@ -16,6 +17,9 @@ export default function RaffleDetailPage({ params }: { params: { id: string } })
       <section id="sec-buy" className="space-y-4">
         {/* Compra rápida con selector de cantidad y reserva por 10 minutos */}
         <RaffleBuyClient raffleId={params.id} />
+      </section>
+      <section id="sec-result" className="space-y-4">
+        <ClientResultPage id={params.id} />
       </section>
     </main>
   );

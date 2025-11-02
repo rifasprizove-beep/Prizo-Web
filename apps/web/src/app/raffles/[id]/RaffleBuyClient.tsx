@@ -22,12 +22,8 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   if (raffleQ.data.status === 'drawn') {
     return (
       <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
-        Este sorteo ya fue sorteado. Revisa el
-        {' '}
-        <a href={`/raffles/${raffleId}/result`} className="text-pink-700 font-semibold underline">
-          resultado aquí
-        </a>
-        .
+        Este sorteo ya fue sorteado. Revisa el{' '}
+        <a href="#sec-result" className="text-pink-700 font-semibold underline">resultado abajo</a>.
       </div>
     );
   }

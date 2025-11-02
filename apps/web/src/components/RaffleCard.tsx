@@ -59,6 +59,11 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       ) : (
         <div className="w-full aspect-[16/11] bg-surface-800 rounded-t-3xl" />
       )}
+      {raffle.status === 'closed' && (
+        <div className="px-4 py-2 bg-yellow-500/10 text-yellow-200 text-xs border-t border-yellow-500/20">
+          Ventas cerradas — pendiente de ganador
+        </div>
+      )}
       {(raffle.prize_amount_cents ?? 0) > 0 && (
         <div className="px-4 py-3">
           <div className="text-xs text-gray-300">Premio</div>

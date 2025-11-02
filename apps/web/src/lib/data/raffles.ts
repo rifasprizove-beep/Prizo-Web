@@ -42,7 +42,7 @@ export async function listRaffles(): Promise<Raffle[]> {
     return supabase
       .from('raffles')
       .select(fields)
-      .in('status', ['published', 'selling'])
+      .in('status', ['published', 'selling', 'drawn'])
       .order('created_at', { ascending: false });
   };
   let res: any = await trySelect(true);

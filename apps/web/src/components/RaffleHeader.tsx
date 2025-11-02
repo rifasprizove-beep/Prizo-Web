@@ -22,17 +22,8 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
   const percent = counters && counters.total_tickets > 0 ? Math.min(100, (counters.sold / counters.total_tickets) * 100) : 0;
 
-  // Ganador efectivo: si el estado es 'drawn' o ya existen ganadores en BD
-  const winnersQ = useQuery({
-    queryKey: ['winners', raffle.id],
-    queryFn: () => listWinners(raffle.id),
-    enabled: !!raffle.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-  });
-  const hasWinner = (winnersQ.data?.length ?? 0) > 0;
-  const isDrawnEffective = raffle.status === 'drawn' || hasWinner;
+  // Estado visual según la rifa
+  const isDrawnEffective = raffle.status === 'drawn';
 
   return (
     <header className="space-y-4">
@@ -116,14 +107,14 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             </div>
           )}
         </div>
-        {isDrawnEffective && (
+        {raffle.status === 'drawn' && (
           <div className="mt-3 space-y-2">
             <div className="text-sm opacity-90">Ganador</div>
             <DrawnWinnerInline raffleId={raffle.id} />
           </div>
         )}
         <div className="mt-2 text-xs opacity-80">
-          Estado: {isDrawnEffective ? 'sorteado' : raffleStatusEs(raffle.status)}
+          Estado: {raffleStatusEs(raffle.status)}
         </div>
       </div>
     </header>

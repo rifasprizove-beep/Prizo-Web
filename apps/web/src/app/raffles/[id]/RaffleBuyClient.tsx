@@ -2,8 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRaffle } from '@/lib/data/raffles';
 import { getLastDraw } from '@/lib/data/draws';
-import { useQuery as useQuery2 } from '@tanstack/react-query';
-import { listWinners } from '@/lib/data/winners';
 import { RaffleBuyTabs } from '@/components/RaffleBuyTabs';
 import { getRafflePaymentInfo } from '@/lib/data/paymentConfig';
 
@@ -33,25 +31,15 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   });
   if (raffleQ.isLoading) return <div className="p-4">Cargando…</div>;
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
-  // Si existen ganadores aunque el estado no sea 'drawn', tratamos la rifa como sorteada para UI consistente
-  const winnersQ = useQuery2({
-    queryKey: ['winners', raffleId],
-    queryFn: () => listWinners(raffleId),
-    enabled: !!raffleQ.data,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-  });
-  const hasWinner = (winnersQ.data?.length ?? 0) > 0;
   // Si el sorteo está cerrado o ya fue sorteado, no permitir comprar/participar
-  if (raffleQ.data.status === 'closed' && !hasWinner) {
+  if (raffleQ.data.status === 'closed') {
     return (
       <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
         Ventas cerradas — pendiente de ganador
       </div>
     );
   }
-  if (raffleQ.data.status === 'drawn' || hasWinner) {
+  if (raffleQ.data.status === 'drawn') {
     return (
       <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
         Este sorteo ya fue sorteado. Revisa el{' '}

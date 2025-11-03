@@ -55,6 +55,17 @@ body {
     text-shadow: 0 0 20px rgba(215,0,86,0.45);
   }
 
+  /* Ocultar flechas de inputs numéricos (spinners) */
+  .no-number-spin::-webkit-outer-spin-button,
+  .no-number-spin::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-number-spin {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   /* Glow "breathing" para logos/elementos brand */
   @keyframes glowBreath {
     0%, 100% {

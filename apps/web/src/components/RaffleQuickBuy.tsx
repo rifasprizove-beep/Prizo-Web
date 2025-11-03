@@ -490,7 +490,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     disabled={busy || disabledAll}
                   >−</button>
                   <input
-                    className="w-24 h-14 text-center text-3xl font-semibold bg-transparent focus:outline-none"
+                    className="w-24 h-14 text-center text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
                     type="number"
                     min={1}
                     max={availableTickets}

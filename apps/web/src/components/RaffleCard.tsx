@@ -33,7 +33,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const cardHref = `/raffles/${raffle.id}`;
   return (
     <a href={cardHref} className="block rounded-3xl border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
-      <div className="p-4 space-y-2 mb-3 sm:mb-4">
+  <div className="p-4 space-y-2 mb-2 sm:mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           {isFree ? (
             <BadgePill tone="brand">Gratis</BadgePill>

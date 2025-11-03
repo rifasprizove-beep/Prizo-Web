@@ -1,10 +1,12 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createPaymentForSession, ensureSession } from '@/lib/rpc';
+import { createPaymentForSession, ensureSession, verifyTicketsClient } from '@/lib/rpc';
 import { VE_CITIES } from '@/lib/data/cities';
+
+const usernameRegex = /^[A-Za-z0-9._]{1,30}$/; // formato de Instagram
 
 const schema = z.object({
   email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
@@ -12,7 +14,9 @@ const schema = z.object({
   city: z.string().min(2, 'Ciudad requerida'),
   ciPrefix: z.enum(['V','E']).optional(),
   ciNumber: z.string().regex(/^\d+$/, { message: 'Solo números' }).min(5, 'Cédula inválida').optional().or(z.literal('')),
-  instagram: z.string().optional().or(z.literal('')),
+  instagram: z.preprocess((v) => (typeof v === 'string' ? v.replace(/^@+/, '') : v),
+    z.string().optional().or(z.literal(''))
+  ).refine((v) => !v || usernameRegex.test(v), { message: 'Usuario inválido (solo letras, números, punto y _)' }),
   termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
 }).refine((v) => {
   const hasEmail = !!(v.email && v.email.trim());
@@ -33,17 +37,41 @@ export function FreeParticipationForm({
   disabled?: boolean;
   onCreated?: (paymentId: string) => void;
 }) {
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<z.infer<typeof schema>>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, setError, clearErrors } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { ciPrefix: 'V' },
   });
   const [citySelect, setCitySelect] = useState<string>('');
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [ciDup, setCiDup] = useState<null | boolean>(null);
+  const ciCheckTimer = useRef<any>(null);
+
+  // Chequeo de cédula duplicada (solo si el usuario ingresó un número)
+  const checkCiDuplicate = async () => {
+    const prefix = (watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V';
+    const ciNum = (watch('ciNumber') as string | undefined) || '';
+    const ciCombined = ciNum ? `${prefix}-${ciNum}` : '';
+    if (!ciCombined) { setCiDup(null); clearErrors('ciNumber'); return; }
+    const found = await verifyTicketsClient(ciCombined, true);
+    const hasForRaffle = (found || []).some((r: any) => r?.raffle_id === raffleId);
+    if (hasForRaffle) {
+      setCiDup(true);
+      setError('ciNumber', { type: 'manual', message: 'Esta cédula ya participó en este sorteo' });
+    } else {
+      setCiDup(false);
+      clearErrors('ciNumber');
+    }
+  };
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
     if (submitting) return;
+    // bloquear si detectamos duplicado
+    if (ciDup) {
+      setError('ciNumber', { type: 'manual', message: 'Esta cédula ya participó en este sorteo' });
+      return;
+    }
     setSubmitting(true);
     // Guardar aceptación para próximas vistas
     try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
@@ -69,7 +97,7 @@ export function FreeParticipationForm({
         p_rate_used: null,
         p_rate_source: null,
         p_currency: 'FREE',
-        p_instagram: values.instagram || null,
+        p_instagram: (values.instagram?.replace(/^@+/, '') || null),
       });
       onCreated?.(paymentId);
     } catch (e: any) {
@@ -106,7 +134,16 @@ export function FreeParticipationForm({
         </div>
         <div>
           <label className="block text-sm font-medium">Usuario de Instagram</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />
+          <div className="relative mt-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">@</span>
+            <input
+              type="text"
+              className="w-full border rounded-lg p-2 pl-7 bg-surface-800"
+              placeholder="tuusuario"
+              {...register('instagram')}
+              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^@+/, ''); }}
+            />
+          </div>
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
@@ -123,10 +160,19 @@ export function FreeParticipationForm({
               className="flex-1 border rounded-lg p-2 bg-surface-800"
               placeholder="12345678"
               {...register('ciNumber')}
-              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''); }}
+              onChange={(e) => {
+                e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '');
+                // debounce
+                if (ciCheckTimer.current) clearTimeout(ciCheckTimer.current);
+                ciCheckTimer.current = setTimeout(checkCiDuplicate, 400);
+              }}
+              onBlur={() => { if (ciCheckTimer.current) clearTimeout(ciCheckTimer.current); checkCiDuplicate(); }}
             />
           </div>
           {errors.ciNumber && <p className="text-xs text-red-600 mt-1">{errors.ciNumber.message as string}</p>}
+          {ciDup === true && !errors.ciNumber && (
+            <p className="text-xs text-red-500 mt-1">Esta cédula ya participó en este sorteo</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium">Ciudad</label>

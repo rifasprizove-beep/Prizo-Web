@@ -117,3 +117,27 @@ export async function ensureSession(p_session_id: string) {
   if (error) throw error;
   return true;
 }
+
+// Verificar por email o cédula si ya hay tickets/pagos relacionados
+export async function verifyTicketsClient(q: string, includePending: boolean = true): Promise<any[] | null> {
+  const base = apiBase();
+  if (base) {
+    try {
+      const res = await fetch(`${base}/verify?q=${encodeURIComponent(q)}&include_pending=${includePending ? 'true' : 'false'}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const json = await res.json().catch(() => null);
+      return json && json.data ? (json.data as any[]) : [];
+    } catch {
+      // sigue al fallback
+    }
+  }
+  // Fallback: intentar RPC directo en Supabase si existe
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.rpc('verify_tickets', { p_query: q, p_include_pending: includePending });
+    if (error) return null;
+    return (data ?? []) as any[];
+  } catch {
+    return null;
+  }
+}

@@ -36,6 +36,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
         )}
 
+        {raffle.description && (
+          <p className="mt-3 text-sm text-white/90 leading-relaxed">
+            {raffle.description}
+          </p>
+        )}
+
   <div className="mt-3 text-sm space-y-1">
           <div>
             <span className="opacity-90">Ticket:</span>{' '}

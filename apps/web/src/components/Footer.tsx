@@ -6,17 +6,17 @@ export function Footer() {
   const ig = igRaw.replace(/^['"]|['"]$/g, '');
   return (
     <footer className="mt-10 py-8 border-t border-white/10 text-sm text-[var(--text)]">
-      <div className="site-container grid gap-4 md:grid-cols-2 items-center">
+      <div className="site-container flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="font-semibold">PRIZO</div>
-        <div className="md:text-right opacity-80 flex md:justify-end items-center gap-3">
-          <a href="/terms" className="hover:underline">Términos y condiciones</a>
+        <div className="opacity-80 flex items-center gap-4 flex-nowrap md:justify-end">
+          <a href="/terms" className="hover:underline whitespace-nowrap">Términos y condiciones</a>
           {/* Instagram */}
           {ig && (
             <a
               href={ig}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 hover:text-white"
+              className="inline-flex items-center gap-2 hover:text-white whitespace-nowrap"
               aria-label="Ir a nuestro Instagram"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -25,7 +25,7 @@ export function Footer() {
               <span className="hidden sm:inline">Instagram</span>
             </a>
           )}
-          <span>© {new Date().getFullYear()} Prizo. Todos los derechos reservados.</span>
+          <span className="whitespace-nowrap">© {new Date().getFullYear()} Prizo. Todos los derechos reservados.</span>
         </div>
       </div>
     </footer>

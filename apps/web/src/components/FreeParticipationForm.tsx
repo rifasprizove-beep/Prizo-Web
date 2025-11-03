@@ -67,10 +67,20 @@ export function FreeParticipationForm({
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
     if (submitting) return;
-    // bloquear si detectamos duplicado
-    if (ciDup) {
-      setError('ciNumber', { type: 'manual', message: 'Esta cédula ya participó en este sorteo' });
-      return;
+    // Validación fuerte ANTES de enviar: si hay cédula, consultar y bloquear si existe
+    const prefixSub = (watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V';
+    const ciNumSub = (watch('ciNumber') as string | undefined) || '';
+    const ciCombinedSub = ciNumSub ? `${prefixSub}-${ciNumSub}` : '';
+    if (ciCombinedSub) {
+      try {
+        const foundNow = await verifyTicketsClient(ciCombinedSub, true);
+        const hasForRaffleNow = (foundNow || []).some((r: any) => r?.raffle_id === raffleId);
+        if (hasForRaffleNow) {
+          setCiDup(true);
+          setError('ciNumber', { type: 'manual', message: 'Esta cédula ya participó en este sorteo' });
+          return;
+        }
+      } catch {}
     }
     setSubmitting(true);
     // Guardar aceptación para próximas vistas
@@ -210,7 +220,7 @@ export function FreeParticipationForm({
       </div>
       {errors.termsAccepted && <p className="text-center text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center justify-center gap-3">
-        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled || submitting}>
+        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled || submitting || ciDup === true}>
           {submitting ? 'Enviando…' : 'Enviar participación'}
         </button>
       </div>

@@ -7,8 +7,8 @@ export function Footer() {
   return (
     <footer className="mt-10 py-8 border-t border-white/10 text-sm text-[var(--text)]">
       <div className="site-container flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-        {/* Izquierda: Términos */}
-        <a href="/terms" className="hover:underline whitespace-nowrap order-2 sm:order-1">Términos y condiciones</a>
+        {/* Izquierda: Copyright */}
+        <span className="opacity-80 whitespace-nowrap order-3 sm:order-1">© {new Date().getFullYear()} Prizo. Todos los derechos reservados.</span>
 
         {/* Centro: Instagram */}
         {ig && (
@@ -26,8 +26,8 @@ export function Footer() {
           </a>
         )}
 
-        {/* Derecha: Copyright */}
-        <span className="opacity-80 whitespace-nowrap order-3">© {new Date().getFullYear()} Prizo. Todos los derechos reservados.</span>
+        {/* Derecha: Términos */}
+        <a href="/terms" className="hover:underline whitespace-nowrap order-2 sm:order-3">Términos y condiciones</a>
       </div>
     </footer>
   );

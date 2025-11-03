@@ -6,13 +6,12 @@ export default function RootLoading() {
       <div className="flex flex-col items-center gap-5">
         <div className="glow-breath rounded-md">
           <Image
-            src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1762024154/Prizo_l32y0t.png"
+            src="/brand/logo.png"
             alt="Prizo"
-            width={140}
-            height={42}
+            width={256}
+            height={256}
             className="h-9 w-auto"
             priority
-            unoptimized
           />
         </div>
         <div className="relative h-16 w-16">

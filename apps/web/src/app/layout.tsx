@@ -21,13 +21,13 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: 'https://res.cloudinary.com/dzaokhfcw/image/upload/v1762024154/Prizo_l32y0t.png',
+        url: '/brand/logo.png',
         type: 'image/png',
       },
     ],
     apple: [
       {
-        url: 'https://res.cloudinary.com/dzaokhfcw/image/upload/v1762024154/Prizo_l32y0t.png',
+        url: '/brand/logo.png',
         type: 'image/png',
       },
     ],
@@ -49,13 +49,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="relative h-16 flex items-center justify-center">
             <a href="/" aria-label="Inicio" className="absolute left-4 inline-flex items-center gap-2">
               <Image
-                src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1762024154/Prizo_l32y0t.png"
+                src="/brand/logo.png"
                 alt="Prizo"
-                width={120}
-                height={36}
+                width={256}
+                height={256}
                 className="h-7 w-auto"
                 priority
-                unoptimized
               />
               <span className="text-xl font-extrabold text-brand-500 title-neon hidden sm:inline">PRIZO</span>
             </a>

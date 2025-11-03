@@ -17,12 +17,6 @@ function positionBadge(n: number) {
   return <span className={`${base} bg-slate-100 text-slate-700 border border-slate-300`}>#{n}</span>;
 }
 
-function typeBadge(t?: string | null) {
-  if (!t) return <span className="text-slate-500">—</span>;
-  const label = t.replace(/_/g, ' ');
-  return <span className="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300 capitalize">{label}</span>;
-}
-
 export default function WinnerTable({ winners }: { winners: Winner[] }) {
   if (!winners?.length) {
     return (
@@ -40,7 +34,6 @@ export default function WinnerTable({ winners }: { winners: Winner[] }) {
             <th className="px-4 py-2 text-left font-semibold">Posición</th>
             <th className="px-4 py-2 text-left font-semibold">Ticket</th>
             <th className="px-4 py-2 text-left font-semibold">Ganador</th>
-            <th className="px-4 py-2 text-left font-semibold">Tipo</th>
             <th className="px-4 py-2 text-left font-semibold">Fecha</th>
             <th className="px-4 py-2 text-left font-semibold">Imagen</th>
           </tr>
@@ -58,7 +51,6 @@ export default function WinnerTable({ winners }: { winners: Winner[] }) {
                   )}
                 </div>
               </td>
-              <td className="px-4 py-2">{typeBadge(w.type)}</td>
               <td className="px-4 py-2 tabular-nums whitespace-nowrap">{formatDate(w.created_at)}</td>
               <td className="px-4 py-2">
                 {w.image_url ? (

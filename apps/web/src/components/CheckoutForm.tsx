@@ -77,8 +77,8 @@ export function CheckoutForm({
     const amountVES = rateUsed ? String(round2(totalUSD * rateUsed)) : null;
     // Asegurar que la sesión exista antes de crear el pago
     try { await ensureSession(sessionId); } catch {}
-    const ciCombined = (watch('ciNumber') as string | undefined)?.trim()
-      ? `${(watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V'}-${(watch('ciNumber') as string).trim()}`
+    const ciCombined = (values.ciNumber as string | undefined)?.trim()
+      ? `${(values.ciPrefix as 'V'|'E'|undefined) ?? 'V'}-${(values.ciNumber as string).trim()}`
       : null;
     const paymentId = await createPaymentForSession({
       p_raffle_id: raffleId,

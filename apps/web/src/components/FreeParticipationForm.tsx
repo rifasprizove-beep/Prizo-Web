@@ -68,8 +68,8 @@ export function FreeParticipationForm({
     setServerError(null);
     if (submitting) return;
     // Validación fuerte ANTES de enviar: si hay cédula, consultar y bloquear si existe
-    const prefixSub = (watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V';
-    const ciNumSub = (watch('ciNumber') as string | undefined) || '';
+    const prefixSub = (values.ciPrefix as 'V'|'E'|undefined) ?? 'V';
+    const ciNumSub = (values.ciNumber as string | undefined) || '';
     const ciCombinedSub = ciNumSub ? `${prefixSub}-${ciNumSub}` : '';
     if (ciCombinedSub) {
       try {
@@ -89,9 +89,9 @@ export function FreeParticipationForm({
       // Asegurar que la sesión exista en BD antes de crear el pago
       try { await ensureSession(sessionId); } catch {}
       // Normalizar teléfono a solo dígitos para evitar falsos duplicados
-      const phoneOnly = (values.phone || '').replace(/\D/g, '');
-      const prefix = (watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V';
-      const ciNum = (watch('ciNumber') as string | undefined) || '';
+  const phoneOnly = (values.phone || '').replace(/\D/g, '');
+  const prefix = (values.ciPrefix as 'V'|'E'|undefined) ?? 'V';
+  const ciNum = (values.ciNumber as string | undefined) || '';
       const ciCombined = ciNum ? `${prefix}-${ciNum}` : null;
       const paymentId = await createPaymentForSession({
         p_raffle_id: raffleId,

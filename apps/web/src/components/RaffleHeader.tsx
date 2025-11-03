@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
-import { formatVES, raffleStatusEs } from "@/lib/i18n";
+import { formatVES } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
@@ -132,9 +132,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             <WinnersInline raffleId={raffle.id} raffleImage={raffle.image_url} raffleName={raffle.name} />
           </div>
         )}
-        <div className="mt-2 text-xs opacity-80">
-          Estado: {raffleStatusEs(raffle.status)}
-        </div>
+        {/* Estado removido por solicitud del cliente */}
       </div>
     </header>
   );

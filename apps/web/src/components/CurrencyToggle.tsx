@@ -11,7 +11,7 @@ export function CurrencyToggle() {
     >
       {/* Thumb deslizante */}
       <span
-        className={`absolute top-1 bottom-1 left-1 w-1/2 rounded-full bg-brand-500 transition-transform duration-300 ease-out ${currency === 'USD' ? 'translate-x-full' : 'translate-x-0'}`}
+        className={`absolute top-1 bottom-1 rounded-full bg-brand-500 transition-all duration-300 ease-out ${currency === 'USD' ? 'left-1/2 right-1' : 'left-1 right-1/2'}`}
         aria-hidden="true"
       />
 

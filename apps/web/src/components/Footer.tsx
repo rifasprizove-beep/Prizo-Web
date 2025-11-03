@@ -6,8 +6,7 @@ export function Footer() {
   const ig = igRaw.replace(/^['"]|['"]$/g, '');
   return (
     <footer className="mt-10 py-8 border-t border-white/10 text-sm text-[var(--text)]">
-      <div className="site-container flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="font-semibold">PRIZO</div>
+      <div className="site-container flex items-center justify-center md:justify-end gap-4">
         <div className="opacity-80 flex items-center gap-4 flex-nowrap md:justify-end">
           <a href="/terms" className="hover:underline whitespace-nowrap">Términos y condiciones</a>
           {/* Instagram */}

@@ -45,6 +45,7 @@ export function CheckoutForm({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { ciPrefix: 'V' },
   });
+  const [submitting, setSubmitting] = useState(false);
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
@@ -59,6 +60,8 @@ export function CheckoutForm({
   }, []);
 
   const onSubmit = handleSubmit(async (values) => {
+    if (submitting) return;
+    setSubmitting(true);
     // Marcar aceptación de TyC en storage (para futuras validaciones globales)
     try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     let evidence_url: string | null = null;
@@ -81,7 +84,7 @@ export function CheckoutForm({
       p_raffle_id: raffleId,
       p_session_id: sessionId,
       p_email: values.email || null,
-      p_phone: values.phone,
+      p_phone: (values.phone || '').replace(/\D/g, ''),
       p_city: values.city,
       p_ci: ciCombined,
       p_instagram: values.instagram || null,
@@ -95,6 +98,7 @@ export function CheckoutForm({
     });
     onCreated?.(paymentId);
     reset();
+    setSubmitting(false);
   });
 
   const evidence = watch('evidence');
@@ -246,7 +250,9 @@ export function CheckoutForm({
       </div>
       {errors.termsAccepted && <p className="text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center gap-3">
-        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled}>Enviar pago</button>
+        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled || submitting}>
+          {submitting ? 'Enviando…' : 'Enviar pago'}
+        </button>
       </div>
     </form>
   );

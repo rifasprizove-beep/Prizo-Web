@@ -39,14 +39,19 @@ export function FreeParticipationForm({
   });
   const [citySelect, setCitySelect] = useState<string>('');
   const [serverError, setServerError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
+    if (submitting) return;
+    setSubmitting(true);
     // Guardar aceptación para próximas vistas
     try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     try {
       // Asegurar que la sesión exista en BD antes de crear el pago
       try { await ensureSession(sessionId); } catch {}
+      // Normalizar teléfono a solo dígitos para evitar falsos duplicados
+      const phoneOnly = (values.phone || '').replace(/\D/g, '');
       const prefix = (watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V';
       const ciNum = (watch('ciNumber') as string | undefined) || '';
       const ciCombined = ciNum ? `${prefix}-${ciNum}` : null;
@@ -54,7 +59,7 @@ export function FreeParticipationForm({
         p_raffle_id: raffleId,
         p_session_id: sessionId,
         p_email: values.email || null,
-        p_phone: values.phone,
+        p_phone: phoneOnly || null,
         p_city: values.city,
         p_ci: ciCombined,
         p_method: 'free',
@@ -72,8 +77,12 @@ export function FreeParticipationForm({
       let friendly = 'No se pudo registrar tu participación. Intenta nuevamente.';
       if (/payments_session_id_fkey|foreign key constraint/i.test(raw)) {
         friendly = 'Tu sesión expiró. Recarga la página e inténtalo de nuevo.';
+      } else if (/ya particip[oó]|duplicate key|unique constraint|ux_payments_free_/i.test(raw)) {
+        friendly = 'Ya participaste en este sorteo gratis con estos datos.';
       }
       setServerError(friendly);
+    } finally {
+      setSubmitting(false);
     }
   });
 
@@ -155,7 +164,9 @@ export function FreeParticipationForm({
       </div>
       {errors.termsAccepted && <p className="text-center text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center justify-center gap-3">
-        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled}>Enviar participación</button>
+        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled || submitting}>
+          {submitting ? 'Enviando…' : 'Enviar participación'}
+        </button>
       </div>
     </form>
   );

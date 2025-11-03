@@ -85,4 +85,5 @@ begin
 end;
 $$;
 
-grant execute on function create_payment_for_session(uuid,uuid,text,text,text,text,text,text,numeric,numeric,text,text,text,text,text) to anon, authenticated;
+-- Grant for the 14-arg signature (uuid, uuid, 6x text, 2x numeric, 4x text)
+grant execute on function public.create_payment_for_session(uuid,uuid,text,text,text,text,text,text,numeric,numeric,text,text,text,text) to anon, authenticated;

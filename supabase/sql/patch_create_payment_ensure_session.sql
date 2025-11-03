@@ -14,7 +14,8 @@ create or replace function create_payment_for_session(
   p_rate_used numeric,
   p_rate_source text,
   p_currency text default 'VES',
-  p_ci text default null
+  p_ci text default null,
+  p_instagram text default null
 ) returns uuid
 language plpgsql
 security definer
@@ -25,8 +26,46 @@ begin
   -- Make sure the referenced session exists to avoid FK errors
   perform ensure_session(p_session_id);
 
-  insert into payments(raffle_id, session_id, email, phone, city, method, reference, evidence_url, amount_ves, rate_used, rate_source, currency, status, ci)
-  values (p_raffle_id, p_session_id, p_email, p_phone, p_city, p_method, p_reference, p_evidence_url, p_amount_ves, p_rate_used, p_rate_source, p_currency, 'pending', p_ci)
+  -- For free method, do explicit duplicate validations to return friendly errors
+  if p_method = 'free' then
+    if p_email is not null then
+      if exists (
+        select 1 from payments
+        where raffle_id = p_raffle_id and method = 'free' and lower(email) = lower(p_email)
+      ) then
+        raise exception 'Este correo ya participó en este sorteo gratis.' using errcode = 'P0001';
+      end if;
+    end if;
+    if p_instagram is not null then
+      if exists (
+        select 1 from payments
+        where raffle_id = p_raffle_id and method = 'free' and lower(instagram) = lower(p_instagram)
+      ) then
+        raise exception 'Este usuario de Instagram ya participó en este sorteo gratis.' using errcode = 'P0001';
+      end if;
+    end if;
+    if p_phone is not null then
+      if exists (
+        select 1 from payments
+        where raffle_id = p_raffle_id and method = 'free'
+          and regexp_replace(phone, '\\D', '', 'g') = regexp_replace(p_phone, '\\D', '', 'g')
+      ) then
+        raise exception 'Este teléfono ya participó en este sorteo gratis.' using errcode = 'P0001';
+      end if;
+    end if;
+    if p_ci is not null then
+      if exists (
+        select 1 from payments
+        where raffle_id = p_raffle_id and method = 'free'
+          and upper(regexp_replace(coalesce(ci,''), '[^0-9A-Za-z]', '', 'g')) = upper(regexp_replace(p_ci, '[^0-9A-Za-z]', '', 'g'))
+      ) then
+        raise exception 'Esta cédula ya participó en este sorteo gratis.' using errcode = 'P0001';
+      end if;
+    end if;
+  end if;
+
+  insert into payments(raffle_id, session_id, email, phone, city, method, reference, evidence_url, amount_ves, rate_used, rate_source, currency, status, ci, instagram)
+  values (p_raffle_id, p_session_id, p_email, p_phone, p_city, p_method, p_reference, p_evidence_url, p_amount_ves, p_rate_used, p_rate_source, p_currency, 'pending', p_ci, p_instagram)
   returning id into v_payment_id;
 
   -- Link reserved tickets of this session for this raffle
@@ -46,4 +85,4 @@ begin
 end;
 $$;
 
-grant execute on function create_payment_for_session(uuid,uuid,text,text,text,text,text,text,numeric,numeric,text,text,text,text) to anon, authenticated;
+grant execute on function create_payment_for_session(uuid,uuid,text,text,text,text,text,text,numeric,numeric,text,text,text,text,text) to anon, authenticated;

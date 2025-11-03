@@ -9,6 +9,7 @@ export function Footer() {
       <div className="site-container grid gap-4 md:grid-cols-2 items-center">
         <div className="font-semibold">PRIZO</div>
         <div className="md:text-right opacity-80 flex md:justify-end items-center gap-3">
+          <a href="/terms" className="hover:underline">Términos y condiciones</a>
           {/* Instagram */}
           {ig && (
             <a

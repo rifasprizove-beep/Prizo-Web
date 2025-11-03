@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { uploadEvidence } from '@/lib/data/payments';
-import { createPaymentForSession } from '@/lib/rpc';
+import { createPaymentForSession, ensureSession } from '@/lib/rpc';
 import { centsToUsd, getUsdVesRate, round2 } from '@/lib/data/rate';
 import { VE_CITIES } from '@/lib/data/cities';
 
@@ -70,6 +70,8 @@ export function CheckoutForm({
     const totalUSD = round2(unitUSD * count);
     const rateUsed = rateInfo?.rate ?? 0;
     const amountVES = rateUsed ? String(round2(totalUSD * rateUsed)) : null;
+    // Asegurar que la sesión exista antes de crear el pago
+    try { await ensureSession(sessionId); } catch {}
     const paymentId = await createPaymentForSession({
       p_raffle_id: raffleId,
       p_session_id: sessionId,

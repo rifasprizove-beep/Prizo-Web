@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createPaymentForSession } from '@/lib/rpc';
+import { createPaymentForSession, ensureSession } from '@/lib/rpc';
 import { VE_CITIES } from '@/lib/data/cities';
 
 const schema = z.object({
@@ -43,6 +43,8 @@ export function FreeParticipationForm({
     // Guardar aceptación para próximas vistas
     try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     try {
+      // Asegurar que la sesión exista en BD antes de crear el pago
+      try { await ensureSession(sessionId); } catch {}
       const paymentId = await createPaymentForSession({
         p_raffle_id: raffleId,
         p_session_id: sessionId,
@@ -61,8 +63,12 @@ export function FreeParticipationForm({
       });
       onCreated?.(paymentId);
     } catch (e: any) {
-      const msg = e?.message || 'No se pudo registrar tu participación.';
-      setServerError(msg);
+      const raw = String(e?.message ?? e ?? '');
+      let friendly = 'No se pudo registrar tu participación. Intenta nuevamente.';
+      if (/payments_session_id_fkey|foreign key constraint/i.test(raw)) {
+        friendly = 'Tu sesión expiró. Recarga la página e inténtalo de nuevo.';
+      }
+      setServerError(friendly);
     }
   });
 

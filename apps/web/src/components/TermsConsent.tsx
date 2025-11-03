@@ -42,7 +42,6 @@ export function TermsConsent() {
           <li>Las rifas gratis permiten solo una participación por persona (correo, Instagram o teléfono).</li>
           <li>El uso fraudulento puede anular participaciones.</li>
         </ul>
-        <a href="/terms" className="text-brand-500 underline text-sm">Leer términos completos</a>
 
         <div className="mt-4 space-y-2">
           <label className="flex items-start gap-2 text-sm">

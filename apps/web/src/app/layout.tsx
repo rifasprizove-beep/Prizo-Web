@@ -21,18 +21,18 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/brand/logo.png',
+        url: '/brand/logo.png?v=2',
         type: 'image/png',
         sizes: '32x32',
       },
-      { url: '/brand/logo.png', type: 'image/png', sizes: '192x192' },
+      { url: '/brand/logo.png?v=2', type: 'image/png', sizes: '192x192' },
     ],
     shortcut: [
-      { url: '/brand/logo.png', type: 'image/png' },
+      { url: '/brand/logo.png?v=2', type: 'image/png' },
     ],
     apple: [
       {
-        url: '/brand/logo.png',
+        url: '/brand/logo.png?v=2',
         type: 'image/png',
         sizes: '180x180',
       },

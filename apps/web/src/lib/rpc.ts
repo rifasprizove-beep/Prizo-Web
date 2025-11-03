@@ -141,3 +141,33 @@ export async function verifyTicketsClient(q: string, includePending: boolean = t
     return null;
   }
 }
+
+export async function setPaymentCi(paymentId: string, ci: string): Promise<boolean> {
+  const base = apiBase();
+  if (!base) {
+    // eslint-disable-next-line no-console
+    console.warn('[prizo] NEXT_PUBLIC_API_URL no está definido; omitiendo setPaymentCi');
+    return false;
+  }
+  const attempt = async (n: number) => {
+    const res = await fetch(`${base}/payments/set-ci`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_id: paymentId, ci }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      // eslint-disable-next-line no-console
+      console.warn(`[prizo] setPaymentCi intento ${n} falló: ${res.status} ${txt}`.trim());
+    }
+    return res.ok;
+  };
+  // Reintentos con backoff simple
+  const max = 3;
+  for (let i = 0; i < max; i++) {
+    const ok = await attempt(i + 1);
+    if (ok) return true;
+    await new Promise((r) => setTimeout(r, 200 * (i + 1)));
+  }
+  return false;
+}

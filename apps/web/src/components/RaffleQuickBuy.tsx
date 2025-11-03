@@ -679,7 +679,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                 } catch {}
                 setReserved([]);
                 setQty(1);
-                setInfo('Participación registrada. Tus tickets quedan reservados sin temporizador hasta la confirmación.');
+                setInfo('Participación registrada.');
               }}
             />
           ) : (

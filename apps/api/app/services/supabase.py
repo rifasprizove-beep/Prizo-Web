@@ -54,6 +54,18 @@ class SupabaseClient:
             res.raise_for_status()
             return res.json()
 
+    def update_one(self, table: str, where: Dict[str, str], data: Dict[str, Any]) -> Any:
+        """Actualiza una fila usando PostgREST con service key y devuelve la representación.
+        Ejemplo de 'where': {"id": "eq.<uuid>"}
+        """
+        url = f"{self.base_url}/rest/v1/{table}"
+        headers = self._headers()
+        headers.update({"Prefer": "return=representation"})
+        with httpx.Client(timeout=20.0) as client:
+            res = client.patch(url, headers=headers, params=where, json=data)
+            res.raise_for_status()
+            return res.json()
+
 
 def get_supabase() -> SupabaseClient:
     s = get_settings()

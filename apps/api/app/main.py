@@ -7,6 +7,7 @@ from .api.routes.reservations import router as reservations_router
 from .api.routes.verify import router as verify_router
 from .api.routes.rate import router as rate_router
 from .api.routes.cloudinary import router as cloudinary_router
+from .api.routes.payments import router as payments_router
 
 
 def create_app() -> FastAPI:
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     app.include_router(verify_router)
     app.include_router(rate_router)
     app.include_router(cloudinary_router)
+    app.include_router(payments_router)
     return app
 
 

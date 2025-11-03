@@ -3,26 +3,41 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createPaymentForSession, ensureSession, verifyTicketsClient } from '@/lib/rpc';
+import { createPaymentForSession, ensureSession, verifyTicketsClient, setPaymentCi } from '@/lib/rpc';
 import { VE_CITIES } from '@/lib/data/cities';
 
 const usernameRegex = /^[A-Za-z0-9._]{1,30}$/; // formato de Instagram
 
 const schema = z.object({
-  email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
+  // Email opcional; validaremos condicionalmente en superRefine para no bloquear si IG está presente
+  email: z.string().optional().or(z.literal('')),
   phone: z.string().min(6, 'Teléfono requerido'),
   city: z.string().min(2, 'Ciudad requerida'),
-  ciPrefix: z.enum(['V','E']).optional(),
-  ciNumber: z.string().regex(/^\d+$/, { message: 'Solo números' }).min(5, 'Cédula inválida').optional().or(z.literal('')),
+  // Hacemos la cédula obligatoria para garantizar su persistencia en pagos
+  ciPrefix: z.enum(['V','E'], { required_error: 'Prefijo requerido' }),
+  ciNumber: z.string()
+    .regex(/^\d+$/, { message: 'Solo números' })
+    .min(5, 'Cédula inválida'),
   instagram: z.preprocess((v) => (typeof v === 'string' ? v.replace(/^@+/, '') : v),
     z.string().optional().or(z.literal(''))
   ).refine((v) => !v || usernameRegex.test(v), { message: 'Usuario inválido (solo letras, números, punto y _)' }),
   termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
-}).refine((v) => {
-  const hasEmail = !!(v.email && v.email.trim());
+}).superRefine((v, ctx) => {
+  const emailTrim = (v.email ?? '').trim();
+  const hasEmail = emailTrim.length > 0;
   const hasIg = !!(v.instagram && v.instagram.trim());
-  return hasEmail || hasIg; // exigir al menos uno
-}, { message: 'Ingresa tu correo o usuario de Instagram', path: ['email'] });
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!hasEmail && !hasIg) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ingresa tu correo o usuario de Instagram', path: ['email'] });
+  }
+  if (hasEmail && !emailRegex.test(emailTrim)) {
+    // Solo marcamos error de email si NO hay IG; si hay IG, permitimos enviar
+    if (!hasIg) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Email inválido', path: ['email'] });
+    }
+  }
+});
 
 export function FreeParticipationForm({
   raffleId,
@@ -37,10 +52,13 @@ export function FreeParticipationForm({
   disabled?: boolean;
   onCreated?: (paymentId: string) => void;
 }) {
-  const { register, handleSubmit, formState: { errors }, setValue, watch, setError, clearErrors } = useForm<z.infer<typeof schema>>({
+  const { register, handleSubmit, formState: { errors, isValid }, setValue, watch, setError, clearErrors } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { ciPrefix: 'V' },
+    mode: 'onChange',
   });
+  // Aviso si la API no está configurada (ayuda a explicar por qué la CI podría no persistirse)
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '';
   const [citySelect, setCitySelect] = useState<string>('');
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -67,10 +85,12 @@ export function FreeParticipationForm({
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
     if (submitting) return;
+    // eslint-disable-next-line no-console
+    console.log('[prizo] submit free participation', { values });
     // Validación fuerte ANTES de enviar: si hay cédula, consultar y bloquear si existe
-    const prefixSub = (values.ciPrefix as 'V'|'E'|undefined) ?? 'V';
-    const ciNumSub = (values.ciNumber as string | undefined) || '';
-    const ciCombinedSub = ciNumSub ? `${prefixSub}-${ciNumSub}` : '';
+    const prefixSub = String(values.ciPrefix);
+    const ciNumSub = String(values.ciNumber);
+    const ciCombinedSub = `${prefixSub}-${ciNumSub}`;
     if (ciCombinedSub) {
       try {
         const foundNow = await verifyTicketsClient(ciCombinedSub, true);
@@ -89,17 +109,20 @@ export function FreeParticipationForm({
       // Asegurar que la sesión exista en BD antes de crear el pago
       try { await ensureSession(sessionId); } catch {}
       // Normalizar teléfono a solo dígitos para evitar falsos duplicados
-  const phoneOnly = (values.phone || '').replace(/\D/g, '');
-  const prefix = (values.ciPrefix as 'V'|'E'|undefined) ?? 'V';
-  const ciNum = (values.ciNumber as string | undefined) || '';
-      const ciCombined = ciNum ? `${prefix}-${ciNum}` : null;
+      const phoneOnly = (values.phone || '').replace(/\D/g, '');
+      const prefix = String(values.ciPrefix);
+      // Solo números en la cédula
+      const ciNum = String(values.ciNumber).replace(/\D/g, '');
+      const ciCombined = `${prefix}-${ciNum}`;
+      // eslint-disable-next-line no-console
+      console.log('[prizo] composed CI', ciCombined);
       const paymentId = await createPaymentForSession({
         p_raffle_id: raffleId,
         p_session_id: sessionId,
         p_email: values.email || null,
         p_phone: phoneOnly || null,
         p_city: values.city,
-        p_ci: ciCombined,
+        p_ci: ciCombined, // formato V-343222211222
         p_method: 'free',
         p_reference: null,
         p_evidence_url: null,
@@ -109,6 +132,17 @@ export function FreeParticipationForm({
         p_currency: 'FREE',
         p_instagram: (values.instagram?.replace(/^@+/, '') || null),
       });
+      // Persistencia extra por API si aplica
+      try {
+        const ok = await setPaymentCi(paymentId, ciCombined);
+        // eslint-disable-next-line no-console
+        console.log('[prizo] setPaymentCi result', { paymentId, ok, apiBaseUrl });
+        if (!ok) {
+          // Exponer en consola para diagnosticar ambientes sin API
+          // eslint-disable-next-line no-console
+          console.warn('[prizo] setPaymentCi no se ejecutó (API no configurada o fallo)');
+        }
+      } catch {}
       onCreated?.(paymentId);
     } catch (e: any) {
       const raw = String(e?.message ?? e ?? '');
@@ -116,7 +150,7 @@ export function FreeParticipationForm({
       if (/payments_session_id_fkey|foreign key constraint/i.test(raw)) {
         friendly = 'Tu sesión expiró. Recarga la página e inténtalo de nuevo.';
       } else if (/ya particip[oó]|duplicate key|unique constraint|ux_payments_free_/i.test(raw)) {
-        friendly = 'Ya participaste en este sorteo gratis con estos datos.';
+        friendly = 'Ya participaste en este sorteo gratis';
       }
       setServerError(friendly);
     } finally {
@@ -139,7 +173,7 @@ export function FreeParticipationForm({
         </div>
         <div>
           <label className="block text-sm font-medium">Teléfono</label>
-          <input type="tel" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="0412-0000000" {...register('phone')} />
+          <input type="tel" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="0412-0000000" {...register('phone')} required />
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
         </div>
         <div>
@@ -157,9 +191,9 @@ export function FreeParticipationForm({
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Cédula</label>
+          <label className="block text-sm font-medium">Cédula (obligatoria)</label>
           <div className="mt-1 flex gap-2">
-            <select className="w-20 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
+            <select className="w-20 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')} required>
               <option value="V">V</option>
               <option value="E">E</option>
             </select>
@@ -169,10 +203,17 @@ export function FreeParticipationForm({
               pattern="[0-9]*"
               className="flex-1 border rounded-lg p-2 bg-surface-800"
               placeholder="12345678"
-              {...register('ciNumber')}
+              required
+              value={watch('ciNumber')}
+              onInput={(e) => {
+                // Elimina cualquier caracter no numérico, incluso al pegar
+                const cleanValue = e.currentTarget.value.replace(/\D/g, '');
+                setValue('ciNumber', cleanValue, { shouldValidate: true });
+              }}
               onChange={(e) => {
-                e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '');
-                // debounce
+                // debounce para verificación duplicada
+                const cleanValue = e.currentTarget.value.replace(/\D/g, '');
+                setValue('ciNumber', cleanValue, { shouldValidate: true });
                 if (ciCheckTimer.current) clearTimeout(ciCheckTimer.current);
                 ciCheckTimer.current = setTimeout(checkCiDuplicate, 400);
               }}
@@ -213,7 +254,7 @@ export function FreeParticipationForm({
       </div>
       {/* Aceptación de Términos y Condiciones */}
       <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-        <input id="termsAcceptedFree" type="checkbox" className="h-4 w-4" {...register('termsAccepted')} />
+  <input id="termsAcceptedFree" type="checkbox" className="h-4 w-4" {...register('termsAccepted')} required />
         <label htmlFor="termsAcceptedFree" className="select-none">
           Acepto los <a href="/terms" className="underline">Términos y Condiciones</a>
         </label>
@@ -224,6 +265,11 @@ export function FreeParticipationForm({
           {submitting ? 'Enviando…' : 'Enviar participación'}
         </button>
       </div>
+      {!apiBaseUrl && (
+        <p className="mt-2 text-center text-xs text-yellow-300/90">
+          Aviso: la API no está configurada (NEXT_PUBLIC_API_URL vacío). La cédula podría no persistirse.
+        </p>
+      )}
     </form>
   );
 }

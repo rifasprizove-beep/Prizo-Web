@@ -12,6 +12,7 @@ const schema = z.object({
   city: z.string().min(2, 'Ciudad requerida'),
   ci: z.string().min(5, 'Cédula requerida').optional().or(z.literal('')),
   instagram: z.string().optional().or(z.literal('')),
+  termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
 }).refine((v) => {
   const hasEmail = !!(v.email && v.email.trim());
   const hasIg = !!(v.instagram && v.instagram.trim());
@@ -39,30 +40,24 @@ export function FreeParticipationForm({
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
-    // Guard: TyC aceptados
-    try {
-      const accepted = typeof window !== 'undefined' && localStorage.getItem('prizo_terms_accepted_v1') === '1';
-      if (!accepted) {
-        setServerError('Debes aceptar los Términos y Condiciones antes de enviar.');
-        return;
-      }
-    } catch {}
+    // Guardar aceptación para próximas vistas
+    try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     try {
       const paymentId = await createPaymentForSession({
-      p_raffle_id: raffleId,
-      p_session_id: sessionId,
-      p_email: values.email || null,
-      p_phone: values.phone,
-      p_city: values.city,
-      p_ci: values.ci || null,
-      p_method: 'free',
-      p_reference: null,
-      p_evidence_url: null,
-      p_amount_ves: null,
-      p_rate_used: null,
-      p_rate_source: null,
-      p_currency: 'FREE',
-      p_instagram: values.instagram || null,
+        p_raffle_id: raffleId,
+        p_session_id: sessionId,
+        p_email: values.email || null,
+        p_phone: values.phone,
+        p_city: values.city,
+        p_ci: values.ci || null,
+        p_method: 'free',
+        p_reference: null,
+        p_evidence_url: null,
+        p_amount_ves: null,
+        p_rate_used: null,
+        p_rate_source: null,
+        p_currency: 'FREE',
+        p_instagram: values.instagram || null,
       });
       onCreated?.(paymentId);
     } catch (e: any) {
@@ -126,6 +121,14 @@ export function FreeParticipationForm({
           {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city.message as string}</p>}
         </div>
       </div>
+      {/* Aceptación de Términos y Condiciones */}
+      <div className="mt-2 flex items-center justify-center gap-2 text-sm">
+        <input id="termsAcceptedFree" type="checkbox" className="h-4 w-4" {...register('termsAccepted')} />
+        <label htmlFor="termsAcceptedFree" className="select-none">
+          Acepto los <a href="/terms" className="underline">Términos y Condiciones</a>
+        </label>
+      </div>
+      {errors.termsAccepted && <p className="text-center text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center justify-center gap-3">
         <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled}>Enviar participación</button>
       </div>

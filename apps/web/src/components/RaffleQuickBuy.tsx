@@ -180,15 +180,6 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
     setError(null);
     setInfo(null);
     try {
-      // Guard: exigir aceptación de TyC
-      try {
-        const accepted = typeof window !== 'undefined' && localStorage.getItem('prizo_terms_accepted_v1') === '1';
-        if (!accepted) {
-          setBusy(false);
-          setError('Debes aceptar los Términos y Condiciones para continuar.');
-          return;
-        }
-      } catch {}
       // En rifas gratis, no hay tickets ni reservas: mostrar directamente el formulario
       if (isFree) {
         const count = Math.max(1, qty);

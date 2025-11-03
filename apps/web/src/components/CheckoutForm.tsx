@@ -18,6 +18,7 @@ export const checkoutSchema = z.object({
   reference: z.string().optional().or(z.literal('')),
   amount_ves: z.string().optional(),
   evidence: z.any().optional(),
+  termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
 });
 
 export function CheckoutForm({
@@ -56,6 +57,8 @@ export function CheckoutForm({
   }, []);
 
   const onSubmit = handleSubmit(async (values) => {
+    // Marcar aceptación de TyC en storage (para futuras validaciones globales)
+    try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     let evidence_url: string | null = null;
     const ev = watch('evidence') as File | undefined;
     if (ev && typeof ev !== 'string') {
@@ -213,6 +216,14 @@ export function CheckoutForm({
           </div>
         </div>
       </div>
+      {/* Aceptación de Términos y Condiciones */}
+      <div className="mt-2 flex items-center gap-2 text-sm">
+        <input id="termsAccepted" type="checkbox" className="h-4 w-4" {...register('termsAccepted')} />
+        <label htmlFor="termsAccepted" className="select-none">
+          Acepto los <a href="/terms" className="underline">Términos y Condiciones</a>
+        </label>
+      </div>
+      {errors.termsAccepted && <p className="text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center gap-3">
         <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled}>Enviar pago</button>
       </div>

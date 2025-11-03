@@ -10,7 +10,8 @@ const schema = z.object({
   email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
   phone: z.string().min(6, 'Teléfono requerido'),
   city: z.string().min(2, 'Ciudad requerida'),
-  ci: z.string().min(5, 'Cédula requerida').optional().or(z.literal('')),
+  ciPrefix: z.enum(['V','E']).optional(),
+  ciNumber: z.string().regex(/^\d+$/, { message: 'Solo números' }).min(5, 'Cédula inválida').optional().or(z.literal('')),
   instagram: z.string().optional().or(z.literal('')),
   termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
 }).refine((v) => {
@@ -32,8 +33,9 @@ export function FreeParticipationForm({
   disabled?: boolean;
   onCreated?: (paymentId: string) => void;
 }) {
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<z.infer<typeof schema>>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
+    defaultValues: { ciPrefix: 'V' },
   });
   const [citySelect, setCitySelect] = useState<string>('');
   const [serverError, setServerError] = useState<string | null>(null);
@@ -45,13 +47,16 @@ export function FreeParticipationForm({
     try {
       // Asegurar que la sesión exista en BD antes de crear el pago
       try { await ensureSession(sessionId); } catch {}
+      const prefix = (watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V';
+      const ciNum = (watch('ciNumber') as string | undefined) || '';
+      const ciCombined = ciNum ? `${prefix}-${ciNum}` : null;
       const paymentId = await createPaymentForSession({
         p_raffle_id: raffleId,
         p_session_id: sessionId,
         p_email: values.email || null,
         p_phone: values.phone,
         p_city: values.city,
-        p_ci: values.ci || null,
+        p_ci: ciCombined,
         p_method: 'free',
         p_reference: null,
         p_evidence_url: null,
@@ -97,8 +102,22 @@ export function FreeParticipationForm({
         </div>
         <div>
           <label className="block text-sm font-medium">Cédula</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="V-12345678" {...register('ci')} />
-          {errors.ci && <p className="text-xs text-red-600 mt-1">{errors.ci.message as string}</p>}
+          <div className="mt-1 flex gap-2">
+            <select className="w-20 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
+              <option value="V">V</option>
+              <option value="E">E</option>
+            </select>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="flex-1 border rounded-lg p-2 bg-surface-800"
+              placeholder="12345678"
+              {...register('ciNumber')}
+              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''); }}
+            />
+          </div>
+          {errors.ciNumber && <p className="text-xs text-red-600 mt-1">{errors.ciNumber.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Ciudad</label>

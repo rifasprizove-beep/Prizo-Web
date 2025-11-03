@@ -12,7 +12,8 @@ export const checkoutSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
   phone: z.string().min(6, 'Teléfono requerido'),
   city: z.string().min(2, 'Ciudad requerida'),
-  ci: z.string().min(5, 'Cédula requerida').optional().or(z.literal('')),
+  ciPrefix: z.enum(['V','E']).optional(),
+  ciNumber: z.string().regex(/^\d+$/, { message: 'Solo números' }).min(5, 'Cédula inválida').optional().or(z.literal('')),
   instagram: z.string().optional().or(z.literal('')),
   method: z.string().min(1, 'Selecciona un método'),
   reference: z.string().optional().or(z.literal('')),
@@ -42,6 +43,7 @@ export function CheckoutForm({
 }) {
   const { register, handleSubmit, setValue, formState: { errors }, watch, reset } = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
+    defaultValues: { ciPrefix: 'V' },
   });
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
@@ -72,13 +74,16 @@ export function CheckoutForm({
     const amountVES = rateUsed ? String(round2(totalUSD * rateUsed)) : null;
     // Asegurar que la sesión exista antes de crear el pago
     try { await ensureSession(sessionId); } catch {}
+    const ciCombined = (watch('ciNumber') as string | undefined)?.trim()
+      ? `${(watch('ciPrefix') as 'V'|'E'|undefined) ?? 'V'}-${(watch('ciNumber') as string).trim()}`
+      : null;
     const paymentId = await createPaymentForSession({
       p_raffle_id: raffleId,
       p_session_id: sessionId,
       p_email: values.email || null,
       p_phone: values.phone,
       p_city: values.city,
-      p_ci: values.ci || null,
+      p_ci: ciCombined,
       p_instagram: values.instagram || null,
       p_method: values.method,
       p_reference: values.reference || null,
@@ -140,8 +145,22 @@ export function CheckoutForm({
         </div>
         <div>
           <label className="block text-sm font-medium">Cédula (opcional)</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="V-12345678" {...register('ci')} />
-          {errors.ci && <p className="text-xs text-red-600 mt-1">{errors.ci.message as string}</p>}
+          <div className="mt-1 flex gap-2">
+            <select className="w-20 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
+              <option value="V">V</option>
+              <option value="E">E</option>
+            </select>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="flex-1 border rounded-lg p-2 bg-surface-800"
+              placeholder="12345678"
+              {...register('ciNumber')}
+              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''); }}
+            />
+          </div>
+          {errors.ciNumber && <p className="text-xs text-red-600 mt-1">{errors.ciNumber.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Ciudad</label>

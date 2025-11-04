@@ -1,5 +1,4 @@
 -- Patch: ensure session before inserting into payments (idempotent)
-set search_path = public;
 
 create or replace function create_payment_for_session(
   p_raffle_id uuid,
@@ -19,6 +18,7 @@ create or replace function create_payment_for_session(
 ) returns uuid
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
   v_payment_id uuid;

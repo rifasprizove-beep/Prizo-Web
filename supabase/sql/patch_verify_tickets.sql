@@ -1,5 +1,4 @@
 -- RPC para verificar tickets por email o cédula (ci)
-set search_path = public;
 
 create or replace function verify_tickets(
   p_query text,
@@ -16,6 +15,7 @@ create or replace function verify_tickets(
 )
 language sql
 security definer
+set search_path = public
 as $$
   select r.id as raffle_id,
          r.name as raffle_name,

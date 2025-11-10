@@ -125,11 +125,8 @@ export function CheckoutForm({
           </div>
         </div>
       )}
-      {fallbackRate && (
-        <p className="text-xs text-gray-400">Tasa de referencia (entorno): {Number(fallbackRate).toFixed(2)} Bs/USD</p>
-      )}
       {bcvInfo?.rate && (
-        <p className="text-xs text-gray-500">Equivalente USD a BCV: {unitVES ? round1(unitVES / bcvInfo.rate).toFixed(1) : '—'} USD</p>
+        <p className="text-xs text-gray-400">Tasa BCV del día: {Number(bcvInfo.rate).toFixed(2)} Bs/USD</p>
       )}
   {/* Mantener método como campo oculto (ya mostrado arriba) */}
   <input type="hidden" value={methodLabel ?? ''} {...register('method')} />

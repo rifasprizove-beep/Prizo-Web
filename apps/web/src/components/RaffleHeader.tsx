@@ -3,7 +3,7 @@ import type { Raffle, RaffleTicketCounters } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { centsToUsd, getUsdVesRate, round2 } from "@/lib/data/rate";
+import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1, round2 } from "@/lib/data/rate";
 import { formatVES } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
@@ -12,14 +12,23 @@ import WinnerTable from "./WinnerTable";
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
   const { currency } = useCurrency();
-  const [rate, setRate] = useState<number | null>(null);
-  useEffect(() => { (async () => { try { const info = await getUsdVesRate(); if (info?.rate) setRate(info.rate); } catch {} })(); }, []);
+  // Tasa de referencia (entorno) para calcular VES mostrados
+  const fallbackRate = getEnvFallbackRate();
+  // Tasa BCV para mostrar equivalentes en USD
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
+  useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
+
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const priceUSD = centsToUsd(raffle.ticket_price_cents ?? 0);
-  const priceVES = rate ? round2(priceUSD * rate) : 0;
-  const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
-  const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
-  const topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
+  const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
+  // Precio del ticket mostrado en Bs con la tasa de entorno (entero)
+  const unitVES = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
+  // Equivalente USD usando BCV (1 decimal). Si no hay BCV, usar el base.
+  const unitUsdAtBcv = bcvRate && unitVES ? round1(unitVES / bcvRate) : round1(unitUSDBase);
+
+  const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
+  const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
+  const prizeVES = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
+  const topBuyerVES = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
   const percent = counters && counters.total_tickets > 0 ? Math.min(100, (counters.sold / counters.total_tickets) * 100) : 0;
 
   // Estado visual según la rifa
@@ -49,20 +58,19 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               ? 'Gratis'
               : (
                 currency === 'USD'
-                  ? `$${priceUSD.toFixed(2)}`
-                  : (priceVES ? formatVES(priceVES) : '—')
+                  ? `$${unitUsdAtBcv.toFixed(1)}`
+                  : (unitVES ? formatVES(unitVES) : '—')
               )
             }
-            {!isFree && currency === 'VES' && <span className="opacity-80"> (tasa del día)</span>}
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {currency === 'USD' ? `$${prizeUSD.toFixed(2)}` : (rate ? formatVES(round2(prizeUSD * rate)) : '—')}
+              <span className="opacity-90">Premio:</span> {currency === 'USD' ? `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}` : (prizeVES ? formatVES(prizeVES) : '—')}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="text-brand-300">Top comprador:</span> {currency === 'USD' ? `$${topBuyerUSD.toFixed(2)}` : (topBuyerVES ? formatVES(topBuyerVES) : '—')}
+              <span className="text-brand-300">Top comprador:</span> {currency === 'USD' ? `$${(bcvRate && topBuyerVES ? round1(topBuyerVES / bcvRate).toFixed(1) : round1(topBuyerUSDBase).toFixed(1))}` : (topBuyerVES ? formatVES(topBuyerVES) : '—')}
             </div>
           )}
         </div>

@@ -2,33 +2,38 @@
 import type { Raffle } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { centsToUsd, getUsdVesRate, round2 } from '@/lib/data/rate';
+import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1, round2 } from '@/lib/data/rate';
 import { raffleStatusEs, formatVES } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
 
-function useRate() {
-  const [rate, setRate] = useState<number | null>(null);
+function useRates() {
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
+  const fallbackRate = getEnvFallbackRate();
   useEffect(() => {
     (async () => {
       try {
-        const info = await getUsdVesRate();
-        if (info?.rate) setRate(info.rate);
+        const info = await getBcvRatePreferApi();
+        if (info?.rate) setBcvRate(info.rate);
       } catch {}
     })();
   }, []);
-  return rate;
+  return { fallbackRate, bcvRate } as const;
 }
 
 export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const { currency } = useCurrency();
-  const rate = useRate();
+  const { fallbackRate, bcvRate } = useRates();
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const unitUSD = centsToUsd(raffle.ticket_price_cents);
-  const unitVES = rate ? round2(unitUSD * rate) : 0;
-  const prizeUSD = centsToUsd(raffle.prize_amount_cents ?? 0);
-  const topBuyerUSD = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
-  const _topBuyerVES = rate ? round2(topBuyerUSD * rate) : 0;
+  const unitUSDBase = centsToUsd(raffle.ticket_price_cents);
+  // Precio mostrado en Bs con la tasa de entorno (entero)
+  const unitVES = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
+  // Equivalente USD mostrado usando tasa BCV (4 decimales). Si no hay BCV, mostrar el base.
+  const unitUsdAtBcv = bcvRate && unitVES ? round1(unitVES / bcvRate) : round1(unitUSDBase);
+  const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
+  const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
+  const prizeVES = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
+  const topBuyerVES = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
   // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
   const cardHref = `/raffles/${raffle.id}`;
   return (
@@ -38,7 +43,13 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
           {isFree ? (
             <BadgePill tone="brand">Gratis</BadgePill>
           ) : (
-            <BadgePill>{currency === 'USD' ? `$${unitUSD.toFixed(2)}` : (unitVES ? formatVES(unitVES) : '—')}</BadgePill>
+            <>
+               <BadgePill>
+              {currency === 'USD'
+                ? `$${unitUsdAtBcv.toFixed(1)}`
+                : (unitVES ? formatVES(unitVES) : '—')}
+            </BadgePill>
+            </>
           )}
           {raffle.status && (
             <BadgePill>{raffleStatusEs(raffle.status)}</BadgePill>
@@ -67,8 +78,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       )}
       {(raffle.prize_amount_cents ?? 0) > 0 && (
         <div className="px-4 py-3">
-          <div className="text-xs text-gray-300">Premio</div>
-          <div className="font-semibold">{currency === 'USD' ? `$${prizeUSD.toFixed(2)}` : (rate ? formatVES(round2(prizeUSD * rate)) : '—')}</div>
+          <div className="font-semibold">{currency === 'USD' ? `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}` : (prizeVES ? formatVES(prizeVES) : '—')}</div>
         </div>
       )}
     </a>

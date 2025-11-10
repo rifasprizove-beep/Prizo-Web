@@ -18,6 +18,16 @@ export function round2(n: number | undefined | null): number {
   return Math.round(n * 100) / 100;
 }
 
+export function round0(n: number | undefined | null): number {
+  if (!n || !isFinite(n)) return 0;
+  return Math.round(n);
+}
+
+export function round1(n: number | undefined | null): number {
+  if (!n || !isFinite(n)) return 0;
+  return Math.round(n * 10) / 10;
+}
+
 /**
  * Intenta obtener la tasa USD->VES.
  * 1) Si existe NEXT_PUBLIC_RATE_URL, hace fetch a ese endpoint (debe retornar { rate, source?, date? }).
@@ -113,4 +123,55 @@ export async function getUsdVesRate(): Promise<RateInfo | null> {
   // 5) Fallback por defecto: 225 Bs/USD
   const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
   return { rate: 225, source: 'default', date: today, rate_available: true, stale: true };
+}
+
+// Solo lee la tasa de entorno (NEXT_PUBLIC_RATE_FALLBACK) sin hacer red.
+export function getEnvFallbackRate(): number | null {
+  const raw = process.env.NEXT_PUBLIC_RATE_FALLBACK;
+  if (!raw) return null;
+  const n = Number(raw);
+  return !isNaN(n) && n > 0 ? n : null;
+}
+
+// Obtiene preferiblemente la tasa BCV desde API (NEXT_PUBLIC_RATE_URL o API_URL/api/rate).
+// Si falla, intenta open.er-api y finalmente usa entorno como stale.
+export async function getBcvRatePreferApi(): Promise<RateInfo | null> {
+  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL || `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rate`;
+  if (rateUrl) {
+    try {
+      const res = await fetch(rateUrl, { cache: 'no-store' });
+      if (res.ok) {
+        const j: any = await res.json();
+        const r = Number(j?.rate ?? j?.data?.rate);
+        if (!isNaN(r) && r > 0) {
+          return { rate: r, source: j?.source ?? j?.data?.source ?? 'BCV', date: j?.date ?? j?.data?.date, rate_available: true, stale: false };
+        }
+      }
+    } catch (e) {
+      console.warn('getBcvRatePreferApi API error:', e);
+    }
+  }
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 1500);
+    const res = await fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-store', signal: ctrl.signal });
+    clearTimeout(to);
+    if (res.ok) {
+      const j: any = await res.json();
+      const cand = j?.rates?.VES ?? j?.rates?.VEF ?? j?.rates?.VED;
+      const r = Number(cand);
+      if (!isNaN(r) && r > 0) {
+        const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+        return { rate: r, source: 'ERAPI', date: today, rate_available: true, stale: false };
+      }
+    }
+  } catch (e) {
+    console.warn('getBcvRatePreferApi er-api error:', e);
+  }
+  const env = getEnvFallbackRate();
+  if (env) {
+    const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    return { rate: env, source: 'env', date: today, rate_available: true, stale: true };
+  }
+  return null;
 }

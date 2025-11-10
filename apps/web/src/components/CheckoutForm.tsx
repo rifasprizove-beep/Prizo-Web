@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { uploadEvidence } from '@/lib/data/payments';
 import { createPaymentForSession, ensureSession } from '@/lib/rpc';
-import { centsToUsd, getUsdVesRate, round2 } from '@/lib/data/rate';
+import { centsToUsd, getBcvRatePreferApi, getEnvFallbackRate, round0, round1, round2 } from '@/lib/data/rate';
 import { VE_CITIES } from '@/lib/data/cities';
 
 export const checkoutSchema = z.object({
@@ -50,12 +50,13 @@ export function CheckoutForm({
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
 
-  // Tasa USD->VES
-  const [rateInfo, setRateInfo] = useState<{ rate: number; source?: string } | null>(null);
+  // Tasas: entorno (para Bs) y BCV (para equivalente USD)
+  const [bcvInfo, setBcvInfo] = useState<{ rate: number; source?: string } | null>(null);
+  const fallbackRate = getEnvFallbackRate();
   useEffect(() => {
     (async () => {
-      const info = await getUsdVesRate();
-      if (info && info.rate > 0) setRateInfo({ rate: info.rate, source: info.source });
+      const info = await getBcvRatePreferApi();
+      if (info && info.rate > 0) setBcvInfo({ rate: info.rate, source: info.source });
     })();
   }, []);
 
@@ -73,8 +74,8 @@ export function CheckoutForm({
     const unitUSD = centsToUsd(unitPriceCents ?? 0);
     const count = quantity ?? 0;
     const totalUSD = round2(unitUSD * count);
-    const rateUsed = rateInfo?.rate ?? 0;
-    const amountVES = rateUsed ? String(round2(totalUSD * rateUsed)) : null;
+  const rateUsed = fallbackRate ?? 0;
+  const amountVES = rateUsed ? String(round0(totalUSD * rateUsed)) : null;
     // Asegurar que la sesión exista antes de crear el pago
     try { await ensureSession(sessionId); } catch {}
     const ciCombined = (values.ciNumber as string | undefined)?.trim()
@@ -92,8 +93,8 @@ export function CheckoutForm({
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,
       p_amount_ves: amountVES,
-      p_rate_used: rateUsed ? String(rateUsed) : null,
-      p_rate_source: rateInfo?.source ?? null,
+  p_rate_used: rateUsed ? String(rateUsed) : null,
+  p_rate_source: fallbackRate ? 'env' : null,
       p_currency: currency,
     });
     onCreated?.(paymentId);
@@ -106,8 +107,7 @@ export function CheckoutForm({
 
   const count = quantity ?? 0;
   const unitUSD = centsToUsd(unitPriceCents ?? 0);
-  const rate = rateInfo?.rate ?? 0;
-  const unitVES = useMemo(() => (rate ? round2(unitUSD * rate) : 0), [unitUSD, rate]);
+  const unitVES = useMemo(() => (fallbackRate ? round0(unitUSD * fallbackRate) : 0), [unitUSD, fallbackRate]);
   const totalVES = useMemo(() => round2(unitVES * count), [unitVES, count]);
 
   return (
@@ -121,12 +121,15 @@ export function CheckoutForm({
           </div>
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Total (Bs)</div>
-            <div className="font-semibold">{rate ? totalVES.toFixed(2) : '—'} Bs</div>
+            <div className="font-semibold">{fallbackRate ? totalVES.toFixed(2) : '—'} Bs</div>
           </div>
         </div>
       )}
-      {rateInfo?.rate && (
-        <p className="text-xs text-gray-600">Tasa BCV usada: {Number(rateInfo.rate).toFixed(2)} Bs/USD</p>
+      {fallbackRate && (
+        <p className="text-xs text-gray-400">Tasa de referencia (entorno): {Number(fallbackRate).toFixed(2)} Bs/USD</p>
+      )}
+      {bcvInfo?.rate && (
+        <p className="text-xs text-gray-500">Equivalente USD a BCV: {unitVES ? round1(unitVES / bcvInfo.rate).toFixed(1) : '—'} USD</p>
       )}
   {/* Mantener método como campo oculto (ya mostrado arriba) */}
   <input type="hidden" value={methodLabel ?? ''} {...register('method')} />
@@ -203,7 +206,7 @@ export function CheckoutForm({
           <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="N° referencia o hash" {...register('reference')} />
         </div>
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
-        <input type="hidden" value={rate ? String(totalVES) : ''} {...register('amount_ves')} />
+  <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
         <div>
           <label className="block text-sm font-medium">Evidencia (imagen/pdf)</label>
           {/* Input real oculto */}

@@ -1,8 +1,8 @@
 import { getSupabase } from './supabaseClient';
+import { apiAvailable, apiBase, markApiDown } from './api';
 
-function apiBase() {
-  return process.env.NEXT_PUBLIC_API_URL || '';
-}
+// legacy alias for existing calls
+function legacyBase() { return apiBase(); }
 
 export async function getApiHealth(timeoutMs: number = 2000): Promise<{ ok: boolean; detail?: string } | null> {
   const base = apiBase();
@@ -50,25 +50,44 @@ export async function reserveRandomTickets(args: {
   p_quantity: number;
   p_minutes?: number;
 }) {
-  const base = apiBase();
-  if (base) {
-    const res = await fetch(`${base}/reservations/random`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...args, p_total: args.p_quantity }),
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      const raw = await res.text().catch(() => '');
-      let detail = raw;
+  const base = legacyBase();
+  if (base && (await apiAvailable().catch(() => false))) {
+    try {
+      const res = await fetch(`${base}/reservations/random`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...args, p_total: args.p_quantity }),
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        const raw = await res.text().catch(() => '');
+        let detail = raw;
+        try {
+          const err = raw ? JSON.parse(raw) : null;
+          if (err && typeof err === 'object' && 'detail' in err) detail = (err as any).detail ?? raw;
+        } catch {}
+        throw new Error(`reserveRandomTickets api failed: ${res.status} ${detail}`.trim());
+      }
+      const json = await res.json();
+      return json?.data ?? [];
+    } catch (e) {
+      // Fallback a Supabase directo si la API está caída / CORS / timeout
+      markApiDown();
       try {
-        const err = raw ? JSON.parse(raw) : null;
-        if (err && typeof err === 'object' && 'detail' in err) detail = (err as any).detail ?? raw;
-      } catch {}
-      throw new Error(`reserveRandomTickets api failed: ${res.status} ${detail}`.trim());
+        const supabase = getSupabase();
+        const { data, error } = await supabase.rpc('ensure_and_reserve_random_tickets', {
+          p_raffle_id: args.p_raffle_id,
+            p_total: args.p_quantity, // creamos si faltan
+            p_session_id: args.p_session_id,
+            p_quantity: args.p_quantity,
+            p_minutes: args.p_minutes ?? 10,
+        });
+        if (error) throw error as any;
+        return data ?? [];
+      } catch (inner) {
+        throw inner;
+      }
     }
-    const json = await res.json();
-    return json?.data ?? [];
   } else {
     const supabase = getSupabase();
     const { data, error } = await supabase.rpc('reserve_random_tickets', args);
@@ -84,25 +103,38 @@ export async function ensureAndReserveRandomTickets(args: {
   p_quantity: number;
   p_minutes?: number;
 }) {
-  const base = apiBase();
-  if (base) {
-    const res = await fetch(`${base}/reservations/random`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(args),
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      const raw = await res.text().catch(() => '');
-      let detail = raw;
+  const base = legacyBase();
+  if (base && (await apiAvailable().catch(() => false))) {
+    try {
+      const res = await fetch(`${base}/reservations/random`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        const raw = await res.text().catch(() => '');
+        let detail = raw;
+        try {
+          const err = raw ? JSON.parse(raw) : null;
+          if (err && typeof err === 'object' && 'detail' in err) detail = (err as any).detail ?? raw;
+        } catch {}
+        throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${detail}`.trim());
+      }
+      const json = await res.json();
+      return json?.data ?? [];
+    } catch (e) {
+      // Fallback directo
+      markApiDown();
       try {
-        const err = raw ? JSON.parse(raw) : null;
-        if (err && typeof err === 'object' && 'detail' in err) detail = (err as any).detail ?? raw;
-      } catch {}
-      throw new Error(`ensureAndReserveRandomTickets api failed: ${res.status} ${detail}`.trim());
+        const supabase = getSupabase();
+        const { data, error } = await supabase.rpc('ensure_and_reserve_random_tickets', args);
+        if (error) throw error as any;
+        return data ?? [];
+      } catch (inner) {
+        throw inner;
+      }
     }
-    const json = await res.json();
-    return json?.data ?? [];
   } else {
     const supabase = getSupabase();
     const { data, error } = await supabase.rpc('ensure_and_reserve_random_tickets', args);
@@ -146,7 +178,7 @@ export async function setPaymentCi(paymentId: string, ci: string): Promise<boole
   const base = apiBase();
   if (!base) {
     // eslint-disable-next-line no-console
-    console.warn('[prizo] NEXT_PUBLIC_API_URL no está definido; omitiendo setPaymentCi');
+      if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('[prizo] NEXT_PUBLIC_API_URL no está definido; omitiendo setPaymentCi');
     return false;
   }
   const attempt = async (n: number) => {
@@ -157,8 +189,7 @@ export async function setPaymentCi(paymentId: string, ci: string): Promise<boole
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
-      // eslint-disable-next-line no-console
-      console.warn(`[prizo] setPaymentCi intento ${n} falló: ${res.status} ${txt}`.trim());
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn(`[prizo] setPaymentCi intento ${n} falló: ${res.status} ${txt}`.trim());
     }
     return res.ok;
   };

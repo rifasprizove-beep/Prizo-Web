@@ -6,7 +6,7 @@ export async function generateStaticParams(): Promise<Param[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
-    console.warn('NEXT_PUBLIC_SUPABASE_URL/ANON_KEY no definidos en build. No se pre-generarán rutas dinámicas.');
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('NEXT_PUBLIC_SUPABASE_URL/ANON_KEY no definidos en build. No se pre-generarán rutas dinámicas.');
     return [];
   }
   try {
@@ -19,7 +19,7 @@ export async function generateStaticParams(): Promise<Param[]> {
     if (error) throw error;
     return (data ?? []).map((r: any) => ({ id: String(r.id) }));
   } catch (e) {
-    console.warn('No se pudieron obtener rifas para SSG:', (e as any)?.message || e);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('No se pudieron obtener rifas para SSG:', (e as any)?.message || e);
     return [];
   }
 }

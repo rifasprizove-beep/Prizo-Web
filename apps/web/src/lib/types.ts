@@ -11,6 +11,7 @@ export type Raffle = {
   image_url: string | null;
   total_tickets: number;
   allow_manual?: boolean; // si false, solo números aleatorios
+  min_ticket_purchase?: number; // mínimo de tickets por compra
 };
 
 export type RaffleTicketCounters = {

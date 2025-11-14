@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabaseClient';
+import { apiAvailable } from '../api';
 
 export type RateInfo = {
   rate: number;
@@ -68,14 +69,19 @@ export async function getUsdVesRate(): Promise<RateInfo | null> {
       }
     }
   } catch (e) {
-    console.warn('getUsdVesRate (er-api) failed:', e);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('getUsdVesRate (er-api) failed:', e);
   }
 
   // 2) Endpoint configurable o interno (/api/rate -> BCV)
-  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL || `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rate`;
-  if (typeof window !== 'undefined' && rateUrl) {
+  const baseApi = process.env.NEXT_PUBLIC_API_URL || '';
+  const configuredUrl = process.env.NEXT_PUBLIC_RATE_URL || (baseApi ? `${baseApi}/api/rate` : '');
+  const shouldTryApi = !!configuredUrl && (
+    // si es la URL construida desde API_URL, verifica salud antes
+    (configuredUrl.startsWith(baseApi) ? await apiAvailable().catch(() => false) : true)
+  );
+  if (typeof window !== 'undefined' && shouldTryApi) {
     try {
-      const res = await fetch(rateUrl, { cache: 'no-store' });
+      const res = await fetch(configuredUrl, { cache: 'no-store' });
       if (res.ok) {
         const j = await res.json();
         const rate = Number(j?.rate ?? j?.data?.rate);
@@ -86,7 +92,7 @@ export async function getUsdVesRate(): Promise<RateInfo | null> {
         }
       }
     } catch (e) {
-      console.warn('getUsdVesRate (api) failed:', e);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('getUsdVesRate (api) failed:', e);
     }
   }
 
@@ -106,7 +112,7 @@ export async function getUsdVesRate(): Promise<RateInfo | null> {
       return { rate, source: v?.source, date: v?.date, rate_available: true, stale: false };
     }
   } catch (e) {
-    console.warn('getUsdVesRate (supabase) failed:', e);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('getUsdVesRate (supabase) failed:', e);
   }
 
   // 4) Fallback de entorno manual: NEXT_PUBLIC_RATE_FALLBACK (número)
@@ -136,10 +142,14 @@ export function getEnvFallbackRate(): number | null {
 // Obtiene preferiblemente la tasa BCV desde API (NEXT_PUBLIC_RATE_URL o API_URL/api/rate).
 // Si falla, intenta open.er-api y finalmente usa entorno como stale.
 export async function getBcvRatePreferApi(): Promise<RateInfo | null> {
-  const rateUrl = process.env.NEXT_PUBLIC_RATE_URL || `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rate`;
-  if (rateUrl) {
+  const baseApi = process.env.NEXT_PUBLIC_API_URL || '';
+  const configuredUrl = process.env.NEXT_PUBLIC_RATE_URL || (baseApi ? `${baseApi}/api/rate` : '');
+  const shouldTryApi = !!configuredUrl && (
+    configuredUrl.startsWith(baseApi) ? await apiAvailable().catch(() => false) : true
+  );
+  if (shouldTryApi) {
     try {
-      const res = await fetch(rateUrl, { cache: 'no-store' });
+      const res = await fetch(configuredUrl, { cache: 'no-store' });
       if (res.ok) {
         const j: any = await res.json();
         const r = Number(j?.rate ?? j?.data?.rate);
@@ -148,7 +158,7 @@ export async function getBcvRatePreferApi(): Promise<RateInfo | null> {
         }
       }
     } catch (e) {
-      console.warn('getBcvRatePreferApi API error:', e);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('getBcvRatePreferApi API error:', e);
     }
   }
   try {
@@ -166,7 +176,7 @@ export async function getBcvRatePreferApi(): Promise<RateInfo | null> {
       }
     }
   } catch (e) {
-    console.warn('getBcvRatePreferApi er-api error:', e);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('getBcvRatePreferApi er-api error:', e);
   }
   const env = getEnvFallbackRate();
   if (env) {

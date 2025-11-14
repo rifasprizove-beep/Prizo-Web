@@ -7,10 +7,13 @@ import { getSessionId } from "@/lib/session";
 import { CheckoutForm } from "./CheckoutForm";
 import { FreeParticipationForm } from "./FreeParticipationForm";
 
-export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean; disabledAll?: boolean }) {
+export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean; disabledAll?: boolean }) {
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
-  const [qty, setQty] = useState<number>(1);
+  // Obtener la rifa desde el backend o props (aquí asumimos que paymentInfo tiene la rifa o agregar prop si es necesario)
+  // Por simplicidad, intentamos obtener el mínimo desde paymentInfo.raffle.min_ticket_purchase o default 1
+  // minTicketPurchase viene como prop; si la rifa pagada exige mínimo mayor, usarlo.
+  const [qty, setQty] = useState<number>(minTicketPurchase);
   const [availableTickets, setAvailableTickets] = useState<number>(totalTickets);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,10 +31,10 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   
 
-  const inc = (n = 1) => { if (disabledAll) return; setQty((q) => Math.min(Math.max(1, q + n), availableTickets)); };
-  const dec = () => { if (disabledAll) return; setQty((q) => Math.max(1, q - 1)); };
+  const inc = (n = 1) => { if (disabledAll) return; setQty((q) => Math.min(Math.max(minTicketPurchase, q + n), availableTickets)); };
+  const dec = () => { if (disabledAll) return; setQty((q) => Math.max(minTicketPurchase, q - 1)); };
   const handleQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const val = Math.max(1, Math.min(Number(e.target.value || 1), availableTickets));
+    const val = Math.max(minTicketPurchase, Math.min(Number(e.target.value || minTicketPurchase), availableTickets));
     setQty(val);
   };
   // Actualizar el número de tickets disponibles al montar y cuando cambie la rifa
@@ -42,10 +45,10 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
         const all = await listTickets(raffleId);
         const available = (all ?? []).filter((t: any) => t.status === 'available').length;
         setAvailableTickets(available);
-        // Si la cantidad seleccionada es mayor a la disponible, ajusta manteniendo mínimo en 1
+        // Si la cantidad seleccionada se sale del rango, ajusta respetando el mínimo configurado
         setQty((q) => {
-          if (available <= 0) return 1;
-          return Math.min(q, available);
+          if (available <= 0) return minTicketPurchase;
+          return Math.max(minTicketPurchase, Math.min(q, available));
         });
       } catch {}
     })();
@@ -313,7 +316,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   const handleClose = async () => {
     // Si no hay reservas, simplemente resetea el estado visual
     if (!reserved.length) {
-      setQty(1);
+  setQty(minTicketPurchase);
       setInfo(null);
       setError(null);
       return;
@@ -483,7 +486,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   <input
                     className="w-24 h-14 text-center text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
                     type="number"
-                    min={1}
+                    min={minTicketPurchase}
                     max={availableTickets}
                     value={qty}
                     onChange={handleQtyChange}
@@ -499,24 +502,26 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   >+</button>
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-center gap-2">
-                {[2,5,10].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    className="rounded-full px-3 py-1.5 text-sm bg-white/95 text-black ring-1 ring-brand-500/30 hover:bg-brand-100 transition disabled:opacity-60"
-                    onClick={() => inc(n)}
-                    disabled={busy || disabledAll}
-                  >+{n}</button>
-                ))}
-              </div>
+              {minTicketPurchase === 1 && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  {[2,5,10].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className="rounded-full px-3 py-1.5 text-sm bg-white/95 text-black ring-1 ring-brand-500/30 hover:bg-brand-100 transition disabled:opacity-60"
+                      onClick={() => inc(n)}
+                      disabled={busy || disabledAll}
+                    >+{n}</button>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <div className="mt-2 flex items-center justify-center">
               <button
                 type="button"
                 className="btn-neon disabled:opacity-60"
-                onClick={async () => { setQty(1); await handleContinue(); }}
+                onClick={async () => { setQty(minTicketPurchase); await handleContinue(); }}
                 disabled={disabledAll || busy || (!isFree && availableTickets <= 0)}
               >
                 {busy && (
@@ -678,7 +683,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   localStorage.removeItem(`prizo_manual_${raffleId}`);
                 } catch {}
                 setReserved([]);
-                setQty(1);
+                setQty(minTicketPurchase);
                 setInfo('Participación registrada.');
               }}
             />
@@ -698,7 +703,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   localStorage.removeItem(`prizo_manual_${raffleId}`);
                 } catch {}
                 setReserved([]);
-                setQty(1);
+                setQty(minTicketPurchase);
                 setInfo('Pago enviado. Tus tickets quedan reservados sin temporizador hasta que el administrador apruebe o rechace. Puedes comprar más si deseas.');
               }}
             />

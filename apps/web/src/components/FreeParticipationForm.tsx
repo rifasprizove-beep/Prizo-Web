@@ -86,7 +86,7 @@ export function FreeParticipationForm({
     setServerError(null);
     if (submitting) return;
     // eslint-disable-next-line no-console
-    console.log('[prizo] submit free participation', { values });
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.log('[prizo] submit free participation', { values });
     // Validación fuerte ANTES de enviar: si hay cédula, consultar y bloquear si existe
     const prefixSub = String(values.ciPrefix);
     const ciNumSub = String(values.ciNumber);
@@ -115,7 +115,7 @@ export function FreeParticipationForm({
       const ciNum = String(values.ciNumber).replace(/\D/g, '');
       const ciCombined = `${prefix}-${ciNum}`;
       // eslint-disable-next-line no-console
-      console.log('[prizo] composed CI', ciCombined);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.log('[prizo] composed CI', ciCombined);
       const paymentId = await createPaymentForSession({
         p_raffle_id: raffleId,
         p_session_id: sessionId,
@@ -136,11 +136,11 @@ export function FreeParticipationForm({
       try {
         const ok = await setPaymentCi(paymentId, ciCombined);
         // eslint-disable-next-line no-console
-        console.log('[prizo] setPaymentCi result', { paymentId, ok, apiBaseUrl });
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') console.log('[prizo] setPaymentCi result', { paymentId, ok, apiBaseUrl });
         if (!ok) {
           // Exponer en consola para diagnosticar ambientes sin API
           // eslint-disable-next-line no-console
-          console.warn('[prizo] setPaymentCi no se ejecutó (API no configurada o fallo)');
+          if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('[prizo] setPaymentCi no se ejecutó (API no configurada o fallo)');
         }
       } catch {}
       onCreated?.(paymentId);

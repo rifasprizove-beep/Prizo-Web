@@ -10,7 +10,7 @@ import { CheckoutForm } from './CheckoutForm';
 import { FreeParticipationForm } from './FreeParticipationForm';
 import type { RafflePaymentInfo } from '@/lib/data/paymentConfig';
 
-export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; unitPriceCents: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean; disabledAll?: boolean }) {
+export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicketPurchase = 1, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean; disabledAll?: boolean }) {
   const qc = useQueryClient();
   const sessionId = getSessionId();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -76,7 +76,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
           setRestoring(true);
         }
       } catch (e) {
-        console.warn('manual restore load failed:', e);
+        if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('manual restore load failed:', e);
       }
     })();
   }, [raffleId, sessionId, storageKey]);
@@ -181,6 +181,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
   const mm = String(Math.floor(timeLeftMs / 60000)).padStart(2, '0');
   const ss = String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0');
   const countSelected = selectedIds.length || (restoring && restoreIds ? restoreIds.length : 0);
+  const belowMin = !isFree && countSelected > 0 && countSelected < (minTicketPurchase || 1);
 
   // Auto-liberar selección cuando expira el tiempo (solo rifas pagas)
   const [autoReleased, setAutoReleased] = useState(false);
@@ -232,7 +233,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
         }
       } catch (e: any) {
         // Si falla, seguir en modo restoring basado en storage
-        console.warn('manual auto restore failed:', e?.message ?? e);
+        if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('manual auto restore failed:', e?.message ?? e);
       } finally {
         setBusy(false);
       }
@@ -345,6 +346,11 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
               <div className="font-semibold">{countSelected}</div>
             </div>
           </div>
+          {!isFree && countSelected > 0 && (minTicketPurchase || 1) > 1 && (
+            <div className={`text-center text-sm ${belowMin ? 'text-yellow-700 bg-yellow-50 border border-yellow-200 rounded p-2' : 'text-gray-600'}`}>
+              Mínimo por compra: <b>{minTicketPurchase}</b> tickets.{belowMin ? ' Selecciona más tickets para continuar.' : ''}
+            </div>
+          )}
           {/* Oculto: no mostrar los números seleccionados explícitamente */}
 
           {/* Instrucciones de pago: ocultas en rifas gratuitas */}
@@ -442,7 +448,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, paymentIn
               raffleId={raffleId}
               sessionId={sessionId}
               currency={currency}
-              disabled={isExpired}
+              disabled={isExpired || belowMin}
               quantity={countSelected}
               unitPriceCents={unitPriceCents}
               methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}

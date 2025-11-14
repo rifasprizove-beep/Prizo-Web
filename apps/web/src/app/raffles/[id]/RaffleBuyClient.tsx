@@ -74,6 +74,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
         currency={raffleQ.data.currency}
         totalTickets={raffleQ.data.total_tickets}
         unitPriceCents={raffleQ.data.ticket_price_cents}
+        minTicketPurchase={(raffleQ.data as any).min_ticket_purchase ?? 1}
         paymentInfo={payQ.data ?? null}
         allowManual={allowManual}
         isFree={isFree}

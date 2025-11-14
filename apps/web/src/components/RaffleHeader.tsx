@@ -9,6 +9,7 @@ import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
 import WinnerTable from "./WinnerTable";
+import { Skeleton } from "./Skeleton";
 
 export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: RaffleTicketCounters | null }) {
   const { currency } = useCurrency();
@@ -58,19 +59,23 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               ? 'Gratis'
               : (
                 currency === 'USD'
-                  ? `$${unitUsdAtBcv.toFixed(1)}`
-                  : (unitVES ? formatVES(unitVES) : '—')
+                  ? (bcvRate === null ? <Skeleton className="w-12 h-5 align-middle" /> : `$${unitUsdAtBcv.toFixed(1)}`)
+                  : (unitVES ? formatVES(unitVES) : <Skeleton className="w-12 h-5 align-middle" />)
               )
             }
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {currency === 'USD' ? `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}` : (prizeVES ? formatVES(prizeVES) : '—')}
+              <span className="opacity-90">Premio:</span> {currency === 'USD'
+                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}`)
+                : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="text-brand-300">Top comprador:</span> {currency === 'USD' ? `$${(bcvRate && topBuyerVES ? round1(topBuyerVES / bcvRate).toFixed(1) : round1(topBuyerUSDBase).toFixed(1))}` : (topBuyerVES ? formatVES(topBuyerVES) : '—')}
+              <span className="text-brand-300">Top comprador:</span> {currency === 'USD'
+                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${(bcvRate && topBuyerVES ? round1(topBuyerVES / bcvRate).toFixed(1) : round1(topBuyerUSDBase).toFixed(1))}`)
+                : (topBuyerVES ? formatVES(topBuyerVES) : <Skeleton className="w-16 h-5 align-middle" />)}
             </div>
           )}
         </div>
@@ -177,4 +182,4 @@ function WinnersInline({ raffleId, raffleImage, raffleName }: { raffleId: string
     </section>
   );
 }
- 
+

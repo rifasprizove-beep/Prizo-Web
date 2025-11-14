@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Any, List, Dict
 from ...services.supabase import get_supabase
+import traceback
 
 
 router = APIRouter(prefix="/verify", tags=["verify"])
@@ -21,6 +22,7 @@ def verify_tickets(q: str = Query(..., min_length=2), include_pending: bool = Tr
             )
             return {"ok": True, "data": data}
         except Exception:
+            # continuar con fallback PostgREST sin romper la solicitud
             pass
 
         # 2) Fallback: consulta embebida en PostgREST con service key (sin depender del RPC)
@@ -41,11 +43,57 @@ def verify_tickets(q: str = Query(..., min_length=2), include_pending: bool = Tr
             rows: List[Dict[str, Any]] = sb.get_many("payment_tickets", params, select=select)
         except Exception:
             # Si falla (por ejemplo, columna ci no existe), reintentar solo con email
-            params = {
-                "payments.email": f"ilike.{term}",
-                "payments.status": "in.(approved,pending)" if include_pending else "in.(approved)",
-            }
-            rows = sb.get_many("payment_tickets", params, select=select)
+            try:
+                params = {
+                    "payments.email": f"ilike.{term}",
+                    "payments.status": "in.(approved,pending,underpaid,overpaid,ref_mismatch)" if include_pending else "in.(approved)",
+                }
+                rows = sb.get_many("payment_tickets", params, select=select)
+            except Exception as e2:
+                try:
+                    print("[verify] fallback error:", str(e2))
+                    traceback.print_exc()
+                except Exception:
+                    pass
+                rows = []
+
+        # Súper fallback: si no hay resultados, buscamos primero payments y luego tickets por payment_id
+        if not rows:
+            try:
+                pending_set = "approved,pending,underpaid,overpaid,ref_mismatch" if include_pending else "approved"
+                pay_select = "id,email,ci,status,created_at"
+                pay_params = {
+                    "or": f"(email.ilike.{term},ci.ilike.{term})",
+                    "status": f"in.({pending_set})",
+                }
+                payments = sb.get_many("payments", pay_params, select=pay_select)
+                # Segundo intento: solo dígitos de la CI (cubrir "V-22321331" vs "22321331")
+                if not payments:
+                    only_digits = "".join(ch for ch in q if ch.isdigit())
+                    if len(only_digits) >= 4:
+                        dterm = f"*{only_digits}*"
+                        pay_params2 = {
+                            "ci": f"ilike.{dterm}",
+                            "status": f"in.({pending_set})",
+                        }
+                        payments = sb.get_many("payments", pay_params2, select=pay_select)
+
+                if payments:
+                    ids = [p.get("id") for p in payments if p.get("id")]
+                    if ids:
+                        id_list = ",".join(ids)
+                        pt_params = {"payment_id": f"in.({id_list})"}
+                        rows = sb.get_many("payment_tickets", pt_params, select=select)
+                try:
+                    print(f"[verify] q='{q}' payments_encontrados={len(payments) if 'payments' in locals() and payments else 0} tickets_encontrados={len(rows) if rows else 0}")
+                except Exception:
+                    pass
+            except Exception as e3:
+                try:
+                    print("[verify] super-fallback error:", str(e3))
+                    traceback.print_exc()
+                except Exception:
+                    pass
 
         # Adaptar forma de salida al contrato del RPC
         out = []
@@ -65,4 +113,10 @@ def verify_tickets(q: str = Query(..., min_length=2), include_pending: bool = Tr
             })
         return {"ok": True, "data": out}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log y respuesta 200 con data vacía para que el cliente no vea CORS espurio
+        try:
+            print("[verify] error:", str(e))
+            traceback.print_exc()
+        except Exception:
+            pass
+        return {"ok": False, "data": [], "error": "internal_error"}

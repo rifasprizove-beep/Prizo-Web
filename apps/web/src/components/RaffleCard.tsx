@@ -6,6 +6,7 @@ import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1, ro
 import { raffleStatusEs, formatVES } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
+import { Skeleton } from './Skeleton';
 
 function useRates() {
   const [bcvRate, setBcvRate] = useState<number | null>(null);
@@ -44,11 +45,11 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
             <BadgePill tone="brand">Gratis</BadgePill>
           ) : (
             <>
-               <BadgePill>
-              {currency === 'USD'
-                ? `$${unitUsdAtBcv.toFixed(1)}`
-                : (unitVES ? formatVES(unitVES) : '—')}
-            </BadgePill>
+              <BadgePill>
+                {currency === 'USD'
+                  ? (bcvRate === null ? <Skeleton className="w-10 h-4 align-middle" /> : `$${unitUsdAtBcv.toFixed(1)}`)
+                  : (unitVES ? formatVES(unitVES) : <Skeleton className="w-10 h-4 align-middle" />)}
+              </BadgePill>
             </>
           )}
           {raffle.status && (
@@ -78,7 +79,10 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       )}
       {(raffle.prize_amount_cents ?? 0) > 0 && (
         <div className="px-4 py-3">
-          <div className="font-semibold">{currency === 'USD' ? `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}` : (prizeVES ? formatVES(prizeVES) : '—')}</div>
+          <div className="font-semibold">{currency === 'USD'
+            ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}`)
+            : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
+          </div>
         </div>
       )}
     </a>

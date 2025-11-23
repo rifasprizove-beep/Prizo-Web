@@ -3,7 +3,7 @@ import type { Raffle } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1, round2 } from '@/lib/data/rate';
-import { raffleStatusEs, formatVES } from '@/lib/i18n';
+import { raffleStatusEs, formatVES, effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
 import { Skeleton } from './Skeleton';
@@ -37,8 +37,16 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const topBuyerVES = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
   // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
   const cardHref = `/raffles/${raffle.id}`;
+  const effStatus = effectiveRaffleStatus(raffle);
+  const phase = uiRafflePhase(raffle);
+  const awaiting = phase === 'awaiting_winner';
+  const isClosed = raffle.status === 'closed';
+  const isFinished = phase === 'finished';
   return (
-    <a href={cardHref} className="block rounded-3xl border border-brand-500/20 bg-surface-700 text-white hover:shadow-glowSm transition-shadow">
+    <a
+      href={cardHref}
+      className="block rounded-3xl border border-brand-500/20 bg-surface-700 text-white transition-shadow hover:shadow-glowSm"
+    >
   <div className="p-4 pb-0 space-y-2 mb-1 sm:mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           {isFree ? (
@@ -52,12 +60,15 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
               </BadgePill>
             </>
           )}
-          {raffle.status && (
-            <BadgePill>{raffleStatusEs(raffle.status)}</BadgePill>
+          {(effStatus === 'published' || effStatus === 'selling') && (
+            <BadgePill tone="brand">Abierta</BadgePill>
           )}
-          {raffle.status === 'drawn' ? (
-            <BadgePill tone="brand">Ganador</BadgePill>
-          ) : null}
+          {effStatus === 'drawn' && (
+            <BadgePill tone="brand">Esperando ganador</BadgePill>
+          )}
+          {isClosed && (
+            <BadgePill tone="brand">Cerrada</BadgePill>
+          )}
           {raffle.top_buyer_prize_cents ? (
             <BadgePill tone="brand">Top comprador</BadgePill>
           ) : null}
@@ -72,9 +83,14 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       ) : (
         <div className="w-full aspect-[16/11] bg-surface-800 rounded-3xl -mb-2" />
       )}
-      {raffle.status === 'closed' && (
+      {awaiting && !isClosed && (
         <div className="px-4 py-2 bg-yellow-500/10 text-yellow-200 text-xs border-t border-yellow-500/20">
-          Ventas cerradas — pendiente de ganador
+          Ventas cerradas — esperando ganador
+        </div>
+      )}
+      {isFinished && isClosed && (
+        <div className="px-4 py-2 bg-red-500/10 text-red-200 text-xs border-t border-red-500/30">
+          Rifa cerrada — ganador publicado
         </div>
       )}
       {(raffle.prize_amount_cents ?? 0) > 0 && (

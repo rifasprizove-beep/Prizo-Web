@@ -142,8 +142,8 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
           .filter((ts: number) => ts > 0);
         const deadline = times.length ? Math.min(...times) : (restoreDeadline ?? 0);
         const nums = data
-          .map((t: any) => (typeof t.ticket_number === 'number' ? t.ticket_number : null))
-          .filter((n: number | null): n is number => typeof n === 'number');
+          .map((t: any) => (t.ticket_number != null ? String(t.ticket_number) : null))
+          .filter((n: string | null): n is string => typeof n === 'string');
         localStorage.setItem(storageKey, JSON.stringify({ ids: selectedIds, nums, deadline }));
       } else {
         localStorage.removeItem(storageKey);

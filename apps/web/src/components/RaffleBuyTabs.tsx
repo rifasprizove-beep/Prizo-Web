@@ -27,16 +27,14 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
           </button>
         </div>
       ) : (
-        <>
-          {!isFree && (
-            <div className="rounded-2xl border p-4 bg-white text-sm text-gray-700">
-              Esta rifa asigna los números <b>al azar</b>. Puedes indicar cuántos quieres y los reservaremos por 10 minutos.
-            </div>
-          )}
-        </>
+        !isFree && (
+          <div className="rounded-xl border p-3 bg-white text-sm text-brand-700">
+            Esta rifa asigna los números <b>al azar</b>. Puedes indicar cuántos quieres y los reservaremos por 10 minutos.
+          </div>
+        )
       )}
 
-      {!allowManual || tab === 'quick' ? (
+      {tab === 'quick' ? (
         <RaffleQuickBuy raffleId={raffleId} currency={currency} totalTickets={totalTickets} unitPriceCents={unitPriceCents} minTicketPurchase={minTicketPurchase} paymentInfo={paymentInfo ?? undefined} isFree={isFree} disabledAll={disabledAll} />
       ) : (
         <div className="space-y-4">

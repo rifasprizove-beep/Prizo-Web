@@ -12,6 +12,8 @@ export type Raffle = {
   total_tickets: number;
   allow_manual?: boolean; // si false, solo números aleatorios
   min_ticket_purchase?: number; // mínimo de tickets por compra
+  starts_at?: string | null; // fecha/hora de inicio (ISO)
+  ends_at?: string | null; // fecha/hora de cierre (ISO)
 };
 
 export type RaffleTicketCounters = {
@@ -47,4 +49,12 @@ export type Winner = {
   instagram_user: string | null;
   image_url?: string | null; // URL de imagen asociada al ganador (opcional)
   created_at: string;
+};
+
+export type TopBuyer = {
+  buyer_email: string | null;
+  tickets: number;
+  payments_count: number;
+  first_payment: string;
+  last_payment: string;
 };

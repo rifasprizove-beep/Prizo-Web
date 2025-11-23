@@ -8,6 +8,7 @@ import { formatVES } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
+import { listTopBuyers } from "@/lib/data/top_buyers";
 import WinnerTable from "./WinnerTable";
 import { Skeleton } from "./Skeleton";
 
@@ -35,9 +36,10 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   // Estado visual según la rifa
   const isDrawnEffective = raffle.status === 'drawn';
   const [showWinners, setShowWinners] = useState(false);
+  const [showTopBuyers, setShowTopBuyers] = useState(false);
 
   return (
-    <header className="space-y-4">
+    <header className="space-y-6">
       <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
         {raffle.image_url && (
@@ -100,59 +102,72 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-4">
-          {isDrawnEffective ? (
-            <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
-              <div className="flex items-center gap-2">
-                <a
-                  href="#sec-buy"
-                  onClick={() => setShowWinners(false)}
-                  className={`flex-1 text-center font-semibold px-4 py-3 rounded-full ${showWinners ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
-                >
-                  {isFree ? 'PARTICIPAR' : 'COMPRAR'}
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowWinners((v) => {
-                      const next = !v;
-                      try {
-                        if (next) {
-                          // Señal global para ocultar la sección de compra
-                          if (typeof window !== 'undefined') window.location.hash = 'ganador';
-                        } else {
-                          // Quitar el hash sin cambiar la ruta ni recargar
-                          if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                        }
-                      } catch {}
-                      return next;
-                    });
-                  }}
-                  className={`flex-1 text-center font-extrabold px-4 py-3 rounded-full ${showWinners ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
-                >
-                  GANADOR
-                </button>
-              </div>
+          <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
+            <div className="flex items-center gap-2">
+              <a
+                href="#sec-buy"
+                onClick={() => { setShowWinners(false); setShowTopBuyers(false); if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search); }}
+                className={`flex-1 text-center font-semibold px-4 py-3 rounded-full ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
+              >
+                {isFree ? 'PARTICIPAR' : 'COMPRAR'}
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTopBuyers((v) => {
+                    const next = !v;
+                    setShowWinners(false);
+                    try {
+                      if (next) {
+                        if (typeof window !== 'undefined') window.location.hash = 'top';
+                      } else {
+                        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                      }
+                    } catch {}
+                    return next;
+                  });
+                }}
+                className={`flex-1 text-center font-extrabold px-4 py-3 rounded-full ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
+              >
+                TOP COMPRADORES
+              </button>
+              <button
+                type="button"
+                disabled={!isDrawnEffective}
+                onClick={() => {
+                  if (!isDrawnEffective) return;
+                  setShowWinners((v) => {
+                    const next = !v;
+                    setShowTopBuyers(false);
+                    try {
+                      if (next) {
+                        if (typeof window !== 'undefined') window.location.hash = 'ganador';
+                      } else {
+                        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                      }
+                    } catch {}
+                    return next;
+                  });
+                }}
+                className={`flex-1 text-center font-extrabold px-4 py-3 rounded-full ${showWinners ? 'bg-white text-brand-700' : (isDrawnEffective ? 'text-white/80 hover:text-white border border-white/30' : 'text-white/50 border border-white/20')}`}
+              >
+                GANADOR
+              </button>
             </div>
-          ) : raffle.status === 'closed' ? (
-            <div className="rounded-full px-4 py-3 text-center font-semibold border border-white/30 bg-white/10 text-white">
-              Sorteo cerrado — pendiente de ganador
-            </div>
-          ) : (
-            <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
-              <div className="flex items-center gap-2">
-                <a href="#sec-buy" className="flex-1 text-center font-semibold px-4 py-3 rounded-full bg-white text-brand-700">{isFree ? 'PARTICIPAR' : 'COMPRAR'}</a>
-                <span className="flex-1 text-center font-semibold px-4 py-3 rounded-full text-white/50">GANADOR</span>
-              </div>
-            </div>
-          )}
-        </div>
-        {isDrawnEffective && showWinners && (
-          <div className="mt-3">
-            <WinnersInline raffleId={raffle.id} raffleImage={raffle.image_url} raffleName={raffle.name} />
           </div>
-        )}
+        </div>
         {/* Estado removido por solicitud del cliente */}
       </div>
+      {showTopBuyers && (
+        <div>
+          <TopBuyersInline raffleId={raffle.id} />
+        </div>
+      )}
+      {showWinners && (
+        <div>
+          <WinnersInline raffleId={raffle.id} raffleImage={raffle.image_url} raffleName={raffle.name} />
+        </div>
+      )}
     </header>
   );
 }
@@ -165,9 +180,9 @@ function WinnersInline({ raffleId, raffleImage, raffleName }: { raffleId: string
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
-  if (winnersQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700">Cargando…</div>;
+  if (winnersQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700 text-sm">Cargando…</div>;
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 text-sm">
       <h3 className="text-base font-semibold text-white">Ganadores</h3>
       <WinnerTable winners={winnersQ.data ?? []} />
       {raffleImage && (
@@ -179,6 +194,50 @@ function WinnersInline({ raffleId, raffleImage, raffleName }: { raffleId: string
         Para ver más detalles, visita la página de resultados.
         {' '}<Link href={`/raffles/${raffleId}/result`} className="underline">Abrir resultados</Link>
       </div>
+    </section>
+  );
+}
+
+function TopBuyersInline({ raffleId }: { raffleId: string }) {
+  const topQ = useQuery({
+    queryKey: ['top-buyers', raffleId],
+    queryFn: () => listTopBuyers(raffleId, 50),
+    enabled: !!raffleId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  if (topQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700 text-sm">Cargando ranking…</div>;
+  const rows = topQ.data ?? [];
+  if (!rows.length) return <div className="rounded-xl border p-3 bg-white text-brand-700 text-sm">Aún no hay compradores aprobados.</div>;
+  return (
+    <section className="space-y-3 text-sm">
+      <h3 className="text-base font-semibold text-brand-700">Top compradores</h3>
+      <div className="overflow-x-auto rounded-xl border bg-white">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-brand-50 text-brand-700 text-xs uppercase tracking-wide">
+              <th className="px-3 py-2 text-left">#</th>
+              <th className="px-3 py-2 text-left">Email</th>
+              <th className="px-3 py-2 text-left">Tickets</th>
+              <th className="px-3 py-2 text-left">Pagos</th>
+              <th className="px-3 py-2 text-left">Último</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.buyer_email || i} className={i % 2 ? 'bg-white' : 'bg-brand-50/40'}>
+                <td className="px-3 py-2 font-mono text-xs">{i + 1}</td>
+                <td className="px-3 py-2 break-all">{r.buyer_email ?? '—'}</td>
+                <td className="px-3 py-2 font-semibold">{r.tickets}</td>
+                <td className="px-3 py-2">{r.payments_count}</td>
+                <td className="px-3 py-2 text-xs opacity-70">{new Date(r.last_payment).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="text-xs opacity-80 mt-1 text-brand-700/70">Ranking basado en pagos aprobados.</div>
     </section>
   );
 }

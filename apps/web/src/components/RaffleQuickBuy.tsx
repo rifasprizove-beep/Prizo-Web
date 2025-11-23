@@ -168,8 +168,8 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           .filter((ts: number) => ts > 0);
         const deadline = times.length ? Math.min(...times) : 0;
         const nums = reserved
-          .map((t: any) => (typeof t.ticket_number === 'number' ? t.ticket_number : null))
-          .filter((n: number | null): n is number => typeof n === 'number');
+          .map((t: any) => (t.ticket_number != null ? String(t.ticket_number) : null))
+          .filter((n: string | null): n is string => typeof n === 'string');
         localStorage.setItem(storageKey, JSON.stringify({ ids, nums, deadline }));
       } else {
         localStorage.removeItem(storageKey);

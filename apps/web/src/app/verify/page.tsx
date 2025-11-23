@@ -1,11 +1,11 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type VerifyRow = {
   raffle_id: string;
   raffle_name: string;
   ticket_id: string;
-  ticket_number: number;
+  ticket_number: string; // cambiado a string
   ticket_status: 'available' | 'reserved' | 'sold' | 'void' | 'refunded';
   payment_id: string;
   payment_status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'underpaid' | 'overpaid' | 'ref_mismatch';
@@ -17,26 +17,56 @@ export default function VerifyPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState<VerifyRow[] | null>(null);
+  const [mode, setMode] = useState<'email' | 'cedula'>('email');
+
+  // Placeholder dinámico
+  const placeholder = mode === 'email'
+    ? 'ej. micorreo@mail.com'
+    : 'ej. V-12345678';
+
+  // Emitir evento opcional para otros componentes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('prizo:search-mode', { detail: mode }));
+      }
+    } catch {}
+  }, [mode]);
 
   const handleCheck = async () => {
     setErr(null);
     setData(null);
     const term = q.trim();
-    if (!term || term.length < 2) {
-      setErr('Ingresa correo o cédula de identidad (mínimo 2 caracteres).');
+    // Validaciones según modo
+    if (!term) {
+      setErr('Ingresa un valor para buscar.');
       return;
+    }
+    if (mode === 'email') {
+      if (term.length < 5 || !term.includes('@')) {
+        setErr('Ingresa un correo válido (debe contener @).');
+        return;
+      }
+    } else {
+      // Patrón básico para cédula: opcional prefijo V- o E- seguido de 5 a 10 dígitos
+      const cedulaOk = /^(?:[VE]-)?\d{5,10}$/.test(term.toUpperCase());
+      if (!cedulaOk) {
+        setErr('Formato de cédula inválido. Usa V-12345678');
+        return;
+      }
     }
     setBusy(true);
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || '';
       if (!base) throw new Error('API no configurada. Define NEXT_PUBLIC_API_URL');
-      const url = `${base}/verify?q=${encodeURIComponent(term)}&include_pending=true`;
+      // Añadimos el modo como parámetro extra (si backend lo ignora, no afecta)
+      const url = `${base}/verify?q=${encodeURIComponent(term)}&include_pending=true&mode=${mode}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const j = await res.json();
       const rows: VerifyRow[] = j?.data ?? [];
       setData(rows);
-      if (!rows.length) setErr('No hay registros con ese correo o cédula.');
+      if (!rows.length) setErr(`No hay registros con ese ${mode === 'email' ? 'correo' : 'cédula'}.`);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'No se pudo consultar';
       setErr(message);
@@ -48,22 +78,48 @@ export default function VerifyPage() {
   return (
     <main className="mt-6 space-y-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold flex items-center gap-2 title-neon">
-        <span className="inline-flex w-8 h-8 items-center justify-center rounded-full bg-brand-500 text-white">🔎</span>
         Verificar tickets
       </h1>
 
       {/* Barra de búsqueda mejorada */}
       <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
-        <label className="block">
-          <div className="text-sm text-gray-300">Correo o Cédula</div>
-          <div className="mt-1 flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-3 py-2 shadow-sm">
-            <span className="text-gray-500">🔎</span>
+        <label className="block space-y-2">
+          {/* Toggle estilo CurrencyToggle */}
+          <div
+            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm select-none"
+            role="group"
+            aria-label="Modo de búsqueda"
+          >
+            <span
+              className={`absolute top-1 bottom-1 rounded-full bg-brand-500 transition-all duration-300 ease-out ${
+                mode === 'cedula' ? 'left-1/2 right-1' : 'left-1 right-1/2'
+              }`}
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              onClick={() => setMode('email')}
+              aria-pressed={mode === 'email'}
+              className={`relative z-10 px-4 py-1.5 text-xs font-semibold transition-colors ${
+                mode === 'email' ? 'text-black' : 'text-brand-200 hover:text-white/90'
+              }`}
+            >Correo</button>
+            <button
+              type="button"
+              onClick={() => setMode('cedula')}
+              aria-pressed={mode === 'cedula'}
+              className={`relative z-10 px-4 py-1.5 text-xs font-semibold transition-colors ${
+                mode === 'cedula' ? 'text-black' : 'text-brand-200 hover:text-white/90'
+              }`}
+            >Cédula</button>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-3 py-2 shadow-sm">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCheck(); }}
               className="w-full outline-none bg-transparent text-black placeholder:text-gray-500"
-              placeholder="ej. micorreo@mail.com o V-12345678"
+              placeholder={placeholder}
             />
           </div>
         </label>
@@ -80,7 +136,6 @@ export default function VerifyPage() {
             </span>
           ) : (
             <>
-              <span>🔎</span>
               <span>Buscar</span>
             </>
           )}

@@ -6,7 +6,7 @@ export async function getRaffle(id: string): Promise<Raffle | null> {
   try { supabase = getSupabase(); } catch (e) { if (process.env.NEXT_PUBLIC_DEBUG === '1') console.error('Supabase no configurado:', e); return null; }
   // Intentar incluir allow_manual y min_ticket_purchase; hacer fallbacks si alguna columna no existe
   const trySelect = async (mode: 'both' | 'onlyAllow' | 'none') => {
-    const base = 'id,name,description,status,currency,ticket_price_cents,is_free,prize_amount_cents,top_buyer_prize_cents,image_url,total_tickets';
+    const base = 'id,name,description,status,currency,ticket_price_cents,is_free,prize_amount_cents,top_buyer_prize_cents,image_url,total_tickets,starts_at,ends_at';
     const withAllow = `${base},allow_manual`;
     const withBoth = `${withAllow},min_ticket_purchase`;
     const fields = mode === 'both' ? withBoth : mode === 'onlyAllow' ? withAllow : base;
@@ -35,14 +35,15 @@ export async function listRaffles(): Promise<Raffle[]> {
   let supabase;
   try { supabase = getSupabase(); } catch (e) { if (process.env.NEXT_PUBLIC_DEBUG === '1') console.error('Supabase no configurado:', e); return []; }
   const trySelect = async (mode: 'both' | 'onlyAllow' | 'none') => {
-    const base = 'id,name,description,status,currency,ticket_price_cents,is_free,prize_amount_cents,top_buyer_prize_cents,image_url,total_tickets';
+    const base = 'id,name,description,status,currency,ticket_price_cents,is_free,prize_amount_cents,top_buyer_prize_cents,image_url,total_tickets,starts_at,ends_at';
     const withAllow = `${base},allow_manual`;
     const withBoth = `${withAllow},min_ticket_purchase`;
     const fields = mode === 'both' ? withBoth : mode === 'onlyAllow' ? withAllow : base;
     return supabase
       .from('raffles')
       .select(fields)
-      .in('status', ['published', 'selling', 'drawn'])
+      // Excluir draft y archived: sólo estados visibles para usuarios.
+      .in('status', ['published', 'selling', 'closed', 'drawn'])
       .order('created_at', { ascending: false });
   };
   let res: any = await trySelect('both');

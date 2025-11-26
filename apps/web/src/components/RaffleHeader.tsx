@@ -250,15 +250,11 @@ function TopBuyersInline({ raffleId }: { raffleId: string }) {
       <div className="rounded-xl border border-brand-500/30 bg-white/95 p-3">
         <ol className="space-y-2">
           {topRows.map((r, i) => {
-            const rawIg = (r as any).instagram_user;
+            const rawIg = (r as any).instagram ?? (r as any).instagram_user;
             const igClean = typeof rawIg === 'string' ? rawIg.replace(/^@+/, '').trim() : '';
-            const buyerUsername = typeof (r as any).buyer_username === 'string' ? (r as any).buyer_username.trim() : '';
-            const usernameField = typeof (r as any).username === 'string' ? (r as any).username.trim() : '';
             const emailLocalRaw = (r.buyer_email ?? '').split('@')[0].trim();
             let display = '';
             if (igClean && igClean.length >= 2) display = `@${igClean}`;
-            else if (buyerUsername) display = buyerUsername;
-            else if (usernameField) display = usernameField;
             else if (emailLocalRaw) display = emailLocalRaw;
             else display = 'Usuario';
             return (

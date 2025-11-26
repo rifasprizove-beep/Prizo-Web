@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { ensureSession, ensureAndReserveRandomTickets } from "@/lib/rpc";
-import type { RafflePaymentInfo } from "@/lib/data/paymentConfig";
+import { ensureAndReserveRandomTickets } from "@/lib/rpc";
+import type { RafflePaymentInfo, RafflePaymentMethod } from "@/lib/data/paymentConfig";
 import { listTickets, releaseTickets, reserveTickets } from "@/lib/data/tickets";
 import { getSessionId } from "@/lib/session";
 import { CheckoutForm } from "./CheckoutForm";
 import { FreeParticipationForm } from "./FreeParticipationForm";
 
-export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo?: RafflePaymentInfo; isFree?: boolean; disabledAll?: boolean }) {
+export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, paymentMethods, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo?: RafflePaymentInfo; paymentMethods?: RafflePaymentMethod[]; isFree?: boolean; disabledAll?: boolean }) {
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
   // Obtener la rifa desde el backend o props (aquí asumimos que paymentInfo tiene la rifa o agregar prop si es necesario)
@@ -31,7 +31,13 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   
 
-  const inc = (n = 1) => { if (disabledAll) return; setQty((q) => Math.min(Math.max(minTicketPurchase, q + n), availableTickets)); };
+  const inc = (n = 1) => {
+    if (disabledAll) return;
+    setQty((q) => {
+      const next = Math.min(Math.max(minTicketPurchase, q + n), availableTickets);
+      return next;
+    });
+  };
   const dec = () => { if (disabledAll) return; setQty((q) => Math.max(minTicketPurchase, q - 1)); };
   const handleQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = Math.max(minTicketPurchase, Math.min(Number(e.target.value || minTicketPurchase), availableTickets));
@@ -199,9 +205,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           if (Array.isArray(parsed?.ids)) manualIds = parsed.ids as string[];
         }
       } catch {}
-
-      // Asegurar que la sesión exista en la BD para no romper el FK
-      try { await ensureSession(sessionId); } catch (e) { console.warn('ensureSession failed (continuing):', e); }
+      // No es necesario invocar ensureSession aquí: la RPC ya lo hace.
 
       if (manualIds.length) {
         // NO liberar reservas previas: el usuario ya escogió exactamente esos IDs
@@ -228,76 +232,28 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           setError(`Error al reservar (selección manual): ${msg}`);
         }
       } else {
-        // 0) No hay selección manual: si ya tengo reservas activas (p. ej., desde la vista manual), NO liberar; usa esas
+        // Flujo directo: reservar en lotes para soportar cantidades grandes
         try {
-          const current = await listTickets(raffleId);
-          const mine = (current ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved');
-          if (mine.length) {
-            newReserved = mine;
+          const desired = Math.max(minTicketPurchase, Math.min(qty, availableTickets));
+          const CHUNK = 1000;
+          let remaining = desired;
+          let aggregated: any[] = [];
+          while (remaining > 0) {
+            const take = Math.min(CHUNK, remaining);
+            const res = await ensureAndReserveRandomTickets({ p_raffle_id: raffleId, p_total: totalTickets, p_session_id: sessionId, p_quantity: take, p_minutes: 10 });
+            const arr = Array.isArray(res) ? res : [];
+            aggregated = aggregated.concat(arr);
+            remaining -= take;
+            if (arr.length < take) break; // backend no devolvió suficientes
           }
-        } catch {}
-
-        if (!newReserved.length) {
-          // 0.1) Empezar limpio liberando reservas previas si las hubiera
-          try {
-            const current = await listTickets(raffleId);
-            const mineIds = (current ?? [])
-              .filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved')
-              .map((t: any) => t.id);
-            if (mineIds.length) {
-              await releaseTickets(mineIds, sessionId);
-            }
-          } catch (e) {
-            console.warn('Could not pre-release existing reservations:', e);
+          newReserved = aggregated.slice(0, desired);
+          if (newReserved.length < desired) {
+            setInfo(`Solo pudimos reservar ${newReserved.length} de ${desired} solicitados.`);
           }
-        }
-        // 1) Si después de lo anterior sigo sin reservas, reservar EXACTAMENTE qty usando RPC aleatorio
-        if (!newReserved.length) {
-          try {
-            const res = await ensureAndReserveRandomTickets({ p_raffle_id: raffleId, p_total: totalTickets, p_session_id: sessionId, p_quantity: qty, p_minutes: 10 });
-            let arr = Array.isArray(res) ? res : [];
-            // Blindaje: si la RPC devolvió más de lo pedido, libera el excedente
-            if (arr.length > qty) {
-              const extras = arr.slice(qty).map((t: any) => t.id);
-              try { if (extras.length) await releaseTickets(extras, sessionId); } catch {}
-              arr = arr.slice(0, qty);
-            }
-            // Blindaje extra: asegurar en BD que solo queden exactamente esos IDs
-            const pickedIds = arr.map((t: any) => t.id);
-            if (pickedIds.length) {
-              try { await enforceExactReservation(pickedIds); } catch {}
-              try {
-                const fresh = await listTickets(raffleId);
-                const mine = (fresh ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && pickedIds.includes(t.id));
-                newReserved = mine;
-              } catch {}
-            } else {
-              newReserved = arr;
-            }
-
-            // Si aún faltan, intentar completar con picks locales (hasta 3 intentos rápidos)
-            let attempts = 0;
-            while ((newReserved?.length ?? 0) < qty && attempts < 3) {
-              attempts++;
-              const missing = qty - (newReserved?.length ?? 0);
-              const desiredSoFar = (newReserved ?? []).map((t: any) => t.id);
-              const extra = await pickAndReserveAvailable(missing, desiredSoFar);
-              const next = [...new Set([...(newReserved ?? []), ...extra])];
-              // normalizar por id
-              const map = new Map<string, any>();
-              next.forEach((t: any) => map.set(t.id, t));
-              newReserved = Array.from(map.values()).slice(0, qty);
-              try { await enforceExactReservation(newReserved.map((t: any) => t.id)); } catch {}
-            }
-
-            if ((newReserved?.length ?? 0) < qty) {
-              setInfo(`Solo pudimos reservar ${newReserved.length} de ${qty} solicitados.`);
-            }
-          } catch (e: any) {
-            if (debugReservations) console.error('ensureAndReserveRandomTickets failed:', e);
-            const msg = e?.message || String(e);
-            setError(`Error al reservar: ${msg}`);
-          }
+        } catch (e: any) {
+          if (debugReservations) console.error('ensureAndReserveRandomTickets failed:', e);
+          const msg = e?.message || String(e);
+          setError(`Error al reservar: ${msg}`);
         }
       }
 
@@ -610,93 +566,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
           {/* Texto de tasa referencial removido por redundante */}
 
-          {/* Instrucciones de pago desde la rifa (con botones COPIAR) */}
-          {!isFree && paymentInfo && (
-            <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700">
-              <div className="font-semibold mb-2">Pago Móvil / Transferencia</div>
-
-              <div className="space-y-2 text-sm">
-                {paymentInfo.bank && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Banco</div>
-                      <div className="font-semibold">{paymentInfo.bank}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-
-                {paymentInfo.phone && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Teléfono</div>
-                      <div className="font-semibold">{paymentInfo.phone}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-
-                {paymentInfo.id_number && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Cédula/RIF</div>
-                      <div className="font-semibold">{paymentInfo.id_number}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-
-                {paymentInfo.holder && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Titular</div>
-                      <div className="font-semibold">{paymentInfo.holder}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-
-                {paymentInfo.type && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Tipo</div>
-                      <div className="font-semibold">{paymentInfo.type}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-
-                <p className="mt-2 text-xs text-white/90">Realiza el pago exacto en Bs. Adjunta el comprobante e indica la referencia.</p>
-
-                {paymentInfo.active === false && (
-                  <div className="mt-2 text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2 flex items-center gap-2">
-                    <span>Pago Móvil configurado —</span>
-                    <b>Esta rifa no está activa</b>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Instrucciones de pago ahora se muestran dentro del formulario (CheckoutForm) según el método seleccionado */}
 
           {isFree ? (
             <FreeParticipationForm
@@ -722,7 +592,8 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
               disabled={isExpired}
               quantity={reservedCount}
               unitPriceCents={unitPriceCents}
-              methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
+              methodLabel={paymentInfo ? (paymentInfo.method_label ?? 'Pago') : 'Pago'}
+              paymentMethods={paymentMethods}
               onCreated={() => {
                 try {
                   // Limpiar estado local y cerrar temporizador sin liberar en la BD

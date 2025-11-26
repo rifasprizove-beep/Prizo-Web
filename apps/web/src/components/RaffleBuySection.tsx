@@ -31,6 +31,9 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
     refetchInterval: selectedIds.length ? 1500 : 5000,
   });
 
+  // Límite: permitir comprar hasta los disponibles (manteniendo el mínimo por compra)
+  const availableTickets = useMemo(() => (ticketsQ.data ?? []).filter((t: any) => t.status === 'available').length, [ticketsQ.data]);
+
   const releaseM = useMutation({
     mutationFn: (ids: string[]) => releaseTickets(ids, sessionId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tickets', raffleId] }),
@@ -147,6 +150,8 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
         // Importante: reserve_tickets en el backend define el CONJUNTO exacto para la sesión,
         // por lo que debemos enviar todos los IDs seleccionados + el nuevo ID, no solo uno.
         const desired = Array.from(new Set([...selectedIds, id]));
+        // Enviar respetando disponibilidad
+        if (desired.length > availableTickets) desired.splice(availableTickets);
         const res = await reserveTickets(desired, sessionId);
         const arr = Array.isArray(res) ? res : [];
         // Liberar cualquier ticket que el backend haya devuelto que no está en nuestro objetivo (defensa)
@@ -417,84 +422,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
           )}
           {/* Oculto: no mostrar los números seleccionados explícitamente */}
 
-          {/* Instrucciones de pago: ocultas en rifas gratuitas */}
-          {!isFree && paymentInfo && (
-            <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700 text-white">
-              <div className="font-semibold mb-2">Pago Móvil / Transferencia</div>
-              <div className="space-y-2 text-sm">
-                {paymentInfo.bank && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Banco</div>
-                      <div className="font-semibold">{paymentInfo.bank}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-                {paymentInfo.phone && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Teléfono</div>
-                      <div className="font-semibold">{paymentInfo.phone}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-                {paymentInfo.id_number && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Cédula/RIF</div>
-                      <div className="font-semibold">{paymentInfo.id_number}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-                {paymentInfo.holder && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Titular</div>
-                      <div className="font-semibold">{paymentInfo.holder}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-                {paymentInfo.type && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs opacity-70">Tipo</div>
-                      <div className="font-semibold">{paymentInfo.type}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200"
-                      onClick={async () => { await navigator.clipboard.writeText(paymentInfo.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}
-                    >{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
-                  </div>
-                )}
-                {paymentInfo.active === false && (
-                  <div className="mt-2 text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2">
-                    Pago Móvil configurado — <b>Esta rifa no está activa</b>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Instrucciones de pago se muestran ahora dentro de CheckoutForm con el método elegido */}
 
           {isFree ? (
             <FreeParticipationForm
@@ -515,7 +443,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
               disabled={isExpired || belowMin}
               quantity={countSelected}
               unitPriceCents={unitPriceCents}
-              methodLabel={paymentInfo ? 'Pago Móvil' : 'Pago'}
+              methodLabel={paymentInfo ? (paymentInfo.method_label ?? 'Pago') : 'Pago'}
               onCreated={() => {}}
             />
           )}

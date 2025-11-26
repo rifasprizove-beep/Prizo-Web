@@ -7,6 +7,7 @@ import { uploadEvidence } from '@/lib/data/payments';
 import { createPaymentForSession, ensureSession } from '@/lib/rpc';
 import { centsToUsd, getBcvRatePreferApi, getEnvFallbackRate, round0, round1, round2 } from '@/lib/data/rate';
 import { VE_CITIES } from '@/lib/data/cities';
+import type { RafflePaymentMethod } from '@/lib/data/paymentConfig';
 
 // Patrones estrictos
 const PHONE_REGEX = /^(?:\+?58)?0?(4\d{2})\d{7}$/; // móvil VE (11 dígitos núcleo)
@@ -20,8 +21,8 @@ export const checkoutSchema = z.object({
     .refine(v => /^\d{10,11}$/.test(v), { message: 'Teléfono inválido (10-11 dígitos)' })
     .refine(v => PHONE_REGEX.test(v), { message: 'Teléfono venezolano inválido (ej: 04121234567)' }),
   city: z.string().trim().min(2, 'Ciudad requerida').max(40, 'Ciudad demasiado larga'),
-  ciPrefix: z.enum(['V','E']).optional(),
-  ciNumber: z.string().trim().regex(/^[0-9]{5,10}$/,{ message: 'Cédula inválida (5-10 dígitos)' }).optional().or(z.literal('')),
+  ciPrefix: z.enum(['V','E'], { required_error: 'Prefijo requerido' }),
+  ciNumber: z.string().trim().regex(/^[0-9]{5,10}$/,{ message: 'Cédula inválida (5-10 dígitos)' }),
   instagram: z.string().trim()
     .transform(v => (v.startsWith('@') ? v : '@'+v))
     .refine(v => INSTAGRAM_REGEX.test(v), { message: 'Usuario Instagram inválido' })
@@ -33,7 +34,7 @@ export const checkoutSchema = z.object({
     .max(80, 'Referencia máxima 80 caracteres')
     .regex(REF_REGEX, 'Referencia inválida (solo letras, números, _ - )'),
   amount_ves: z.string().optional(),
-  evidence: z.any().optional(), // validación manual
+  evidence: z.any().optional(), // validación manual (se exige en onSubmit)
   termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
 });
 
@@ -46,6 +47,7 @@ export function CheckoutForm({
   quantity,
   unitPriceCents,
   methodLabel,
+  paymentMethods,
 }: {
   raffleId: string;
   sessionId: string;
@@ -55,6 +57,7 @@ export function CheckoutForm({
   quantity?: number;
   unitPriceCents?: number;
   methodLabel?: string;
+  paymentMethods?: RafflePaymentMethod[];
 }) {
   const { register, handleSubmit, setValue, formState: { errors }, watch, reset, getValues } = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -63,7 +66,8 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const storageKey = `prizo_checkout_${raffleId}_${sessionId}`;
-  const [methodLocal, setMethodLocal] = useState<string>(methodLabel ?? 'Pago');
+  const [methodLocal, setMethodLocal] = useState<string>(() => (paymentMethods && paymentMethods.length ? (paymentMethods[0].method_label ?? methodLabel ?? 'Pago') : (methodLabel ?? 'Pago')));
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
@@ -131,10 +135,14 @@ export function CheckoutForm({
     try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     let evidence_url: string | null = null;
     const ev = getValues('evidence') as File | undefined;
-    if (ev && typeof ev !== 'string') {
-      const allowed = ['image/jpeg','image/png','application/pdf'];
+    if (!ev || typeof ev === 'string') {
+      setEvidenceError('La evidencia de pago es obligatoria');
+      setSubmitting(false); return;
+    }
+    {
+      const allowed = ['image/jpeg','image/png','image/webp'];
       if (!allowed.includes(ev.type)) {
-        setEvidenceError('Tipo de archivo no permitido (usa JPG, PNG o PDF)');
+        setEvidenceError('Tipo de archivo no permitido (usa JPG, PNG o WEBP)');
         setSubmitting(false); return;
       }
       const MAX_SIZE = 5 * 1024 * 1024;
@@ -144,8 +152,6 @@ export function CheckoutForm({
       }
       setEvidenceError(null);
       evidence_url = await uploadEvidence(ev, `evidence/${raffleId}/${sessionId}`);
-    } else {
-      setEvidenceError(null);
     }
     // Calcular montos y tasa usada
     const unitUSD = centsToUsd(unitPriceCents ?? 0);
@@ -199,12 +205,92 @@ export function CheckoutForm({
             value={methodLocal}
             onChange={(e) => { setMethodLocal(e.target.value); setValue('method', e.target.value, { shouldValidate: true }); }}
           >
-            <option value={methodLabel ?? 'Pago'}>{methodLabel ?? 'Pago'}</option>
-            <option value="Pago Móvil">Pago Móvil</option>
-            <option value="Transferencia">Transferencia</option>
+            {(paymentMethods && paymentMethods.length ? paymentMethods : [{ method_label: methodLabel ?? 'Pago' }]).map((m, i) => (
+              <option key={m.key ?? i} value={m.method_label ?? `Método ${i+1}`}>{m.method_label ?? `Método ${i+1}`}</option>
+            ))}
           </select>
         </div>
       </div>
+      {/* Resumen de pago se moverá arriba de los inputs */}
+  {/* Guardar método seleccionado para el backend */}
+  <input type="hidden" value={methodLocal ?? ''} {...register('method')} />
+
+      {/* Detalles del método seleccionado (desde paymentMethods) */}
+      {paymentMethods && paymentMethods.length > 0 && (
+        (() => {
+          const current = paymentMethods.find((m) => (m.method_label ?? '') === (methodLocal ?? '')) ?? paymentMethods[0];
+          if (!current) return null;
+          return (
+            <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700 text-white">
+              <div className="font-semibold mb-2">{current.method_label ?? 'Datos de pago'}</div>
+              <div className="space-y-2 text-sm">
+                {current.bank && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs opacity-70">Banco</div>
+                      <div className="font-semibold">{current.bank}</div>
+                    </div>
+                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
+                  </div>
+                )}
+                {current.account && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs opacity-70">Cuenta</div>
+                      <div className="font-semibold">{current.account}</div>
+                    </div>
+                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.account!); setCopiedField('account'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'account' ? 'COPIADO' : 'COPIAR'}</button>
+                  </div>
+                )}
+                {current.phone && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs opacity-70">Teléfono</div>
+                      <div className="font-semibold">{current.phone}</div>
+                    </div>
+                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
+                  </div>
+                )}
+                {current.id_number && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs opacity-70">Cédula/RIF</div>
+                      <div className="font-semibold">{current.id_number}</div>
+                    </div>
+                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
+                  </div>
+                )}
+                {current.holder && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs opacity-70">Titular</div>
+                      <div className="font-semibold">{current.holder}</div>
+                    </div>
+                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
+                  </div>
+                )}
+                {current.type && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs opacity-70">Tipo</div>
+                      <div className="font-semibold">{current.type}</div>
+                    </div>
+                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
+                  </div>
+                )}
+                {current.active === false && (
+                  <div className="mt-2 text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2">
+                    Método configurado — <b>Esta rifa no está activa</b>
+                  </div>
+                )}
+              </div>
+              {/* Resumen eliminado aquí para evitar duplicado */}
+            </div>
+          );
+        })()
+      )}
+
+      {/* Resumen de pago arriba de los inputs */}
       {count > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
@@ -220,8 +306,6 @@ export function CheckoutForm({
       {bcvInfo?.rate && (
         <p className="text-xs text-gray-400">Tasa BCV del día: {Number(bcvInfo.rate).toFixed(2)} Bs/USD</p>
       )}
-  {/* Guardar método seleccionado para el backend */}
-  <input type="hidden" value={methodLocal ?? ''} {...register('method')} />
 
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
@@ -231,38 +315,38 @@ export function CheckoutForm({
             autoComplete="email"
             className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
             placeholder="tucorreo@mail.com"
+            required
             {...register('email')}
           />
           {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message as string}</p>}
         </div>
-        {/pago móvil|movil|móvil/i.test(methodLocal) && (
-          <div>
-            <label className="block text-sm font-medium">Teléfono</label>
-            <input
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={11}
-              className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
-              placeholder="04121234567"
-              {...register('phone')}
-              onChange={(e) => {
-                const digits = e.currentTarget.value.replace(/\D/g,'').slice(0,11);
-                e.currentTarget.value = digits;
-              }}
-            />
-            {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
-          </div>
-        )}
+        <div>
+          <label className="block text-sm font-medium">Teléfono</label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={11}
+            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
+            placeholder="04121234567"
+            required
+            {...register('phone')}
+            onChange={(e) => {
+              const digits = e.currentTarget.value.replace(/\D/g,'').slice(0,11);
+              e.currentTarget.value = digits;
+            }}
+          />
+          {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
+        </div>
         <div>
           <label className="block text-sm font-medium">Usuario de Instagram</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />
+          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="@tuusuario" required {...register('instagram')} />
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Cédula</label>
           <div className="mt-1 flex gap-2 w-full">
-            <select className="w-20 sm:w-24 border rounded-lg p-3 text-base bg-surface-800" {...register('ciPrefix')}>
+            <select className="w-20 sm:w-24 border rounded-lg p-3 text-base bg-surface-800" required {...register('ciPrefix')}>
               <option value="V">V</option>
               <option value="E">E</option>
             </select>
@@ -273,6 +357,7 @@ export function CheckoutForm({
               maxLength={10}
               className="flex-1 min-w-0 border rounded-lg p-3 text-base bg-surface-800"
               placeholder="12345678"
+              required
               {...register('ciNumber')}
               onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '').slice(0,10); }}
             />
@@ -305,6 +390,7 @@ export function CheckoutForm({
               type="text"
               className="mt-2 w-full border rounded-lg p-3 text-base bg-surface-800"
               placeholder="Escribe tu ciudad"
+              required
               {...register('city')}
             />
           )}
@@ -313,18 +399,18 @@ export function CheckoutForm({
         {/* Campo visible de método removido por redundante */}
         <div>
           <label className="block text-sm font-medium">Referencia</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="N° referencia o hash" {...register('reference')} />
+          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="N° referencia o hash" required {...register('reference')} />
           {errors.reference && <p className="text-xs text-red-600 mt-1">{errors.reference.message as string}</p>}
         </div>
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
   <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
         <div className="sm:col-span-2 flex flex-col items-center">
-          <label className="block text-sm font-medium w-full text-center">Evidencia (JPG, PNG o PDF máx 5MB)</label>
+          <label className="block text-sm font-medium w-full text-center">Evidencia (JPG, PNG o WEBP máx 5MB) — Obligatoria</label>
           {/* Input real oculto */}
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.pdf"
+            accept="image/*"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -357,7 +443,7 @@ export function CheckoutForm({
       </div>
       {/* Aceptación de Términos y Condiciones */}
       <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-        <input id="termsAccepted" type="checkbox" className="h-4 w-4" {...register('termsAccepted')} />
+        <input id="termsAccepted" type="checkbox" className="h-4 w-4" required {...register('termsAccepted')} />
         <label htmlFor="termsAccepted" className="select-none">
           Acepto los <a href="/terms" className="underline">Términos y Condiciones</a>
         </label>

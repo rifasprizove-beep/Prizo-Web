@@ -22,20 +22,7 @@ export async function getRaffle(id: string): Promise<Raffle | null> {
 export async function getRaffleCounters(raffleId: string): Promise<RaffleTicketCounters | null> {
   let supabase;
   try { supabase = getSupabase(); } catch (e) { if (process.env.NEXT_PUBLIC_DEBUG === '1') console.error('Supabase no configurado:', e); return null; }
-  // Primero intentar como si fuera una vista/tabla (compatibilidad hacia atrás)
-  try {
-    const res: any = await supabase
-      .from('raffle_ticket_counters')
-      .select('*')
-      .eq('raffle_id', raffleId)
-      .maybeSingle();
-    if (!res.error && res.data) return (res.data as RaffleTicketCounters);
-  } catch (e) {
-    // ignorar y probar RPC abajo
-  }
-
-  // Si la vista fue reemplazada por una función (patch_security_hardening_extra.sql crea
-  // una función pública `raffle_ticket_counters()`), llamamos por RPC y filtramos la fila.
+  // Intentar primero por RPC (si existe la función `raffle_ticket_counters()`)
   try {
     const rpcRes: any = await supabase.rpc('raffle_ticket_counters');
     if (rpcRes.error) throw rpcRes.error;
@@ -56,7 +43,7 @@ export async function getRaffleCounters(raffleId: string): Promise<RaffleTicketC
     }
     return null;
   } catch (err) {
-    // Si RPC falla o no devuelve, intentar fallback directo sobre tickets
+    // Si RPC falla o no existe, intentar fallback directo sobre tickets
     if (process.env.NEXT_PUBLIC_DEBUG === '1') {
       try {
         // eslint-disable-next-line no-console

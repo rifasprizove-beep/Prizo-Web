@@ -135,14 +135,11 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
         unitPriceCents={raffleQ.data.ticket_price_cents}
         minTicketPurchase={(raffleQ.data as any).min_ticket_purchase ?? 1}
         paymentInfo={selectedMethod ?? (payQ.data ?? null)}
+        paymentMethods={methodsQ.data ?? undefined}
         allowManual={allowManual}
         isFree={isFree}
         disabledAll={disabledAll}
-        methodSelector={methodsQ.data && methodsQ.data.length > 1 ? {
-          methods: methodsQ.data,
-          index: methodIdx,
-          onChange: setMethodIdx,
-        } : undefined}
+        
       />
     </div>
   );

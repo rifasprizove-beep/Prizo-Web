@@ -1,11 +1,10 @@
 "use client";
 import { useState } from "react";
 import { RaffleQuickBuy } from "./RaffleQuickBuy";
-import type { RafflePaymentInfo } from "@/lib/data/paymentConfig";
-import type { RafflePaymentMethod } from "@/lib/data/paymentConfig";
+import type { RafflePaymentInfo, RafflePaymentMethod } from "@/lib/data/paymentConfig";
 import { RaffleBuySection } from "./RaffleBuySection";
 
-export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, allowManual = true, isFree = false, disabledAll = false, methodSelector }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; allowManual?: boolean; isFree?: boolean; disabledAll?: boolean; methodSelector?: { methods: RafflePaymentMethod[]; index: number; onChange: (n: number) => void } }) {
+export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, paymentMethods, allowManual = true, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; paymentMethods?: RafflePaymentMethod[]; allowManual?: boolean; isFree?: boolean; disabledAll?: boolean }) {
   const [tab, setTab] = useState<"quick" | "manual">("quick");
 
   return (
@@ -35,21 +34,10 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
         )
       )}
 
-      {methodSelector && (
-        <div className="flex items-center justify-center gap-2">
-          {methodSelector.methods.map((m, i) => (
-            <button
-              key={m.key ?? i}
-              type="button"
-              className={`px-3 py-1.5 rounded-full text-sm border ${methodSelector.index === i ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-pink-700 border-pink-300'}`}
-              onClick={() => methodSelector.onChange(i)}
-            >{m.method_label ?? (i === 0 ? 'Pago Móvil' : 'Otro método')}</button>
-          ))}
-        </div>
-      )}
+      {/* Selector de método removido de aquí por UX; ahora va dentro del formulario */}
 
       {tab === 'quick' ? (
-        <RaffleQuickBuy raffleId={raffleId} currency={currency} totalTickets={totalTickets} unitPriceCents={unitPriceCents} minTicketPurchase={minTicketPurchase} paymentInfo={paymentInfo ?? undefined} isFree={isFree} disabledAll={disabledAll} />
+        <RaffleQuickBuy raffleId={raffleId} currency={currency} totalTickets={totalTickets} unitPriceCents={unitPriceCents} minTicketPurchase={minTicketPurchase} paymentInfo={paymentInfo ?? undefined} paymentMethods={paymentMethods} isFree={isFree} disabledAll={disabledAll} />
       ) : (
         <div className="space-y-4">
           <div className="rounded-2xl border p-4 bg-white">

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { ensureAndReserveRandomTickets } from "@/lib/rpc";
+import { ensureAndReserveRandomTickets, ensureSession } from "@/lib/rpc";
 import type { RafflePaymentInfo, RafflePaymentMethod } from "@/lib/data/paymentConfig";
 import { listTickets, releaseTickets, reserveTickets } from "@/lib/data/tickets";
 import { getSessionId } from "@/lib/session";

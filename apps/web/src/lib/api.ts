@@ -8,21 +8,12 @@ export function apiBase() {
 export async function apiAvailable(ttlMs: number = 60_000): Promise<boolean> {
   const base = apiBase();
   if (!base) return false;
-  const now = Date.now();
-  if (lastOk !== null && now - lastCheck < ttlMs) return Boolean(lastOk);
-  lastCheck = now;
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 1500);
-  try {
-    const res = await fetch(`${base}/health`, { cache: 'no-store', signal: controller.signal });
-    clearTimeout(t);
-    lastOk = res.ok;
-    return res.ok;
-  } catch {
-    clearTimeout(t);
-    lastOk = false;
-    return false;
-  }
+  // Silenciar completamente el ping de salud para evitar errores CORS en consola.
+  // En modo silencioso, no intentamos llamar a /health en el navegador.
+  // Devolvemos false para forzar el uso del fallback (Supabase) en el cliente.
+  lastCheck = Date.now();
+  lastOk = false;
+  return false;
 }
 
 export function markApiDown() {

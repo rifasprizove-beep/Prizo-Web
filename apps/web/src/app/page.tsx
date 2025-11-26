@@ -3,29 +3,18 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { listRaffles } from '@/lib/data/raffles';
 import { RaffleCard } from '../components/RaffleCard';
-import { getApiHealth } from '@/lib/rpc';
 import { RaffleCardSkeleton } from '../components/RaffleCardSkeleton';
 import { RaffleStatusFilter, useRaffleStatusFilter, filterRafflesByMode } from '../components/RaffleStatusFilter';
 
 export default function Page() {
   const q = useQuery({ queryKey: ['raffles'], queryFn: listRaffles });
-  const [apiWarn, setApiWarn] = useState<string | null>(null);
-  useEffect(() => {
-    (async () => {
-      const h = await getApiHealth();
-      if (h && !h.ok) setApiWarn(`La API no responde: ${h.detail ?? ''}`.trim());
-    })();
-  }, []);
+  // Eliminado banner de salud de API por solicitud del cliente
   const { mode, setMode } = useRaffleStatusFilter();
   const raffles = (q.data ?? []);
   const visible = filterRafflesByMode(raffles, mode);
   return (
     <main className="mt-6 site-container">
-      {apiWarn && (
-        <div className="mb-4 rounded-lg border border-yellow-300/40 bg-yellow-100/10 text-yellow-200 px-4 py-3">
-          {apiWarn} · Revisa NEXT_PUBLIC_API_URL o el servicio de API.
-        </div>
-      )}
+      {/* Banner de salud de API removido */}
       <section className="mb-6">
         <p className="text-xs uppercase tracking-wider text-gray-400">Eleva tu juego</p>
         <h1 className="text-4xl md:text-6xl font-extrabold leading-tight title-neon">Rifas para todos</h1>

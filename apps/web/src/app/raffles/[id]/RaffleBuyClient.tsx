@@ -74,8 +74,8 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
       </div>
     );
   }
-  // Deshabilitar participación si ventas cerradas o ganador publicado
-  const disabledAll = phase === 'awaiting_winner' || effStatus === 'drawn';
+  // Deshabilitar participación si ya hay ganador publicado
+  const disabledAll = effStatus === 'drawn';
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));

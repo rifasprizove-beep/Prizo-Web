@@ -49,14 +49,32 @@ export async function reserveRandomTickets(args: {
   p_session_id: string;
   p_quantity: number;
   p_minutes?: number;
+  p_total?: number; // optional: if provided, used to ensure tickets for raffle
 }) {
   const base = legacyBase();
+  // Ensure we send a correct p_total to the backend. If caller didn't provide it,
+  // fetch the raffle's `total_tickets` from Supabase instead of falling back to
+  // `p_quantity` (that previously caused creating incorrect number of tickets).
+  let p_total_to_send: number | undefined = args.p_total;
+  if (p_total_to_send == null) {
+    try {
+      const supabase = getSupabase();
+      const { data, error } = await supabase.from('raffles').select('total_tickets').eq('id', args.p_raffle_id).maybeSingle();
+      if (!error && data && typeof data.total_tickets === 'number') {
+        p_total_to_send = data.total_tickets;
+      }
+    } catch {
+      // ignore and let fallback below use p_quantity if we couldn't fetch
+    }
+  }
+
   if (base && (await apiAvailable().catch(() => false))) {
     try {
+      const body = { ...args, ...(p_total_to_send != null ? { p_total: p_total_to_send } : {}) };
       const res = await fetch(`${base}/reservations/random`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...args, p_total: args.p_quantity }),
+        body: JSON.stringify(body),
         cache: 'no-store',
       });
       if (!res.ok) {
@@ -74,16 +92,33 @@ export async function reserveRandomTickets(args: {
       // Fallback a Supabase directo si la API está caída / CORS / timeout
       markApiDown();
       try {
-        const supabase = getSupabase();
-        const { data, error } = await supabase.rpc('ensure_and_reserve_random_tickets', {
-          p_raffle_id: args.p_raffle_id,
-            p_total: args.p_quantity, // creamos si faltan
+          const supabase = getSupabase();
+          // Si no conseguimos obtener el p_total canónico, NO utilices la función
+          // que crea tickets (`ensure_and_reserve_random_tickets`) porque puede
+          // insertar nuevos tickets. En su lugar, intenta reservar sólo entre
+          // los tickets existentes usando `reserve_random_tickets`.
+          if (p_total_to_send == null) {
+            const { data, error } = await supabase.rpc('reserve_random_tickets', {
+              p_raffle_id: args.p_raffle_id,
+              p_session_id: args.p_session_id,
+              p_quantity: args.p_quantity,
+              p_minutes: args.p_minutes ?? 10,
+            });
+            if (error) throw error as any;
+            return data ?? [];
+          }
+
+          // Si sí tenemos el total canónico, está bien llamar a la función que
+          // puede crear tickets hasta ese total.
+          const { data, error } = await supabase.rpc('ensure_and_reserve_random_tickets', {
+            p_raffle_id: args.p_raffle_id,
+            p_total: p_total_to_send,
             p_session_id: args.p_session_id,
             p_quantity: args.p_quantity,
             p_minutes: args.p_minutes ?? 10,
-        });
-        if (error) throw error as any;
-        return data ?? [];
+          });
+          if (error) throw error as any;
+          return data ?? [];
       } catch (inner) {
         throw inner;
       }

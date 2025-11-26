@@ -5,10 +5,10 @@ export function Footer() {
   // Sanitiza por si alguien dejó comillas en .env ("https://...")
   const ig = igRaw.replace(/^['"]|['"]$/g, '');
   return (
-    <footer className="mt-10 py-8 border-t border-white/10 text-sm text-[var(--text)]">
-      <div className="site-container flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+    <footer className="mt-8 py-8 border-t border-white/10 text-sm text-[var(--text)]">
+      <div className="site-container flex flex-col items-center gap-2 sm:gap-3 sm:flex-row sm:justify-between">
         {/* Izquierda: Copyright */}
-        <span className="opacity-80 whitespace-nowrap order-3 sm:order-1">© {new Date().getFullYear()} Prizo. Todos los derechos reservados.</span>
+        <span className="opacity-80 whitespace-normal sm:whitespace-nowrap order-3 sm:order-1 text-center sm:text-left">© {new Date().getFullYear()} Prizo. Todos los derechos reservados.</span>
 
         {/* Centro: Instagram */}
         {ig && (
@@ -22,12 +22,12 @@ export function Footer() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
               <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm0 2h10c1.7 0 3 1.3 3 3v10c0 1.7-1.3 3-3 3H7c-1.7 0-3-1.3-3-3V7c0-1.7 1.3-3 3-3zm5 3.5A5.5 5.5 0 106 13a5.5 5.5 0 006-5.5zm0 2A3.5 3.5 0 118.5 13 3.5 3.5 0 0112 9.5zM18 6.8a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z"/>
             </svg>
-            <span className="hidden sm:inline">Instagram</span>
+            <span className="inline">Instagram</span>
           </a>
         )}
 
         {/* Derecha: Términos */}
-        <a href="/terms" className="hover:underline whitespace-nowrap order-2 sm:order-3">Términos y condiciones</a>
+        <a href="/terms" className="hover:underline whitespace-normal sm:whitespace-nowrap order-2 sm:order-3">Términos y condiciones</a>
       </div>
     </footer>
   );

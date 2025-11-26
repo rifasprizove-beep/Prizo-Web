@@ -5,5 +5,29 @@ export async function listTopBuyers(raffleId: string, limit: number = 20): Promi
   const supabase = getSupabase();
   const { data, error } = await supabase.rpc('top_buyers_for_raffle', { p_raffle_id: raffleId, p_limit: limit });
   if (error) throw error;
-  return (data ?? []) as TopBuyer[];
+  const rows = (data ?? []) as TopBuyer[];
+
+  // Enriquecer con instagram (último registrado por email para esta rifa)
+  try {
+    const enriched = await Promise.all(rows.map(async (r) => {
+      if (!r.buyer_email) return r;
+      try {
+        const { data: payData, error: payErr } = await supabase
+          .from('payments')
+          .select('instagram')
+          .eq('raffle_id', raffleId)
+          .eq('email', r.buyer_email)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!payErr && payData && (payData as any).instagram) {
+          return { ...r, instagram: (payData as any).instagram } as TopBuyer;
+        }
+      } catch {}
+      return r;
+    }));
+    return enriched;
+  } catch (e) {
+    return rows;
+  }
 }

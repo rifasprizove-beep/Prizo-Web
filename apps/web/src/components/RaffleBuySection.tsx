@@ -37,7 +37,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
     onError: (e: any) => setErrorMsg(e?.message ?? 'No se pudieron liberar los tickets'),
   });
 
-  const gridStyle = useMemo(() => ({ gridTemplateColumns: `repeat(10, minmax(2.5rem, 1fr))` }), []);
+  const gridStyle = useMemo(() => ({ gridTemplateColumns: `repeat(10, minmax(40px, 1fr))` }), []);
 
   // Rehidratación inicial desde localStorage
   useEffect(() => {

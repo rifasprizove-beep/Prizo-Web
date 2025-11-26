@@ -114,7 +114,7 @@ export function CheckoutForm({
     <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-4 bg-surface-700 text-white shadow-sm">
       <h2 className="text-lg font-semibold">Confirmar pago</h2>
       {count > 0 && (
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Cantidad</div>
             <div className="font-semibold">{count}</div>
@@ -131,7 +131,7 @@ export function CheckoutForm({
   {/* Mantener método como campo oculto (ya mostrado arriba) */}
   <input type="hidden" value={methodLabel ?? ''} {...register('method')} />
 
-  <div className="grid sm:grid-cols-2 gap-4">
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
           <label className="block text-sm font-medium">Email (opcional)</label>
           <input type="email" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="tucorreo@mail.com" {...register('email')} />
@@ -150,7 +150,7 @@ export function CheckoutForm({
         <div>
           <label className="block text-sm font-medium">Cédula (opcional)</label>
           <div className="mt-1 flex gap-2">
-            <select className="w-20 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
+            <select className="w-20 sm:w-24 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
               <option value="V">V</option>
               <option value="E">E</option>
             </select>
@@ -225,7 +225,7 @@ export function CheckoutForm({
             >Seleccionar archivo</button>
             {evidence && typeof evidence !== 'string' ? (
               <>
-                <span className="text-xs text-gray-300 truncate max-w-[12rem]">{(evidence as File).name}</span>
+                <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[12rem]">{(evidence as File).name}</span>
                 <button
                   type="button"
                   className="text-xs text-red-300 hover:text-red-200 underline"
@@ -236,7 +236,7 @@ export function CheckoutForm({
                 >Quitar</button>
               </>
             ) : (
-              <span className="text-xs text-gray-400">Opcional (imagen o PDF)</span>
+              <span className="text-xs sm:text-sm text-gray-400">Opcional (imagen o PDF)</span>
             )}
           </div>
         </div>

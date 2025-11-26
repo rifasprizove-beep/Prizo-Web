@@ -57,4 +57,5 @@ export type TopBuyer = {
   payments_count: number;
   first_payment: string;
   last_payment: string;
+  instagram?: string | null; // optional instagram username (sin @)
 };

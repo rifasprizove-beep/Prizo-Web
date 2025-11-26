@@ -31,32 +31,32 @@ export default function WinnerTable({ winners }: { winners: Winner[] }) {
         <caption className="sr-only">Resultados del sorteo</caption>
         <thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/70 text-gray-600">
           <tr>
-            <th className="px-4 py-2 text-left font-semibold">Posición</th>
-            <th className="px-4 py-2 text-left font-semibold">Ticket</th>
-            <th className="px-4 py-2 text-left font-semibold">Ganador</th>
-            <th className="px-4 py-2 text-left font-semibold">Fecha</th>
-            <th className="px-4 py-2 text-left font-semibold">Imagen</th>
+            <th className="px-3 sm:px-4 py-2 text-left font-semibold">Posición</th>
+            <th className="px-3 sm:px-4 py-2 text-left font-semibold">Ticket</th>
+            <th className="px-3 sm:px-4 py-2 text-left font-semibold">Ganador</th>
+            <th className="px-3 sm:px-4 py-2 text-left font-semibold">Fecha</th>
+            <th className="px-3 sm:px-4 py-2 text-left font-semibold">Imagen</th>
           </tr>
         </thead>
         <tbody>
           {winners.map((w, i) => (
             <tr key={w.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-              <td className="px-4 py-2">{positionBadge(Number(w.position ?? i + 1))}</td>
-              <td className="px-4 py-2"><span className="inline-block px-2 py-1 rounded-md bg-slate-100 border border-slate-300 font-mono tabular-nums">{w.ticket_number_snapshot ?? '—'}</span></td>
-              <td className="px-4 py-2">
+              <td className="px-3 sm:px-4 py-2">{positionBadge(Number(w.position ?? i + 1))}</td>
+              <td className="px-3 sm:px-4 py-2"><span className="inline-block px-2 py-1 rounded-md bg-slate-100 border border-slate-300 font-mono tabular-nums">{w.ticket_number_snapshot ?? '—'}</span></td>
+              <td className="px-3 sm:px-4 py-2">
                 <div className="leading-tight">
-                  <div className="font-semibold">{w.winner_name || (w.instagram_user ? `@${w.instagram_user}` : '—')}</div>
+                  <div className="font-semibold break-words">{w.winner_name || (w.instagram_user ? `@${w.instagram_user}` : '—')}</div>
                   {w.instagram_user && w.winner_name && (
                     <div className="text-xs text-gray-500">@{w.instagram_user}</div>
                   )}
                 </div>
               </td>
-              <td className="px-4 py-2 tabular-nums whitespace-nowrap">{formatDate(w.created_at)}</td>
-              <td className="px-4 py-2">
+              <td className="px-3 sm:px-4 py-2 tabular-nums whitespace-nowrap">{formatDate(w.created_at)}</td>
+              <td className="px-3 sm:px-4 py-2">
                 {w.image_url ? (
                   <a href={w.image_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={w.image_url} alt={`Imagen del ganador ${w.winner_name ?? w.instagram_user ?? ''}`} className="h-10 w-10 rounded object-cover border border-slate-300 group-hover:opacity-90" />
+                    <img src={w.image_url} alt={`Imagen del ganador ${w.winner_name ?? w.instagram_user ?? ''}`} className="h-8 w-8 sm:h-10 sm:w-10 rounded object-cover border border-slate-300 group-hover:opacity-90" />
                     <span className="text-xs text-pink-700 underline">Abrir</span>
                   </a>
                 ) : (

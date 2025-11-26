@@ -2,8 +2,8 @@
 import type { Raffle, RaffleTicketCounters } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1, round2 } from "@/lib/data/rate";
+import { useEffect, useMemo, useState } from "react";
+import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1 } from "@/lib/data/rate";
 import { formatVES } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
@@ -21,17 +21,39 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
 
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
-  // Precio del ticket mostrado en Bs con la tasa de entorno (entero)
-  const unitVES = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
-  // Equivalente USD usando BCV (1 decimal). Si no hay BCV, usar el base.
-  const unitUsdAtBcv = bcvRate && unitVES ? round1(unitVES / bcvRate) : round1(unitUSDBase);
+  const { unitVES, unitUsdAtBcv, prizeVES, prizeUsdAtBcv, topBuyerVES, topBuyerUsdAtBcv } = useMemo(() => {
+    const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
+    const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
+    const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
 
-  const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
-  const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
-  const prizeVES = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
-  const topBuyerVES = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
-  const percent = counters && counters.total_tickets > 0 ? Math.min(100, (counters.sold / counters.total_tickets) * 100) : 0;
+    const unitVESCalc = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
+    const prizeVESCalc = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
+    const topBuyerVESCalc = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
+
+    const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(unitUSDBase);
+    const prizeUsdAtBcvCalc = bcvRate && prizeVESCalc ? round1(prizeVESCalc / bcvRate) : round1(prizeUSDBase);
+    const topBuyerUsdAtBcvCalc = bcvRate && topBuyerVESCalc ? round1(topBuyerVESCalc / bcvRate) : round1(topBuyerUSDBase);
+
+    return {
+      unitVES: unitVESCalc,
+      unitUsdAtBcv: unitUsdAtBcvCalc,
+      prizeVES: prizeVESCalc,
+      prizeUsdAtBcv: prizeUsdAtBcvCalc,
+      topBuyerVES: topBuyerVESCalc,
+      topBuyerUsdAtBcv: topBuyerUsdAtBcvCalc,
+    } as const;
+  }, [raffle.ticket_price_cents, raffle.prize_amount_cents, raffle.top_buyer_prize_cents, fallbackRate, bcvRate]);
+  // Defensive conversion: Supabase may return numeric fields as strings.
+  const soldNum = counters ? Number((counters as any).sold ?? 0) : 0;
+  const totalNum = counters ? Number((counters as any).total_tickets ?? 0) : 0;
+  const percent = totalNum > 0 ? Math.max(0, Math.min(100, (soldNum / totalNum) * 100)) : 0;
+
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+    try {
+      // eslint-disable-next-line no-console
+      console.debug('[RaffleHeader] counters:', counters, 'soldNum:', soldNum, 'totalNum:', totalNum, 'percent:', percent);
+    } catch {}
+  }
 
   // Estado visual según la rifa
   const isDrawnEffective = raffle.status === 'drawn';
@@ -69,14 +91,14 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
               <span className="opacity-90">Premio:</span> {currency === 'USD'
-                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}`)
+                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${prizeUsdAtBcv.toFixed(1)}`)
                 : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
               <span className="text-brand-300">Top comprador:</span> {currency === 'USD'
-                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${(bcvRate && topBuyerVES ? round1(topBuyerVES / bcvRate).toFixed(1) : round1(topBuyerUSDBase).toFixed(1))}`)
+                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${topBuyerUsdAtBcv.toFixed(1)}`)
                 : (topBuyerVES ? formatVES(topBuyerVES) : <Skeleton className="w-16 h-5 align-middle" />)}
             </div>
           )}
@@ -210,34 +232,50 @@ function TopBuyersInline({ raffleId }: { raffleId: string }) {
   if (topQ.isLoading) return <div className="rounded-xl border p-3 bg-white text-brand-700 text-sm">Cargando ranking…</div>;
   const rows = topQ.data ?? [];
   if (!rows.length) return <div className="rounded-xl border p-3 bg-white text-brand-700 text-sm">Aún no hay compradores aprobados.</div>;
+  // Limitar a los primeros 3 únicamente
+  const topRows = rows.slice(0, 3);
   return (
     <section className="space-y-3 text-sm">
-      <h3 className="text-base font-semibold text-brand-700">Top compradores</h3>
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-brand-50 text-brand-700 text-xs uppercase tracking-wide">
-              <th className="px-3 py-2 text-left">#</th>
-              <th className="px-3 py-2 text-left">Email</th>
-              <th className="px-3 py-2 text-left">Tickets</th>
-              <th className="px-3 py-2 text-left">Pagos</th>
-              <th className="px-3 py-2 text-left">Último</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.buyer_email || i} className={i % 2 ? 'bg-white' : 'bg-brand-50/40'}>
-                <td className="px-3 py-2 font-mono text-xs">{i + 1}</td>
-                <td className="px-3 py-2 break-all">{r.buyer_email ?? '—'}</td>
-                <td className="px-3 py-2 font-semibold">{r.tickets}</td>
-                <td className="px-3 py-2">{r.payments_count}</td>
-                <td className="px-3 py-2 text-xs opacity-70">{new Date(r.last_payment).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <h3 className="text-base font-semibold text-white">Top compradores</h3>
+      <div className="rounded-xl border border-brand-500/30 bg-white/95 p-3">
+        <ol className="space-y-2">
+          {topRows.map((r, i) => {
+            const rawIg = (r as any).instagram_user;
+            const igClean = typeof rawIg === 'string' ? rawIg.replace(/^@+/, '').trim() : '';
+            const buyerUsername = typeof (r as any).buyer_username === 'string' ? (r as any).buyer_username.trim() : '';
+            const usernameField = typeof (r as any).username === 'string' ? (r as any).username.trim() : '';
+            const emailLocalRaw = (r.buyer_email ?? '').split('@')[0].trim();
+            let display = '';
+            if (igClean && igClean.length >= 2) display = `@${igClean}`;
+            else if (buyerUsername) display = buyerUsername;
+            else if (usernameField) display = usernameField;
+            else if (emailLocalRaw) display = emailLocalRaw;
+            else display = 'Usuario';
+            return (
+              <li
+                key={r.buyer_email || i}
+                className="flex items-center gap-4 p-2 rounded-lg bg-white/90 border border-brand-500/10 hover:border-brand-500/30 transition-colors"
+              >
+                <span
+                  className={"inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold tabular-nums shadow-sm " +
+                  (i === 0
+                    ? 'bg-gradient-to-br from-brand-500 to-pink-600 text-white'
+                    : i === 1
+                    ? 'bg-brand-500/90 text-white'
+                    : 'bg-brand-500/70 text-white')}
+                  aria-label={`Ranking posición ${i + 1}`}
+                >
+                  {i + 1}
+                </span>
+                <span className="text-sm font-medium tracking-wide break-all text-gray-900">
+                  {display}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
-      <div className="text-xs opacity-80 mt-1 text-brand-700/70">Ranking basado en pagos aprobados.</div>
+      <div className="text-xs mt-1 text-gray-400">Mostrando solo los 3 primeros (ranking y usuario).</div>
     </section>
   );
 }

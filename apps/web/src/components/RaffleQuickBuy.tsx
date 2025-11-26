@@ -478,13 +478,13 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                 <div className="inline-flex items-center overflow-hidden rounded-2xl bg-white text-black shadow-md ring-1 ring-brand-500/20">
                   <button
                     type="button"
-                    className="px-5 h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
+                    className="px-5 h-12 sm:h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
                     aria-label="Disminuir cantidad"
                     onClick={dec}
                     disabled={busy || disabledAll}
                   >−</button>
                   <input
-                    className="w-24 h-14 text-center text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
+                    className="w-20 sm:w-24 h-12 sm:h-14 text-center text-2xl sm:text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
                     type="number"
                     min={minTicketPurchase}
                     max={availableTickets}
@@ -495,7 +495,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   />
                   <button
                     type="button"
-                    className="px-5 h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
+                    className="px-5 h-12 sm:h-14 text-2xl font-bold hover:bg-brand-100 active:scale-95 transition disabled:opacity-60"
                     aria-label="Aumentar cantidad"
                     onClick={() => inc(1)}
                     disabled={busy || disabledAll}
@@ -508,7 +508,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     <button
                       key={n}
                       type="button"
-                      className="rounded-full px-3 py-1.5 text-sm bg-white/95 text-black ring-1 ring-brand-500/30 hover:bg-brand-100 transition disabled:opacity-60"
+                      className="rounded-full px-3 py-2 text-sm sm:text-base bg-white/95 text-black ring-1 ring-brand-500/30 hover:bg-brand-100 transition disabled:opacity-60"
                       onClick={() => inc(n)}
                       disabled={busy || disabledAll}
                     >+{n}</button>

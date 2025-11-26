@@ -17,6 +17,7 @@ export default function VerifyPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState<VerifyRow[] | null>(null);
+  const [selectedRaffle, setSelectedRaffle] = useState<string>('all');
   const [mode, setMode] = useState<'email' | 'cedula'>('email');
 
   // Placeholder dinámico
@@ -66,6 +67,9 @@ export default function VerifyPage() {
       const j = await res.json();
       const rows: VerifyRow[] = j?.data ?? [];
       setData(rows);
+      // si hay exactamente una rifa en los resultados, seleccionarla por defecto
+      const raffleIds = Array.from(new Set(rows.map(r => r.raffle_id)));
+      if (raffleIds.length === 1) setSelectedRaffle(raffleIds[0]);
       if (!rows.length) setErr(`No hay registros con ese ${mode === 'email' ? 'correo' : 'cédula'}.`);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'No se pudo consultar';
@@ -150,22 +154,70 @@ export default function VerifyPage() {
       )}
       {data && data.length > 0 && (
         <div className="space-y-4">
+          {/* Filtrado por rifa (solo si hay más de una) */}
+          {Array.from(new Set(data.map(d => d.raffle_id))).length > 1 && (
+            <div className="space-y-1">
+              <div className="text-sm font-medium text-white">Filtrar por rifa</div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center w-full max-w-xs rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-3 py-2 shadow-sm">
+                  <select
+                    value={selectedRaffle}
+                    onChange={(e) => setSelectedRaffle(e.target.value)}
+                    className="w-full outline-none bg-transparent text-black text-sm"
+                  >
+                    <option value="all">Todas las rifas</option>
+                    {Array.from(new Map(data.map(d => [d.raffle_id, d.raffle_name]))).map(([id, name]) => (
+                      <option key={id} value={id}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Preparar filas visibles */}
+          {(() => {
+            return null;
+          })()}
+
+          {(() => {
+            const visibleRows = selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle);
+            const approvedCount = visibleRows.filter(r => r.payment_status === 'approved').length;
+            const pendingCount = visibleRows.filter(r => r.payment_status === 'pending').length;
+            // Mostrar banner SOLO si se eligió una rifa específica y hay pendientes pero ninguno aprobado
+            if (selectedRaffle !== 'all' && pendingCount > 0 && approvedCount === 0) {
+              return (
+                <div className="p-3 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 text-sm">
+                  Esta rifa tiene pagos pendientes de aprobación.
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* Resumen */}
           <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-wrap items-center gap-3 shadow-sm">
-            <span className="font-semibold">Resultados: {data.length}</span>
-            <span className="inline-flex items-center gap-2 text-xs">
-              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Aprobado: {data.filter(r => r.payment_status === 'approved').length}</span>
-              <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">En revisión: {data.filter(r => r.payment_status === 'pending').length}</span>
-              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800">Rechazado: {data.filter(r => r.payment_status === 'rejected').length}</span>
-              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800" title="Monto recibido menor al debido">Monto menor: {data.filter(r => r.payment_status === 'underpaid').length}</span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Monto recibido mayor al debido">Monto mayor: {data.filter(r => r.payment_status === 'overpaid').length}</span>
-              <span className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800" title="La referencia no coincide o no se puede verificar">Ref. inválida: {data.filter(r => r.payment_status === 'ref_mismatch').length}</span>
-            </span>
+            {(() => {
+              const visibleRows = selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle);
+              return (
+                <>
+                  <span className="font-semibold">Resultados: {visibleRows.length}</span>
+                  <span className="inline-flex items-center gap-2 text-xs">
+                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Aprobado: {visibleRows.filter(r => r.payment_status === 'approved').length}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">En revisión: {visibleRows.filter(r => r.payment_status === 'pending').length}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800">Rechazado: {visibleRows.filter(r => r.payment_status === 'rejected').length}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800" title="Monto recibido menor al debido">Monto menor: {visibleRows.filter(r => r.payment_status === 'underpaid').length}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Monto recibido mayor al debido">Monto mayor: {visibleRows.filter(r => r.payment_status === 'overpaid').length}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800" title="La referencia no coincide o no se puede verificar">Ref. inválida: {visibleRows.filter(r => r.payment_status === 'ref_mismatch').length}</span>
+                  </span>
+                </>
+              );
+            })()}
           </div>
 
           {/* Vista tarjetas para móvil */}
           <div className="sm:hidden grid grid-cols-1 gap-3">
-            {data.map((r) => (
+            {(selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)).map((r) => (
               <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-xl border bg-white p-3 text-black shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="font-semibold">{r.raffle_name}</div>
@@ -229,7 +281,7 @@ export default function VerifyPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.map((r) => (
+                {(selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)).map((r) => (
                   <tr key={`${r.payment_id}-${r.ticket_id}`} className="odd:bg-white even:bg-gray-50">
                     <td className="p-3 border-b">{r.raffle_name}</td>
                     <td className="p-3 border-b">{r.ticket_number}</td>

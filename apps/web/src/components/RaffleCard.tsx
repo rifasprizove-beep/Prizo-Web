@@ -1,9 +1,10 @@
 "use client";
 import type { Raffle } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1, round2 } from '@/lib/data/rate';
-import { raffleStatusEs, formatVES, effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
+import Link from 'next/link';
+import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1 } from '@/lib/data/rate';
+import { formatVES, effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
 import { Skeleton } from './Skeleton';
@@ -25,16 +26,33 @@ function useRates() {
 export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const { currency } = useCurrency();
   const { fallbackRate, bcvRate } = useRates();
-  const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const unitUSDBase = centsToUsd(raffle.ticket_price_cents);
-  // Precio mostrado en Bs con la tasa de entorno (entero)
-  const unitVES = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
-  // Equivalente USD mostrado usando tasa BCV (4 decimales). Si no hay BCV, mostrar el base.
-  const unitUsdAtBcv = bcvRate && unitVES ? round1(unitVES / bcvRate) : round1(unitUSDBase);
-  const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
-  const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
-  const prizeVES = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
-  const topBuyerVES = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
+
+  // Derivados y formatos memoizados para evitar recalcular y re-render innecesarios
+  const {
+    isFree,
+    unitVES,
+    unitUsdAtBcv,
+    prizeVES,
+    prizeUsdAtBcv,
+  } = useMemo(() => {
+    const isFreeCalc = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
+    const ticketUsdBase = centsToUsd(raffle.ticket_price_cents);
+    const prizeUsdBase = centsToUsd(raffle.prize_amount_cents ?? 0);
+
+    const unitVESCalc = fallbackRate ? round0(ticketUsdBase * fallbackRate) : 0;
+    const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(ticketUsdBase);
+
+    const prizeVESCalc = fallbackRate ? round0(prizeUsdBase * fallbackRate) : 0;
+    const prizeUsdAtBcvCalc = bcvRate && prizeVESCalc ? round1(prizeVESCalc / bcvRate) : round1(prizeUsdBase);
+
+    return {
+      isFree: isFreeCalc,
+      unitVES: unitVESCalc,
+      unitUsdAtBcv: unitUsdAtBcvCalc,
+      prizeVES: prizeVESCalc,
+      prizeUsdAtBcv: prizeUsdAtBcvCalc,
+    } as const;
+  }, [raffle.ticket_price_cents, raffle.prize_amount_cents, fallbackRate, bcvRate]);
   // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
   const cardHref = `/raffles/${raffle.id}`;
   const effStatus = effectiveRaffleStatus(raffle);
@@ -43,11 +61,24 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const isClosed = raffle.status === 'closed';
   const isFinished = phase === 'finished';
   return (
-    <a
+    <>
+    <Link
       href={cardHref}
-      className="block rounded-3xl border border-brand-500/20 bg-surface-700 text-white transition-shadow hover:shadow-glowSm"
+      className="relative block rounded-3xl border border-brand-500/20 bg-surface-700 text-white transition-shadow hover:shadow-glowSm"
     >
-  <div className="p-4 pb-0 space-y-2 mb-1 sm:mb-2">
+      {/* Logos en esquina superior derecha */}
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <Link href="https://tripletachira.com/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940209/Untitled_design_zynbxm.png" alt="Triple Gana" className="h-7 w-auto object-contain" />
+        </Link>
+        <Link href="https://www.conalot.gob.ve" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/3_cvgejv.png" alt="Conalot" className="h-7 w-auto object-contain" />
+        </Link>
+        <Link href="https://supergana.com.ve/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/2_uaee43.png" alt="Super Gana" className="h-7 w-auto object-contain" />
+        </Link>
+      </div>
+  <div className="p-4 pb-0 space-y-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           {isFree ? (
             <BadgePill tone="brand">Gratis</BadgePill>
@@ -64,7 +95,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
             <BadgePill tone="brand">Abierta</BadgePill>
           )}
           {effStatus === 'drawn' && (
-            <BadgePill tone="brand">Esperando ganador</BadgePill>
+            <BadgePill tone="brand">Sorteando</BadgePill>
           )}
           {isClosed && (
             <BadgePill tone="brand">Cerrada</BadgePill>
@@ -74,7 +105,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
           ) : null}
         </div>
         <h3 className="text-xl font-bold leading-tight line-clamp-2">{raffle.name}</h3>
-        <p className="text-sm text-gray-300 line-clamp-2 min-h-[2.5rem]">{raffle.description ?? ''}</p>
+        <p className="text-sm text-gray-300 line-clamp-2 min-h-[40px]">{raffle.description ?? ''}</p>
       </div>
       {raffle.image_url ? (
         <div className="relative w-full aspect-[16/11] rounded-3xl overflow-hidden -mb-2">
@@ -85,7 +116,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       )}
       {awaiting && !isClosed && (
         <div className="px-4 py-2 bg-yellow-500/10 text-yellow-200 text-xs border-t border-yellow-500/20">
-          Ventas cerradas — esperando ganador
+          Ventas cerradas — sorteando
         </div>
       )}
       {isFinished && isClosed && (
@@ -94,13 +125,15 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         </div>
       )}
       {(raffle.prize_amount_cents ?? 0) > 0 && (
-        <div className="px-4 py-3">
-          <div className="font-semibold">{currency === 'USD'
-            ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${(bcvRate && prizeVES ? round1(prizeVES / bcvRate).toFixed(1) : round1(prizeUSDBase).toFixed(1))}`)
-            : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
+        <div className="px-4 py-2 mt-4">
+          <div className="text-xl sm:text-2xl font-extrabold leading-tight">
+            {currency === 'USD'
+              ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${prizeUsdAtBcv.toFixed(1)}`)
+              : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
           </div>
         </div>
       )}
-    </a>
+    </Link>
+    </>
   );
 }

@@ -13,17 +13,17 @@ export function WhatsAppHelp() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-white text-black px-4 py-2 shadow-lg ring-1 ring-brand-500/20 hover:translate-y-[-1px] active:translate-y-[0] transition-transform"
+      className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-40 inline-flex items-center gap-2 rounded-full bg-white text-black px-3 sm:px-4 py-2 shadow-lg ring-1 ring-brand-500/20 hover:translate-y-[-1px] active:translate-y-[0] transition-transform"
       aria-label="Soporte WhatsApp"
     >
-      <span className="text-sm font-semibold">Soporte</span>
-      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white">
+      <span className="text-xs sm:text-sm font-semibold">Soporte</span>
+      <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#25D366] text-white">
         {/* Ícono de WhatsApp (simpleicons) */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="currentColor"
-          className="w-5 h-5"
+          className="w-4 h-4 sm:w-5 sm:h-5"
           aria-hidden="true"
           shapeRendering="geometricPrecision"
         >

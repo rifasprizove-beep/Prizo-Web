@@ -22,13 +22,88 @@ export async function getRaffle(id: string): Promise<Raffle | null> {
 export async function getRaffleCounters(raffleId: string): Promise<RaffleTicketCounters | null> {
   let supabase;
   try { supabase = getSupabase(); } catch (e) { if (process.env.NEXT_PUBLIC_DEBUG === '1') console.error('Supabase no configurado:', e); return null; }
-  const { data, error } = await supabase
-    .from('raffle_ticket_counters')
-    .select('*')
-    .eq('raffle_id', raffleId)
-    .maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as RaffleTicketCounters | null;
+  // Primero intentar como si fuera una vista/tabla (compatibilidad hacia atrás)
+  try {
+    const res: any = await supabase
+      .from('raffle_ticket_counters')
+      .select('*')
+      .eq('raffle_id', raffleId)
+      .maybeSingle();
+    if (!res.error && res.data) return (res.data as RaffleTicketCounters);
+  } catch (e) {
+    // ignorar y probar RPC abajo
+  }
+
+  // Si la vista fue reemplazada por una función (patch_security_hardening_extra.sql crea
+  // una función pública `raffle_ticket_counters()`), llamamos por RPC y filtramos la fila.
+  try {
+    const rpcRes: any = await supabase.rpc('raffle_ticket_counters');
+    if (rpcRes.error) throw rpcRes.error;
+    const rows = rpcRes.data ?? rpcRes;
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('[getRaffleCounters] rpcRes:', rpcRes);
+      } catch {}
+    }
+    if (Array.isArray(rows)) {
+      const found = rows.find((r: any) => String(r.raffle_id) === String(raffleId));
+      return found ? (found as RaffleTicketCounters) : null;
+    }
+    // Si la RPC devolvió un único objeto
+    if (rows && String((rows as any).raffle_id) === String(raffleId)) {
+      return rows as RaffleTicketCounters;
+    }
+    return null;
+  } catch (err) {
+    // Si RPC falla o no devuelve, intentar fallback directo sobre tickets
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn('[getRaffleCounters] rpc failed, falling back to direct tickets query', err);
+      } catch {}
+    }
+  }
+
+  // Fallback: contar directamente desde la tabla `tickets` y obtener total_tickets desde `raffles`.
+  try {
+    const soldRes: any = await supabase
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('raffle_id', raffleId)
+      .eq('status', 'sold');
+    const reservedRes: any = await supabase
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('raffle_id', raffleId)
+      .eq('status', 'reserved')
+      .gt('reserved_until', new Date().toISOString());
+    const raffleRes: any = await supabase
+      .from('raffles')
+      .select('total_tickets')
+      .eq('id', raffleId)
+      .maybeSingle();
+
+    const sold = (soldRes && typeof soldRes.count === 'number') ? soldRes.count : (soldRes?.data?.length ?? 0);
+    const reserved = (reservedRes && typeof reservedRes.count === 'number') ? reservedRes.count : (reservedRes?.data?.length ?? 0);
+    const total = raffleRes && raffleRes.data && raffleRes.data.total_tickets != null ? Number(raffleRes.data.total_tickets) : 0;
+    const available = Math.max(0, total - (Number(sold) + Number(reserved)));
+    return {
+      raffle_id: raffleId,
+      total_tickets: total,
+      sold: Number(sold),
+      reserved: Number(reserved),
+      available: available,
+    } as RaffleTicketCounters;
+  } catch (finalErr) {
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+      try {
+        // eslint-disable-next-line no-console
+        console.error('[getRaffleCounters] final fallback failed', finalErr);
+      } catch {}
+    }
+    throw finalErr;
+  }
 }
 
 export async function listRaffles(): Promise<Raffle[]> {

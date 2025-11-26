@@ -487,7 +487,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   const reservedCount = reserved.length || (restoring && restoreIds ? restoreIds.length : 0);
 
   return (
-    <div className="rounded-2xl border border-brand-500/20 p-4 bg-surface-800 text-white">
+    <div className="rounded-2xl border border-brand-500/20 p-3 sm:p-4 pb-20 bg-surface-800 text-white">
   {!isFree && <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase text-center">¿Cuántos tickets quieres?</h2>}
 
       {error && (
@@ -547,7 +547,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             <div className="mt-2 flex items-center justify-center">
               <button
                 type="button"
-                className="btn-neon disabled:opacity-60"
+                className="btn-neon w-full sm:w-auto disabled:opacity-60"
                 onClick={async () => { setQty(minTicketPurchase); await handleContinue(); }}
                 disabled={disabledAll || busy || (!isFree && availableTickets <= 0)}
               >
@@ -577,7 +577,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
           {!isFree && (
             <div className="mt-4 flex items-center justify-center gap-3">
-              <button type="button" className="btn-neon disabled:opacity-60 flex items-center gap-2" onClick={handleContinue} disabled={busy}>
+              <button type="button" className="btn-neon w-full sm:w-auto disabled:opacity-60 flex items-center justify-center gap-2" onClick={handleContinue} disabled={busy}>
                 {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
                 Continuar
               </button>
@@ -740,7 +740,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             <div className="flex items-center justify-end">
               <button
                 type="button"
-                className="text-base px-4 py-2 rounded-lg border-2 border-red-500 text-red-200 hover:bg-red-600 hover:text-white transition-colors shadow-sm"
+                className="text-base px-4 py-2 rounded-lg border-2 border-red-500 text-red-200 hover:bg-red-600 hover:text-white transition-colors shadow-sm tap-safe"
                 onClick={() => setShowCancelConfirm(true)}
                 disabled={busy}
               >Liberar y cerrar</button>

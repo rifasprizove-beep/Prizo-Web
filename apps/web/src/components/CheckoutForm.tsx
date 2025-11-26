@@ -141,7 +141,7 @@ export function CheckoutForm({
   const totalVES = useMemo(() => round2(unitVES * count), [unitVES, count]);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-4 bg-surface-700 text-white shadow-sm">
+    <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-3 sm:p-4 bg-surface-700 text-white shadow-sm">
       <h2 className="text-lg font-semibold">Confirmar pago</h2>
       {count > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
@@ -166,7 +166,8 @@ export function CheckoutForm({
           <label className="block text-sm font-medium">Email</label>
           <input
             type="email"
-            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            autoComplete="email"
+            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
             placeholder="tucorreo@mail.com"
             {...register('email')}
           />
@@ -176,8 +177,10 @@ export function CheckoutForm({
           <label className="block text-sm font-medium">Teléfono</label>
           <input
             type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
             maxLength={11}
-            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
             placeholder="04121234567"
             {...register('phone')}
             onChange={(e) => {
@@ -189,13 +192,13 @@ export function CheckoutForm({
         </div>
         <div>
           <label className="block text-sm font-medium">Usuario de Instagram (opcional)</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />
+          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Cédula</label>
           <div className="mt-1 flex gap-2">
-            <select className="w-20 sm:w-24 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
+            <select className="w-20 sm:w-24 border rounded-lg p-3 text-base bg-surface-800" {...register('ciPrefix')}>
               <option value="V">V</option>
               <option value="E">E</option>
             </select>
@@ -204,7 +207,7 @@ export function CheckoutForm({
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={10}
-              className="flex-1 border rounded-lg p-2 bg-surface-800"
+              className="flex-1 border rounded-lg p-3 text-base bg-surface-800"
               placeholder="12345678"
               {...register('ciNumber')}
               onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '').slice(0,10); }}
@@ -215,7 +218,7 @@ export function CheckoutForm({
         <div>
           <label className="block text-sm font-medium">Ciudad</label>
           <select
-            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
             value={citySelect || ''}
             onChange={(e) => {
               const val = e.target.value;
@@ -236,7 +239,7 @@ export function CheckoutForm({
           {citySelect === 'OTRA' && (
             <input
               type="text"
-              className="mt-2 w-full border rounded-lg p-2 bg-surface-800"
+              className="mt-2 w-full border rounded-lg p-3 text-base bg-surface-800"
               placeholder="Escribe tu ciudad"
               {...register('city')}
             />
@@ -246,7 +249,7 @@ export function CheckoutForm({
         {/* Campo visible de método removido por redundante */}
         <div>
           <label className="block text-sm font-medium">Referencia</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="N° referencia o hash" {...register('reference')} />
+          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="N° referencia o hash" {...register('reference')} />
           {errors.reference && <p className="text-xs text-red-600 mt-1">{errors.reference.message as string}</p>}
         </div>
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
@@ -267,7 +270,7 @@ export function CheckoutForm({
           <div className="mt-3 flex flex-wrap justify-center items-center gap-3 w-full">
             <button
               type="button"
-              className="px-4 py-2 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors min-w-[160px] text-center"
+              className="px-4 py-2 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors min-w-[160px] text-center tap-safe"
               onClick={() => fileInputRef.current?.click()}
             >Seleccionar archivo</button>
             {evidence && typeof evidence !== 'string' && (
@@ -275,7 +278,7 @@ export function CheckoutForm({
                 <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[14rem] text-center">{(evidence as File).name}</span>
                 <button
                   type="button"
-                  className="text-xs text-red-300 hover:text-red-200 underline"
+                  className="text-xs text-red-300 hover:text-red-200 underline tap-safe"
                   onClick={() => {
                     setValue('evidence', undefined as any, { shouldValidate: false });
                     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -297,7 +300,7 @@ export function CheckoutForm({
       </div>
       {errors.termsAccepted && <p className="text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center justify-center gap-3">
-        <button type="submit" className="btn-neon disabled:opacity-60" disabled={disabled || submitting}>
+        <button type="submit" className="btn-neon w-full sm:w-auto disabled:opacity-60 tap-safe" disabled={disabled || submitting}>
           {submitting ? 'Enviando…' : 'Enviar pago'}
         </button>
       </div>

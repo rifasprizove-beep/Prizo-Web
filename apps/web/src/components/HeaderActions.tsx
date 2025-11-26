@@ -6,7 +6,7 @@ export function HeaderActions() {
   const pathname = usePathname();
   const hideCurrency = pathname === "/verify" || pathname === "/terms";
   return (
-    <nav className="flex items-center gap-2 text-sm">
+    <nav className="flex items-center gap-2 sm:gap-3 text-sm">
       {!hideCurrency && <CurrencyToggle />}
     </nav>
   );

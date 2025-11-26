@@ -25,6 +25,7 @@ body {
               radial-gradient(700px 500px at 50% 120%, rgba(215,0,86,0.04), transparent 60%),
               var(--bg);
   color: var(--text);
+  overflow-x: hidden; /* Evitar scroll horizontal accidental en móvil */
 }
 
 /* En tema claro usamos fondo blanco plano para evitar manchas fuertes del gradiente */
@@ -79,5 +80,17 @@ body {
   }
   .glow-breath {
     animation: glowBreath 1.8s ease-in-out infinite;
+  }
+
+  /* Medios fluidos por defecto */
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Optimizar interacción táctil en botones/links principales */
+  .tap-safe {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
 }

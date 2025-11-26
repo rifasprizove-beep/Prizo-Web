@@ -10,7 +10,7 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
   return (
     <div className="space-y-4">
       {allowManual ? (
-        <div className="flex items-center rounded-full border bg-white overflow-hidden w-fit">
+        <div className="flex items-center rounded-full border bg-white overflow-hidden w-full max-w-xs mx-auto">
           <button
             type="button"
             className={`px-4 py-2 text-sm font-semibold ${tab === 'quick' ? 'bg-pink-600 text-white' : 'text-pink-700 hover:bg-pink-50'}`}

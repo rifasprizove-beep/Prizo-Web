@@ -66,16 +66,16 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       href={cardHref}
       className="relative block rounded-3xl border border-brand-500/20 bg-surface-700 text-white transition-shadow hover:shadow-glowSm"
     >
-      {/* Logos en esquina superior derecha */}
-      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+      {/* Logos en esquina superior derecha (más pequeños en móvil) */}
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-1 sm:gap-2 z-10">
         <Link href="https://tripletachira.com/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
-          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940209/Untitled_design_zynbxm.png" alt="Triple Gana" className="h-7 w-auto object-contain" />
+          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940209/Untitled_design_zynbxm.png" alt="Triple Gana" className="h-5 sm:h-7 w-auto object-contain" />
         </Link>
         <Link href="https://www.conalot.gob.ve" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
-          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/3_cvgejv.png" alt="Conalot" className="h-7 w-auto object-contain" />
+          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/3_cvgejv.png" alt="Conalot" className="h-5 sm:h-7 w-auto object-contain" />
         </Link>
         <Link href="https://supergana.com.ve/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
-          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/2_uaee43.png" alt="Super Gana" className="h-7 w-auto object-contain" />
+          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/2_uaee43.png" alt="Super Gana" className="h-5 sm:h-7 w-auto object-contain" />
         </Link>
       </div>
   <div className="p-4 pb-0 space-y-2 mb-2">

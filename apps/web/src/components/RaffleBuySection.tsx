@@ -37,7 +37,25 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
     onError: (e: any) => setErrorMsg(e?.message ?? 'No se pudieron liberar los tickets'),
   });
 
-  const gridStyle = useMemo(() => ({ gridTemplateColumns: `repeat(10, minmax(40px, 1fr))` }), []);
+  // Grid responsivo: menos columnas y celdas más compactas en pantallas pequeñas para evitar overflow horizontal
+  const [cols, setCols] = useState<number>(10);
+  useEffect(() => {
+    const compute = () => {
+      const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
+      if (w < 360) return 6;
+      if (w < 420) return 7;
+      if (w < 520) return 8;
+      if (w < 640) return 9;
+      return 10;
+    };
+    const apply = () => setCols(compute());
+    apply();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', apply);
+      return () => window.removeEventListener('resize', apply);
+    }
+  }, []);
+  const gridStyle = useMemo(() => ({ gridTemplateColumns: `repeat(${cols}, minmax(36px, 1fr))` }), [cols]);
 
   // Rehidratación inicial desde localStorage
   useEffect(() => {

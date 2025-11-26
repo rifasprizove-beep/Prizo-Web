@@ -62,7 +62,8 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
       </div>
     );
   }
-  if (phase === 'finished') {
+  // Cuando el sorteo ya tiene ganador publicado, usamos el estado efectivo
+  if (effStatus === 'drawn') {
     return (
       <div className="rounded-2xl border p-4 bg-gray-600/30 text-center text-gray-300">
         Sorteo finalizado — ganador publicado
@@ -73,7 +74,8 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
       </div>
     );
   }
-  const disabledAll = phase === 'finished';
+  // Deshabilitar participación si ventas cerradas o ganador publicado
+  const disabledAll = phase === 'awaiting_winner' || effStatus === 'drawn';
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));
@@ -85,7 +87,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
 
   return (
     <div className="space-y-3">
-      {phase === 'finished' && (
+      {effStatus === 'drawn' && (
         <div className="rounded-xl border p-3 bg-white text-center text-gray-700">
           Sorteo realizado. La sección de participación se muestra solo a modo informativo.
           Consulta los ganadores en el botón GANADOR arriba o en el{' '}

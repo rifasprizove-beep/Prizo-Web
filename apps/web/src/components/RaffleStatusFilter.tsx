@@ -54,7 +54,7 @@ export function RaffleStatusFilter({ value, onChange }: { value: StatusMode; onC
 
       <div className="relative z-10 inline-flex items-center gap-0">
         <button
-          ref={el => (btnRefs.current[0] = el)}
+          ref={(el: HTMLButtonElement | null) => { btnRefs.current[0] = el; }}
           type="button"
           onClick={() => onChange("open")}
           aria-pressed={value === "open"}
@@ -65,7 +65,7 @@ export function RaffleStatusFilter({ value, onChange }: { value: StatusMode; onC
           Abiertas
         </button>
         <button
-          ref={el => (btnRefs.current[1] = el)}
+          ref={(el: HTMLButtonElement | null) => { btnRefs.current[1] = el; }}
           type="button"
           onClick={() => onChange("closed")}
           aria-pressed={value === "closed"}
@@ -76,7 +76,7 @@ export function RaffleStatusFilter({ value, onChange }: { value: StatusMode; onC
           Cerradas
         </button>
         <button
-          ref={el => (btnRefs.current[2] = el)}
+          ref={(el: HTMLButtonElement | null) => { btnRefs.current[2] = el; }}
           type="button"
           onClick={() => onChange("all")}
           aria-pressed={value === "all"}

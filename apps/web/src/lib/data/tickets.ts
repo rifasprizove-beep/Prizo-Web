@@ -6,13 +6,29 @@ function legacyBase() { return apiBase(); }
 
 export async function listTickets(raffleId: string) {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('tickets')
-    .select('*')
-    .eq('raffle_id', raffleId)
-    .order('ticket_number', { ascending: true });
-  if (error) throw error;
-  return data ?? [];
+  // Supabase limita ~1000 filas por request. Paginamos en bloques.
+  const PAGE = 1000;
+  let from = 0;
+  const all: any[] = [];
+  // Límite de seguridad por si hay datos inconsistentes (p.ej. > 100k)
+  const HARD_CAP = 100_000;
+  while (from < HARD_CAP) {
+    const to = from + PAGE - 1;
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('raffle_id', raffleId)
+      .order('ticket_number', { ascending: true })
+      .range(from, to);
+    if (error) throw error;
+    const chunk = data ?? [];
+    all.push(...chunk);
+    if (chunk.length < PAGE) break; // última página
+    from += PAGE;
+  }
+  // Asegurar orden por ticket_number por si el backend no lo respeta entre páginas
+  all.sort((a, b) => (Number(a.ticket_number) || 0) - (Number(b.ticket_number) || 0));
+  return all;
 }
 
 export async function reserveTickets(ids: string[], sessionId: string, minutes = 10) {

@@ -57,6 +57,7 @@ export function FreeParticipationForm({
     defaultValues: { ciPrefix: 'V' },
     mode: 'onChange',
   });
+  const storageKey = `prizo_free_${raffleId}_${sessionId}`;
   // Aviso si la API no está configurada (ayuda a explicar por qué la CI podría no persistirse)
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '';
   const [citySelect, setCitySelect] = useState<string>('');
@@ -144,6 +145,7 @@ export function FreeParticipationForm({
         }
       } catch {}
       onCreated?.(paymentId);
+      try { localStorage.removeItem(storageKey); } catch {}
     } catch (e: any) {
       const raw = String(e?.message ?? e ?? '');
       let friendly = 'No se pudo registrar tu participación. Intenta nuevamente.';
@@ -157,6 +159,49 @@ export function FreeParticipationForm({
       setSubmitting(false);
     }
   });
+
+  // Rehidratar valores guardados al montar
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+      if (!raw) return;
+      const data = JSON.parse(raw) as Partial<Record<string, any>>;
+      const fields = ['email','phone','city','ciPrefix','ciNumber','instagram','termsAccepted'] as const;
+      fields.forEach((f) => {
+        if (data[f] !== undefined) setValue(f as any, data[f] as any, { shouldValidate: false });
+      });
+      const savedCity = typeof data.city === 'string' ? data.city : '';
+      if (savedCity) {
+        if ((VE_CITIES as string[]).includes(savedCity)) {
+          setCitySelect(savedCity);
+        } else {
+          setCitySelect('OTRA');
+          setValue('city', savedCity, { shouldValidate: false });
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // Guardar cambios del formulario en localStorage
+  useEffect(() => {
+    const sub = watch((values) => {
+      try {
+        const payload = {
+          email: (values as any).email ?? '',
+          phone: (values as any).phone ?? '',
+          city: (values as any).city ?? '',
+          ciPrefix: (values as any).ciPrefix ?? 'V',
+          ciNumber: (values as any).ciNumber ?? '',
+          instagram: (values as any).instagram ?? '',
+          termsAccepted: (values as any).termsAccepted ?? false,
+        };
+        if (typeof window !== 'undefined') localStorage.setItem(storageKey, JSON.stringify(payload));
+      } catch {}
+    });
+    return () => { try { sub.unsubscribe?.(); } catch {} };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-4 bg-surface-700 text-white shadow-sm">

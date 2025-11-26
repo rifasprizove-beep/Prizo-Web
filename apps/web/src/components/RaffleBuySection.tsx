@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listTickets, reserveTickets, releaseTickets } from '@/lib/data/tickets';
 import { ensureSession } from '@/lib/rpc';
@@ -56,6 +56,37 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
     }
   }, []);
   const gridStyle = useMemo(() => ({ gridTemplateColumns: `repeat(${cols}, minmax(36px, 1fr))` }), [cols]);
+
+  // Virtualización de grilla (solo rifas pagas): contenedor scrollable + render de tramo visible
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportH, setViewportH] = useState(0);
+  const overscanRows = 3;
+  const itemH = useMemo(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const base = w < 640 ? 40 : 48; // h-10 vs h-12
+    const gap = 8; // gap-2 ~ 8px
+    return base + gap;
+  }, [typeof window !== 'undefined' ? (window.innerWidth < 640 ? 'sm' : 'lg') : 'ssr']);
+  // Actualizar viewportH al montar y al redimensionar
+  useEffect(() => {
+    const update = () => {
+      if (scrollRef.current) setViewportH(scrollRef.current.clientHeight || 0);
+    };
+    update();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
+    }
+  }, []);
+  const total = (ticketsQ.data ?? []).length;
+  const totalRows = Math.max(0, Math.ceil(total / Math.max(1, cols)));
+  const startRow = Math.max(0, Math.floor(scrollTop / Math.max(1, itemH)) - overscanRows);
+  const endRow = Math.min(totalRows, Math.ceil((scrollTop + viewportH) / Math.max(1, itemH)) + overscanRows);
+  const startIndex = startRow * Math.max(1, cols);
+  const endIndex = Math.min(total, endRow * Math.max(1, cols));
+  const topSpacerH = startRow * itemH;
+  const bottomSpacerH = Math.max(0, (totalRows - endRow) * itemH);
 
   // Rehidratación inicial desde localStorage
   useEffect(() => {
@@ -270,15 +301,30 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
       {!isFree && ticketsQ.isLoading && !restoring ? (
         <div className="p-4">Cargando tickets…</div>
       ) : !isFree ? (
-        <div className="grid gap-2" style={gridStyle as any}>
-          {(ticketsQ.data ?? []).map((t: any) => (
-            <TicketNumber
-              key={t.id}
-              t={t}
-              isSelected={selectedIds.includes(t.id)}
-              onClick={() => handleClick(t.id, t.status)}
-            />
-          ))}
+        <div
+          ref={scrollRef}
+          className="max-h-[70vh] overflow-auto rounded-md border border-gray-200/20"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            setScrollTop(el.scrollTop);
+          }}
+        >
+          {/* Altura total simulada para permitir el scroll */}
+          <div style={{ height: totalRows * itemH }}>
+            {/* Slice visible: usamos spacers superior/inferior para ubicar el tramo en su posición */}
+            <div style={{ height: topSpacerH }} />
+            <div className="grid gap-2" style={gridStyle as any}>
+              {(ticketsQ.data ?? []).slice(startIndex, endIndex).map((t: any) => (
+                <TicketNumber
+                  key={t.id}
+                  t={t}
+                  isSelected={selectedIds.includes(t.id)}
+                  onClick={() => handleClick(t.id, t.status)}
+                />
+              ))}
+            </div>
+            <div style={{ height: bottomSpacerH }} />
+          </div>
         </div>
       ) : (
         <div className="max-w-xl mx-auto w-full">

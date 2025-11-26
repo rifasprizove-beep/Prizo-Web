@@ -23,10 +23,9 @@ export const checkoutSchema = z.object({
   ciPrefix: z.enum(['V','E']).optional(),
   ciNumber: z.string().trim().regex(/^[0-9]{5,10}$/,{ message: 'Cédula inválida (5-10 dígitos)' }).optional().or(z.literal('')),
   instagram: z.string().trim()
-    .transform(v => v === '' ? '' : (v.startsWith('@') ? v : '@'+v))
-    .refine(v => v === '' || INSTAGRAM_REGEX.test(v), { message: 'Usuario Instagram inválido' })
-    .refine(v => v === '' || !INSTAGRAM_INVALID_DOTS.test(v), { message: 'Usuario Instagram con puntos inválidos' })
-    .optional().or(z.literal('')),
+    .transform(v => (v.startsWith('@') ? v : '@'+v))
+    .refine(v => INSTAGRAM_REGEX.test(v), { message: 'Usuario Instagram inválido' })
+    .refine(v => !INSTAGRAM_INVALID_DOTS.test(v), { message: 'Usuario Instagram con puntos inválidos' }),
   method: z.string().trim().min(1, 'Selecciona un método').max(40, 'Método demasiado largo'),
   // Referencia: usar trim nativo antes de validaciones para evitar encadenar .min sobre ZodEffects
   reference: z.string().trim()
@@ -62,7 +61,7 @@ export function CheckoutForm({
     defaultValues: { ciPrefix: 'V' },
   });
   const [submitting, setSubmitting] = useState(false);
-  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const storageKey = `prizo_checkout_${raffleId}_${sessionId}`;
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
@@ -76,6 +75,52 @@ export function CheckoutForm({
       if (info && info.rate > 0) setBcvInfo({ rate: info.rate, source: info.source });
     })();
   }, []);
+
+  // Rehidratación del formulario desde localStorage para no perder datos al salir y volver
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+      if (!raw) return;
+      const data = JSON.parse(raw) as Partial<Record<string, any>>;
+      const fields = ['email','phone','city','ciPrefix','ciNumber','instagram','method','reference','termsAccepted'] as const;
+      fields.forEach((f) => {
+        if (data[f] !== undefined) setValue(f as any, data[f] as any, { shouldValidate: false });
+      });
+      // Sincronizar selector de ciudad
+      const savedCity = typeof data.city === 'string' ? data.city : '';
+      if (savedCity) {
+        if ((VE_CITIES as string[]).includes(savedCity)) {
+          setCitySelect(savedCity);
+        } else {
+          setCitySelect('OTRA');
+          setValue('city', savedCity, { shouldValidate: false });
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // Persistir cambios del formulario en localStorage
+  useEffect(() => {
+    const sub = watch((values) => {
+      try {
+        const payload = {
+          email: (values as any).email ?? '',
+          phone: (values as any).phone ?? '',
+          city: (values as any).city ?? '',
+          ciPrefix: (values as any).ciPrefix ?? 'V',
+          ciNumber: (values as any).ciNumber ?? '',
+          instagram: (values as any).instagram ?? '',
+          method: (values as any).method ?? '',
+          reference: (values as any).reference ?? '',
+          termsAccepted: (values as any).termsAccepted ?? false,
+        };
+        if (typeof window !== 'undefined') localStorage.setItem(storageKey, JSON.stringify(payload));
+      } catch {}
+    });
+    return () => { try { sub.unsubscribe?.(); } catch {} };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
 
   const onSubmit = handleSubmit(async (values) => {
     if (submitting) return;
@@ -118,7 +163,7 @@ export function CheckoutForm({
       p_phone: (values.phone || '').replace(/\D/g, ''),
       p_city: values.city,
       p_ci: ciCombined,
-      p_instagram: values.instagram || null,
+      p_instagram: values.instagram,
       p_method: values.method,
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,
@@ -130,6 +175,7 @@ export function CheckoutForm({
     onCreated?.(paymentId);
     reset();
     setSubmitting(false);
+    try { localStorage.removeItem(storageKey); } catch {}
   });
 
   const evidence = watch('evidence');
@@ -191,7 +237,7 @@ export function CheckoutForm({
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Usuario de Instagram (opcional)</label>
+          <label className="block text-sm font-medium">Usuario de Instagram</label>
           <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
@@ -255,7 +301,7 @@ export function CheckoutForm({
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
   <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
         <div className="sm:col-span-2 flex flex-col items-center">
-          <label className="block text-sm font-medium w-full text-center">Evidencia (imagen/pdf) (JPG, PNG o PDF máx 5MB)</label>
+          <label className="block text-sm font-medium w-full text-center">Evidencia (JPG, PNG o PDF máx 5MB)</label>
           {/* Input real oculto */}
           <input
             ref={fileInputRef}

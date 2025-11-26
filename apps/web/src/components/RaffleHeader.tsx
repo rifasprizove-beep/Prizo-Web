@@ -124,12 +124,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-4">
-          <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="rounded-full bg-brand-600/50 p-1.5 border border-white/20">
+            <div className="flex flex-row items-center gap-1">
               <a
                 href="#sec-buy"
                 onClick={() => { setShowWinners(false); setShowTopBuyers(false); if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search); }}
-                className={`w-full sm:flex-1 text-center font-semibold px-4 py-3 rounded-full tap-safe ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
+                className={`flex-1 text-center font-semibold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
               >
                 {isFree ? 'PARTICIPAR' : 'COMPRAR'}
               </a>
@@ -149,7 +149,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     return next;
                   });
                 }}
-                className={`w-full sm:flex-1 text-center font-extrabold px-4 py-3 rounded-full tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
+                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
               >
                 TOP COMPRADORES
               </button>
@@ -171,7 +171,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     return next;
                   });
                 }}
-                className={`w-full sm:flex-1 text-center font-extrabold px-4 py-3 rounded-full tap-safe ${showWinners ? 'bg-white text-brand-700' : (isDrawnEffective ? 'text-white/80 hover:text-white border border-white/30' : 'text-white/50 border border-white/20')}`}
+                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners ? 'bg-white text-brand-700' : (isDrawnEffective ? 'text-white/80 hover:text-white border border-white/30' : 'text-white/50 border border-white/20')}`}
               >
                 GANADOR
               </button>

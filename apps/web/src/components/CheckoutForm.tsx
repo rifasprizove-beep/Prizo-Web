@@ -197,7 +197,7 @@ export function CheckoutForm({
         </div>
         <div>
           <label className="block text-sm font-medium">Cédula</label>
-          <div className="mt-1 flex gap-2">
+          <div className="mt-1 flex gap-2 w-full">
             <select className="w-20 sm:w-24 border rounded-lg p-3 text-base bg-surface-800" {...register('ciPrefix')}>
               <option value="V">V</option>
               <option value="E">E</option>
@@ -207,7 +207,7 @@ export function CheckoutForm({
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={10}
-              className="flex-1 border rounded-lg p-3 text-base bg-surface-800"
+              className="flex-1 min-w-0 border rounded-lg p-3 text-base bg-surface-800"
               placeholder="12345678"
               {...register('ciNumber')}
               onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '').slice(0,10); }}

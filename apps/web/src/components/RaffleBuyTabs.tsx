@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { RaffleQuickBuy } from "./RaffleQuickBuy";
 import type { RafflePaymentInfo } from "@/lib/data/paymentConfig";
+import type { RafflePaymentMethod } from "@/lib/data/paymentConfig";
 import { RaffleBuySection } from "./RaffleBuySection";
 
-export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, allowManual = true, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; allowManual?: boolean; isFree?: boolean; disabledAll?: boolean }) {
+export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, allowManual = true, isFree = false, disabledAll = false, methodSelector }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; allowManual?: boolean; isFree?: boolean; disabledAll?: boolean; methodSelector?: { methods: RafflePaymentMethod[]; index: number; onChange: (n: number) => void } }) {
   const [tab, setTab] = useState<"quick" | "manual">("quick");
 
   return (
@@ -32,6 +33,19 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
             Esta rifa asigna los números <b>al azar</b>. Puedes indicar cuántos quieres y los reservaremos por 10 minutos.
           </div>
         )
+      )}
+
+      {methodSelector && (
+        <div className="flex items-center justify-center gap-2">
+          {methodSelector.methods.map((m, i) => (
+            <button
+              key={m.key ?? i}
+              type="button"
+              className={`px-3 py-1.5 rounded-full text-sm border ${methodSelector.index === i ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-pink-700 border-pink-300'}`}
+              onClick={() => methodSelector.onChange(i)}
+            >{m.method_label ?? (i === 0 ? 'Pago Móvil' : 'Otro método')}</button>
+          ))}
+        </div>
       )}
 
       {tab === 'quick' ? (

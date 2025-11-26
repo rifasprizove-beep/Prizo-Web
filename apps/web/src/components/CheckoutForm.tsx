@@ -63,6 +63,7 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const storageKey = `prizo_checkout_${raffleId}_${sessionId}`;
+  const [methodLocal, setMethodLocal] = useState<string>(methodLabel ?? 'Pago');
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
@@ -190,6 +191,20 @@ export function CheckoutForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-3 sm:p-4 bg-surface-700 text-white shadow-sm">
       <h2 className="text-lg font-semibold">Confirmar pago</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+        <div>
+          <label className="block text-sm font-medium">Método de pago</label>
+          <select
+            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            value={methodLocal}
+            onChange={(e) => { setMethodLocal(e.target.value); setValue('method', e.target.value, { shouldValidate: true }); }}
+          >
+            <option value={methodLabel ?? 'Pago'}>{methodLabel ?? 'Pago'}</option>
+            <option value="Pago Móvil">Pago Móvil</option>
+            <option value="Transferencia">Transferencia</option>
+          </select>
+        </div>
+      </div>
       {count > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
@@ -205,8 +220,8 @@ export function CheckoutForm({
       {bcvInfo?.rate && (
         <p className="text-xs text-gray-400">Tasa BCV del día: {Number(bcvInfo.rate).toFixed(2)} Bs/USD</p>
       )}
-  {/* Mantener método como campo oculto (ya mostrado arriba) */}
-  <input type="hidden" value={methodLabel ?? ''} {...register('method')} />
+  {/* Guardar método seleccionado para el backend */}
+  <input type="hidden" value={methodLocal ?? ''} {...register('method')} />
 
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
@@ -220,23 +235,25 @@ export function CheckoutForm({
           />
           {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message as string}</p>}
         </div>
-        <div>
-          <label className="block text-sm font-medium">Teléfono</label>
-          <input
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={11}
-            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
-            placeholder="04121234567"
-            {...register('phone')}
-            onChange={(e) => {
-              const digits = e.currentTarget.value.replace(/\D/g,'').slice(0,11);
-              e.currentTarget.value = digits;
-            }}
-          />
-          {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
-        </div>
+        {/pago móvil|movil|móvil/i.test(methodLocal) && (
+          <div>
+            <label className="block text-sm font-medium">Teléfono</label>
+            <input
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={11}
+              className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
+              placeholder="04121234567"
+              {...register('phone')}
+              onChange={(e) => {
+                const digits = e.currentTarget.value.replace(/\D/g,'').slice(0,11);
+                e.currentTarget.value = digits;
+              }}
+            />
+            {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium">Usuario de Instagram</label>
           <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="@tuusuario" {...register('instagram')} />

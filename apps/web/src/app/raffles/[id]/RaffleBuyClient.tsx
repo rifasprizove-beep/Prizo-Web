@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getRaffle } from '@/lib/data/raffles';
+import { getRaffle, getRaffleCounters } from '@/lib/data/raffles';
 import { getLastDraw } from '@/lib/data/draws';
 import { RaffleBuyTabs } from '@/components/RaffleBuyTabs';
-import { getRafflePaymentInfo } from '@/lib/data/paymentConfig';
+import { getRafflePaymentInfo, getRafflePaymentMethods, type RafflePaymentMethod } from '@/lib/data/paymentConfig';
 import { effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
 
 export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
@@ -33,6 +33,15 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
+  const countersQ = useQuery({
+    queryKey: ['raffle-counters', raffleId],
+    queryFn: () => getRaffleCounters(raffleId),
+    enabled: !!raffleQ.data,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 4000,
+  });
   const payQ = useQuery({
     queryKey: ['raffle-payment', raffleId],
     queryFn: () => getRafflePaymentInfo(raffleId),
@@ -41,11 +50,29 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
+  const methodsQ = useQuery({
+    queryKey: ['raffle-payment-methods', raffleId],
+    queryFn: () => getRafflePaymentMethods(raffleId),
+    enabled: !!raffleQ.data,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const [methodIdx, setMethodIdx] = useState<number>(0);
+  const selectedMethod: RafflePaymentMethod | null = (methodsQ.data && methodsQ.data.length) ? methodsQ.data[Math.max(0, Math.min(methodIdx, methodsQ.data.length - 1))] : null;
   if (raffleQ.isLoading) return <div className="p-4">Cargando…</div>;
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
   const effStatus = effectiveRaffleStatus(raffleQ.data);
   const phase = uiRafflePhase(raffleQ.data);
   const isDrawn = effStatus === 'drawn';
+  const counters = countersQ.data ?? null;
+  const total = counters ? Number((counters as any).total_tickets ?? 0) : Number(raffleQ.data.total_tickets ?? 0);
+  const sold = counters ? Number((counters as any).sold ?? 0) : 0;
+  const reserved = counters ? Number((counters as any).reserved ?? 0) : 0;
+  const available = counters ? Number((counters as any).available ?? Math.max(0, total - (sold + reserved))) : Math.max(0, total - (sold + reserved));
+  const isPaid = !((raffleQ.data as any)?.is_free === true || (raffleQ.data.ticket_price_cents ?? 0) === 0);
+  const soldOut = isPaid && total > 0 && sold >= total;
+  const noneAvailable = isPaid && total > 0 && available <= 0 && !soldOut;
   if (phase === 'upcoming') {
     return (
       <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
@@ -56,10 +83,10 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
       </div>
     );
   }
-  if (phase === 'awaiting_winner') {
+  if (phase === 'awaiting_winner' || soldOut) {
     return (
       <div className="rounded-2xl border p-4 bg-yellow-500/10 border-yellow-500/30 text-center text-yellow-100">
-        Ventas cerradas — esperando ganador
+        {soldOut ? 'Agotado — ventas cerradas' : 'Ventas cerradas — esperando ganador'}
       </div>
     );
   }
@@ -76,7 +103,8 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     );
   }
   // Deshabilitar participación si ya hay ganador publicado
-  const disabledAll = isDrawn;
+  // Deshabilitar compra si sorteada o si temporalmente no hay disponibilidad
+  const disabledAll = isDrawn || soldOut || noneAvailable;
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));
@@ -88,6 +116,11 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
 
   return (
     <div className="space-y-3">
+      {noneAvailable && (
+        <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
+          No hay tickets disponibles en este momento. Espera a que se liberen reservas.
+        </div>
+      )}
       {isDrawn && (
         <div className="rounded-xl border p-3 bg-white text-center text-gray-700">
           Sorteo realizado. La sección de participación se muestra solo a modo informativo.
@@ -101,10 +134,15 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
         totalTickets={raffleQ.data.total_tickets}
         unitPriceCents={raffleQ.data.ticket_price_cents}
         minTicketPurchase={(raffleQ.data as any).min_ticket_purchase ?? 1}
-        paymentInfo={payQ.data ?? null}
+        paymentInfo={selectedMethod ?? (payQ.data ?? null)}
         allowManual={allowManual}
         isFree={isFree}
         disabledAll={disabledAll}
+        methodSelector={methodsQ.data && methodsQ.data.length > 1 ? {
+          methods: methodsQ.data,
+          index: methodIdx,
+          onChange: setMethodIdx,
+        } : undefined}
       />
     </div>
   );

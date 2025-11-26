@@ -46,7 +46,11 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   // Defensive conversion: Supabase may return numeric fields as strings.
   const soldNum = counters ? Number((counters as any).sold ?? 0) : 0;
   const totalNum = counters ? Number((counters as any).total_tickets ?? 0) : 0;
+  const reservedNum = counters ? Number((counters as any).reserved ?? 0) : 0;
   const percent = totalNum > 0 ? Math.max(0, Math.min(100, (soldNum / totalNum) * 100)) : 0;
+  const isPaid = !(isFree);
+  const soldOut = isPaid && totalNum > 0 && soldNum >= totalNum;
+  const noneAvailable = isPaid && totalNum > 0 && (Math.max(0, totalNum - (soldNum + reservedNum)) <= 0) && !soldOut;
 
   if (process.env.NEXT_PUBLIC_DEBUG === '1') {
     try {
@@ -120,6 +124,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
             <div className="h-3 w-full rounded-full bg-white/30">
               <div className="h-3 rounded-full bg-white" style={{ width: `${percent}%` }} />
             </div>
+            {soldOut && (
+              <div className="mt-2 text-xs font-semibold inline-block px-2 py-1 rounded bg-white text-brand-700">Agotado</div>
+            )}
+            {!soldOut && noneAvailable && (
+              <div className="mt-2 text-xs inline-block px-2 py-1 rounded bg-white/70 text-brand-700">Sin disponibilidad por reservas</div>
+            )}
           </div>
         )}
 

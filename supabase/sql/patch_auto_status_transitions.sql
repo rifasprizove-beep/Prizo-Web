@@ -31,6 +31,19 @@ BEGIN
      AND ends_at IS NOT NULL
      AND ends_at <= now();
 
+  -- selling|published -> drawn (agotado: todos los tickets vendidos)
+  -- Usamos la vista raffle_ticket_counters para comparar sold vs total_tickets
+  UPDATE raffles r
+     SET status = 'drawn'
+   WHERE r.status IN ('selling','published')
+     AND EXISTS (
+       SELECT 1
+       FROM raffle_ticket_counters c
+       WHERE c.raffle_id = r.id
+         AND c.sold >= c.total_tickets
+         AND c.total_tickets > 0
+     );
+
   -- drawn -> closed (existe winner público)
   UPDATE raffles r
      SET status = 'closed'
@@ -56,7 +69,7 @@ BEGIN
       PERFORM cron.schedule(
         'raffle_status_transitions',
         '* * * * *',
-        $$SELECT public.apply_raffle_status_transitions();$$
+        'SELECT public.apply_raffle_status_transitions();'
       );
     END IF;
   END IF;

@@ -10,6 +10,62 @@ export type RafflePaymentInfo = {
   method_label?: string | null;
 };
 
+export type RafflePaymentMethod = RafflePaymentInfo & { key?: string | null };
+
+export async function getRafflePaymentMethods(raffleId: string): Promise<RafflePaymentMethod[] | null> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('raffles')
+      .select('payment_methods')
+      .eq('id', raffleId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    let pm = (data as any).payment_methods ?? null;
+    if (!pm) return null;
+
+    const pick = (obj: any): RafflePaymentMethod => {
+      const first = (o: any, keys: string[]) => {
+        for (const k of keys) {
+          if (o && o[k] != null && o[k] !== '') return o[k];
+        }
+        return null;
+      };
+      return {
+        bank: first(obj, ['bank', 'pm_bank']),
+        phone: first(obj, ['phone', 'pm_phone']),
+        id_number: first(obj, ['id_number', 'id', 'pm_id', 'cedula', 'rif']),
+        holder: first(obj, ['holder', 'pm_holder', 'titular', 'name']),
+        type: first(obj, ['type', 'pm_type', 'account_type']),
+        active: first(obj, ['active', 'pm_active']),
+        method_label: first(obj, ['method_label', 'pm_method_label', 'label']),
+        key: first(obj, ['key', 'id', 'name']),
+      } as RafflePaymentMethod;
+    };
+
+    const out: RafflePaymentMethod[] = [];
+    if (Array.isArray(pm)) {
+      pm.forEach((m: any) => out.push(pick(m)));
+    } else if (typeof pm === 'object') {
+      // Si viene como objeto con claves por método
+      Object.keys(pm).forEach((k) => {
+        const obj = (pm as any)[k];
+        if (obj && typeof obj === 'object') {
+          const m = pick(obj);
+          m.key = m.key ?? k;
+          out.push(m);
+        }
+      });
+      if (!out.length) out.push(pick(pm));
+    }
+    return out.length ? out : null;
+  } catch (e) {
+    console.warn('Payment methods not available on raffles table:', e);
+    return null;
+  }
+}
+
 export async function getRafflePaymentInfo(raffleId: string): Promise<RafflePaymentInfo | null> {
   const supabase = getSupabase();
   try {

@@ -8,17 +8,33 @@ import { createPaymentForSession, ensureSession } from '@/lib/rpc';
 import { centsToUsd, getBcvRatePreferApi, getEnvFallbackRate, round0, round1, round2 } from '@/lib/data/rate';
 import { VE_CITIES } from '@/lib/data/cities';
 
+// Patrones estrictos
+const PHONE_REGEX = /^(?:\+?58)?0?(4\d{2})\d{7}$/; // móvil VE (11 dígitos núcleo)
+const INSTAGRAM_REGEX = /^@?[A-Za-z0-9._]{2,30}$/;
+const INSTAGRAM_INVALID_DOTS = /\.\.|\.$/;
+const REF_REGEX = /^[A-Za-z0-9_-]{4,80}$/;
 export const checkoutSchema = z.object({
-  email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
-  phone: z.string().min(6, 'Teléfono requerido'),
-  city: z.string().min(2, 'Ciudad requerida'),
+  email: z.string().trim().email({ message: 'Email inválido' }).max(120, 'Email demasiado largo'),
+  phone: z.string().trim()
+    .transform(v => v.replace(/\D/g, ''))
+    .refine(v => /^\d{10,11}$/.test(v), { message: 'Teléfono inválido (10-11 dígitos)' })
+    .refine(v => PHONE_REGEX.test(v), { message: 'Teléfono venezolano inválido (ej: 04121234567)' }),
+  city: z.string().trim().min(2, 'Ciudad requerida').max(40, 'Ciudad demasiado larga'),
   ciPrefix: z.enum(['V','E']).optional(),
-  ciNumber: z.string().regex(/^\d+$/, { message: 'Solo números' }).min(5, 'Cédula inválida').optional().or(z.literal('')),
-  instagram: z.string().optional().or(z.literal('')),
-  method: z.string().min(1, 'Selecciona un método'),
-  reference: z.string().optional().or(z.literal('')),
+  ciNumber: z.string().trim().regex(/^[0-9]{5,10}$/,{ message: 'Cédula inválida (5-10 dígitos)' }).optional().or(z.literal('')),
+  instagram: z.string().trim()
+    .transform(v => v === '' ? '' : (v.startsWith('@') ? v : '@'+v))
+    .refine(v => v === '' || INSTAGRAM_REGEX.test(v), { message: 'Usuario Instagram inválido' })
+    .refine(v => v === '' || !INSTAGRAM_INVALID_DOTS.test(v), { message: 'Usuario Instagram con puntos inválidos' })
+    .optional().or(z.literal('')),
+  method: z.string().trim().min(1, 'Selecciona un método').max(40, 'Método demasiado largo'),
+  // Referencia: usar trim nativo antes de validaciones para evitar encadenar .min sobre ZodEffects
+  reference: z.string().trim()
+    .min(4, 'Referencia mínima 4 caracteres')
+    .max(80, 'Referencia máxima 80 caracteres')
+    .regex(REF_REGEX, 'Referencia inválida (solo letras, números, _ - )'),
   amount_ves: z.string().optional(),
-  evidence: z.any().optional(),
+  evidence: z.any().optional(), // validación manual
   termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los Términos y Condiciones' }) }),
 });
 
@@ -41,11 +57,12 @@ export function CheckoutForm({
   unitPriceCents?: number;
   methodLabel?: string;
 }) {
-  const { register, handleSubmit, setValue, formState: { errors }, watch, reset } = useForm<z.infer<typeof checkoutSchema>>({
+  const { register, handleSubmit, setValue, formState: { errors }, watch, reset, getValues } = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { ciPrefix: 'V' },
   });
   const [submitting, setSubmitting] = useState(false);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
@@ -66,9 +83,22 @@ export function CheckoutForm({
     // Marcar aceptación de TyC en storage (para futuras validaciones globales)
     try { localStorage.setItem('prizo_terms_accepted_v1', '1'); } catch {}
     let evidence_url: string | null = null;
-    const ev = watch('evidence') as File | undefined;
+    const ev = getValues('evidence') as File | undefined;
     if (ev && typeof ev !== 'string') {
+      const allowed = ['image/jpeg','image/png','application/pdf'];
+      if (!allowed.includes(ev.type)) {
+        setEvidenceError('Tipo de archivo no permitido (usa JPG, PNG o PDF)');
+        setSubmitting(false); return;
+      }
+      const MAX_SIZE = 5 * 1024 * 1024;
+      if (ev.size > MAX_SIZE) {
+        setEvidenceError('Archivo demasiado grande (máx 5MB)');
+        setSubmitting(false); return;
+      }
+      setEvidenceError(null);
       evidence_url = await uploadEvidence(ev, `evidence/${raffleId}/${sessionId}`);
+    } else {
+      setEvidenceError(null);
     }
     // Calcular montos y tasa usada
     const unitUSD = centsToUsd(unitPriceCents ?? 0);
@@ -84,7 +114,7 @@ export function CheckoutForm({
     const paymentId = await createPaymentForSession({
       p_raffle_id: raffleId,
       p_session_id: sessionId,
-      p_email: values.email || null,
+      p_email: values.email,
       p_phone: (values.phone || '').replace(/\D/g, ''),
       p_city: values.city,
       p_ci: ciCombined,
@@ -133,13 +163,28 @@ export function CheckoutForm({
 
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="block text-sm font-medium">Email (opcional)</label>
-          <input type="email" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="tucorreo@mail.com" {...register('email')} />
+          <label className="block text-sm font-medium">Email</label>
+          <input
+            type="email"
+            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            placeholder="tucorreo@mail.com"
+            {...register('email')}
+          />
           {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message as string}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">Teléfono</label>
-          <input type="tel" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="0412-0000000" {...register('phone')} />
+          <input
+            type="tel"
+            maxLength={11}
+            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            placeholder="04121234567"
+            {...register('phone')}
+            onChange={(e) => {
+              const digits = e.currentTarget.value.replace(/\D/g,'').slice(0,11);
+              e.currentTarget.value = digits;
+            }}
+          />
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
         </div>
         <div>
@@ -148,7 +193,7 @@ export function CheckoutForm({
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Cédula (opcional)</label>
+          <label className="block text-sm font-medium">Cédula</label>
           <div className="mt-1 flex gap-2">
             <select className="w-20 sm:w-24 border rounded-lg p-2 bg-surface-800" {...register('ciPrefix')}>
               <option value="V">V</option>
@@ -158,10 +203,11 @@ export function CheckoutForm({
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
+              maxLength={10}
               className="flex-1 border rounded-lg p-2 bg-surface-800"
               placeholder="12345678"
               {...register('ciNumber')}
-              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''); }}
+              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '').slice(0,10); }}
             />
           </div>
           {errors.ciNumber && <p className="text-xs text-red-600 mt-1">{errors.ciNumber.message as string}</p>}
@@ -199,13 +245,14 @@ export function CheckoutForm({
         </div>
         {/* Campo visible de método removido por redundante */}
         <div>
-          <label className="block text-sm font-medium">Referencia (opcional)</label>
+          <label className="block text-sm font-medium">Referencia</label>
           <input type="text" className="mt-1 w-full border rounded-lg p-2 bg-surface-800" placeholder="N° referencia o hash" {...register('reference')} />
+          {errors.reference && <p className="text-xs text-red-600 mt-1">{errors.reference.message as string}</p>}
         </div>
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
   <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
-        <div>
-          <label className="block text-sm font-medium">Evidencia (imagen/pdf)</label>
+        <div className="sm:col-span-2 flex flex-col items-center">
+          <label className="block text-sm font-medium w-full text-center">Evidencia (imagen/pdf) (JPG, PNG o PDF máx 5MB)</label>
           {/* Input real oculto */}
           <input
             ref={fileInputRef}
@@ -217,26 +264,28 @@ export function CheckoutForm({
               if (f) setValue('evidence', f as any, { shouldValidate: false });
             }}
           />
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap justify-center items-center gap-3 w-full">
             <button
               type="button"
-              className="px-3 py-2 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors"
+              className="px-4 py-2 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors min-w-[160px] text-center"
               onClick={() => fileInputRef.current?.click()}
             >Seleccionar archivo</button>
             {evidence && typeof evidence !== 'string' && (
               <>
-                <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[12rem]">{(evidence as File).name}</span>
+                <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[14rem] text-center">{(evidence as File).name}</span>
                 <button
                   type="button"
                   className="text-xs text-red-300 hover:text-red-200 underline"
                   onClick={() => {
                     setValue('evidence', undefined as any, { shouldValidate: false });
                     if (fileInputRef.current) fileInputRef.current.value = '';
+                    setEvidenceError(null);
                   }}
                 >Quitar</button>
               </>
             )}
           </div>
+          {evidenceError && <p className="mt-2 text-xs text-red-500 text-center">{evidenceError}</p>}
         </div>
       </div>
       {/* Aceptación de Términos y Condiciones */}

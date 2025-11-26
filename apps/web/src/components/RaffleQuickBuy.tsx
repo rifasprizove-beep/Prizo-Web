@@ -452,6 +452,33 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExpired, reserved.length, isFree]);
 
+  // Fallback programado: si por alguna razón el efecto de expiración no logra liberar (ej. tab oculta, race), agenda liberación al deadline
+  useEffect(() => {
+    if (isFree) return;
+    if (!reserved.length) return;
+    if (!deadline) return;
+    const ms = Math.max(0, deadline - Date.now() + 1500); // 1.5s después del deadline
+    const id = setTimeout(async () => {
+      // Si ya se liberó o no hay reserva, salir
+      if (!reserved.length || autoReleased) return;
+      const expiredNow = Date.now() >= deadline;
+      if (!expiredNow) return;
+      try {
+        const ids = reserved.map((t: any) => t.id).filter((id: any) => typeof id === 'string' && id.length);
+        if (ids.length) {
+          try { await releaseTickets(ids, sessionId); } catch {}
+        }
+        setReserved([]);
+        setInfo('Reserva expirada — liberada automáticamente (fallback).');
+        try {
+          localStorage.removeItem(storageKey);
+          localStorage.removeItem(`prizo_manual_${raffleId}`);
+        } catch {}
+      } catch {}
+    }, ms);
+    return () => clearTimeout(id);
+  }, [deadline, reserved.length, autoReleased, isFree]);
+
   // Si vuelve a haber reservas nuevas, permitir nuevamente el auto-release en futuras expiraciones
   useEffect(() => {
     if (reserved.length) setAutoReleased(false);
@@ -659,7 +686,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                   </div>
                 )}
 
-                <p className="mt-2 text-xs text-gray-700">Realiza el pago exacto en Bs. Adjunta el comprobante e indica la referencia.</p>
+                <p className="mt-2 text-xs text-white/90">Realiza el pago exacto en Bs. Adjunta el comprobante e indica la referencia.</p>
 
                 {paymentInfo.active === false && (
                   <div className="mt-2 text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2 flex items-center gap-2">

@@ -34,7 +34,7 @@ export function SegmentedControl({ options, value, onChange }: { options: Array<
 				{options.map((o, i) => (
 					<button
 						key={o.key}
-						ref={(el) => (btnRefs.current[i] = el)}
+						ref={(el: HTMLButtonElement | null) => { btnRefs.current[i] = el; }}
 						type="button"
 						role="tab"
 						aria-selected={value === o.key}

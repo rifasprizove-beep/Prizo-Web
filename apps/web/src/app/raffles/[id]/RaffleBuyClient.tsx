@@ -45,6 +45,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
   const effStatus = effectiveRaffleStatus(raffleQ.data);
   const phase = uiRafflePhase(raffleQ.data);
+  const isDrawn = effStatus === 'drawn';
   if (phase === 'upcoming') {
     return (
       <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
@@ -63,7 +64,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     );
   }
   // Cuando el sorteo ya tiene ganador publicado, usamos el estado efectivo
-  if (effStatus === 'drawn') {
+  if (isDrawn) {
     return (
       <div className="rounded-2xl border p-4 bg-gray-600/30 text-center text-gray-300">
         Sorteo finalizado — ganador publicado
@@ -75,7 +76,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     );
   }
   // Deshabilitar participación si ya hay ganador publicado
-  const disabledAll = effStatus === 'drawn';
+  const disabledAll = isDrawn;
   // Regla: si la última draw.rule incluye 'random_only' o 'no_manual', se deshabilita elegir números
   const rule = drawQ.data?.rule?.toLowerCase() ?? '';
   const allowManual = (raffleQ.data.allow_manual !== false) && !(rule.includes('random_only') || rule.includes('no_manual'));
@@ -87,7 +88,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
 
   return (
     <div className="space-y-3">
-      {effStatus === 'drawn' && (
+      {isDrawn && (
         <div className="rounded-xl border p-3 bg-white text-center text-gray-700">
           Sorteo realizado. La sección de participación se muestra solo a modo informativo.
           Consulta los ganadores en el botón GANADOR arriba o en el{' '}

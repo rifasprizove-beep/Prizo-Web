@@ -61,6 +61,7 @@ export function CheckoutForm({
     defaultValues: { ciPrefix: 'V' },
   });
   const [submitting, setSubmitting] = useState(false);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const storageKey = `prizo_checkout_${raffleId}_${sessionId}`;
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre

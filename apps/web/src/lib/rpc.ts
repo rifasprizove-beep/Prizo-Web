@@ -191,7 +191,11 @@ export async function verifyTicketsClient(q: string, includePending: boolean = t
   if (base) {
     try {
       const res = await fetch(`${base}/verify?q=${encodeURIComponent(q)}&include_pending=${includePending ? 'true' : 'false'}`, { cache: 'no-store' });
-      if (!res.ok) return null;
+      // Si la API responde con error, forzar fallback lanzando excepción
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`verify api failed: ${res.status} ${txt}`.trim());
+      }
       const json = await res.json().catch(() => null);
       return json && json.data ? (json.data as any[]) : [];
     } catch {

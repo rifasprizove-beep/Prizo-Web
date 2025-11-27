@@ -18,18 +18,23 @@ const OPTIONS: RawStatus[] = ['all','published','selling','drawn','closed']; // 
 
 export function RaffleRawStatusFilter({ value, onChange }: { value: RawStatus; onChange: (v: RawStatus) => void }) {
   return (
-    <div className="flex flex-wrap gap-2" aria-label="Filtrar por estado exacto">
+    <div
+      className="flex items-center justify-center bg-black/80 border-2 border-brand-400 rounded-full p-1 w-fit mx-auto"
+      aria-label="Filtrar por estado exacto"
+      style={{ boxShadow: '0 0 0 2px #ff2e7a' }}
+    >
       {OPTIONS.map(opt => (
         <button
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
           aria-pressed={value === opt}
-          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+          className={`px-6 py-2 rounded-full text-xs font-semibold transition-colors focus:outline-none ${
             value === opt
-              ? 'bg-brand-500 border-brand-500 text-black'
-              : 'border-brand-400/40 text-brand-200 hover:border-brand-300 hover:text-white'
+              ? 'bg-brand-500 text-black shadow-md'
+              : 'bg-transparent text-brand-200 hover:text-white'
           }`}
+          style={{ border: 'none' }}
         >
           {label(opt)}
         </button>

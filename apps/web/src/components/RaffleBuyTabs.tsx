@@ -29,7 +29,7 @@ export function RaffleBuyTabs({ raffleId, currency, totalTickets, unitPriceCents
       ) : (
         !isFree && (
           <div className="rounded-xl border p-3 bg-white text-sm text-brand-700">
-            Esta rifa asigna los números <b>al azar</b>. Puedes indicar cuántos quieres y los reservaremos por 10 minutos.
+            Los números se asignan <b>al azar</b> y tu selección se reserva por <b>10 minutos</b>. <b>Límite: 1.000 tickets por pago</b>. Para adquirir más, realiza pagos adicionales.
           </div>
         )
       )}

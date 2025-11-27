@@ -452,16 +452,18 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
               }}
             />
           ) : (
-            <CheckoutForm
-              raffleId={raffleId}
-              sessionId={sessionId}
-              currency={currency}
-              disabled={isExpired || belowMin || overMax}
-              quantity={countSelected}
-              unitPriceCents={unitPriceCents}
-              methodLabel={paymentInfo ? (paymentInfo.method_label ?? 'Pago') : 'Pago'}
-              onCreated={() => {}}
-            />
+            <>
+              <CheckoutForm
+                raffleId={raffleId}
+                sessionId={sessionId}
+                currency={currency}
+                disabled={isExpired || belowMin || overMax}
+                quantity={countSelected}
+                unitPriceCents={unitPriceCents}
+                methodLabel={paymentInfo ? (paymentInfo.method_label ?? 'Pago') : 'Pago'}
+                onCreated={() => {}}
+              />
+            </>
           )}
 
           {!isFree && (

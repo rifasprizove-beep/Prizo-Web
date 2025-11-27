@@ -611,6 +611,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
               }}
             />
           ) : (
+            <>
             <CheckoutForm
               raffleId={raffleId}
               sessionId={sessionId}
@@ -631,6 +632,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                 setInfo('Pago enviado. Tus tickets quedan reservados sin temporizador hasta que el administrador apruebe o rechace. Puedes comprar más si deseas.');
               }}
             />
+            </>
           )}
 
           {!isFree && (

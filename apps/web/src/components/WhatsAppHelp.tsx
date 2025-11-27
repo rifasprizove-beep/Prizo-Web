@@ -13,7 +13,7 @@ export function WhatsAppHelp() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-40 inline-flex items-center gap-2 rounded-full bg-white text-black px-3 sm:px-4 py-2 shadow-lg ring-1 ring-brand-500/20 hover:translate-y-[-1px] active:translate-y-[0] transition-transform"
+      className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-40 inline-flex items-center gap-2 rounded-full bg-white text-black px-3 sm:px-4 py-2 shadow-lg ring-1 ring-brand-500/20 hover:translate-y-[-1px] active:translate-y-[0] transition-transform opacity-80 hover:opacity-100"
       aria-label="Soporte WhatsApp"
     >
       <span className="text-xs sm:text-sm font-semibold">Soporte</span>

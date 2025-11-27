@@ -149,9 +149,18 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
       } else if (status === 'available') {
         // Importante: reserve_tickets en el backend define el CONJUNTO exacto para la sesión,
         // por lo que debemos enviar todos los IDs seleccionados + el nuevo ID, no solo uno.
-        const desired = Array.from(new Set([...selectedIds, id]));
-        // Enviar respetando disponibilidad
-        if (desired.length > availableTickets) desired.splice(availableTickets);
+        const MAX_PER_PURCHASE = 1000;
+        let desired = Array.from(new Set([...selectedIds, id]));
+        // Enviar respetando disponibilidad y máximo
+        if (desired.length > availableTickets) desired = desired.slice(0, availableTickets);
+        if (desired.length > MAX_PER_PURCHASE) desired = desired.slice(0, MAX_PER_PURCHASE);
+        // Evitar remanente menor al mínimo
+        const remainder = availableTickets - desired.length;
+        const minTicketPurchaseSafe = Math.max(1, (minTicketPurchase || 1));
+        if (remainder > 0 && remainder < minTicketPurchaseSafe) {
+          const target = Math.min(MAX_PER_PURCHASE, Math.max(minTicketPurchaseSafe, availableTickets - minTicketPurchaseSafe));
+          desired = desired.slice(0, target);
+        }
         const res = await reserveTickets(desired, sessionId);
         const arr = Array.isArray(res) ? res : [];
         // Liberar cualquier ticket que el backend haya devuelto que no está en nuestro objetivo (defensa)
@@ -235,7 +244,9 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
   const mm = String(Math.floor(timeLeftMs / 60000)).padStart(2, '0');
   const ss = String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0');
   const countSelected = selectedIds.length || (restoring && restoreIds ? restoreIds.length : 0);
+  const MAX_PER_PURCHASE = 1000;
   const belowMin = !isFree && countSelected > 0 && countSelected < (minTicketPurchase || 1);
+  const overMax = !isFree && countSelected > MAX_PER_PURCHASE;
 
   // Auto-liberar selección cuando expira el tiempo (solo rifas pagas)
   const [autoReleased, setAutoReleased] = useState(false);
@@ -420,6 +431,11 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
               Mínimo por compra: <b>{minTicketPurchase}</b> tickets.{belowMin ? ' Selecciona más tickets para continuar.' : ''}
             </div>
           )}
+          {!isFree && countSelected > MAX_PER_PURCHASE && (
+            <div className="text-center text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded p-2">
+              Máximo por compra: <b>{MAX_PER_PURCHASE}</b> tickets. Reduce tu selección.
+            </div>
+          )}
           {/* Oculto: no mostrar los números seleccionados explícitamente */}
 
           {/* Instrucciones de pago se muestran ahora dentro de CheckoutForm con el método elegido */}
@@ -440,7 +456,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
               raffleId={raffleId}
               sessionId={sessionId}
               currency={currency}
-              disabled={isExpired || belowMin}
+              disabled={isExpired || belowMin || overMax}
               quantity={countSelected}
               unitPriceCents={unitPriceCents}
               methodLabel={paymentInfo ? (paymentInfo.method_label ?? 'Pago') : 'Pago'}

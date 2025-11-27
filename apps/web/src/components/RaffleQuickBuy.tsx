@@ -31,16 +31,36 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   
 
+  const MAX_PER_PURCHASE = 1000;
   const inc = (n = 1) => {
     if (disabledAll) return;
     setQty((q) => {
-      const next = Math.min(Math.max(minTicketPurchase, q + n), availableTickets);
+      // Propuesta: aplicar límite máximo y disponibilidad
+      let next = Math.min(Math.max(minTicketPurchase, q + n), availableTickets, MAX_PER_PURCHASE);
+      // Evitar dejar remanente menor al mínimo
+      if (!isFree) {
+        const remainder = availableTickets - next;
+        if (remainder > 0 && remainder < minTicketPurchase) {
+          // Si no podemos llegar al total, reduce para que el resto sea 0 o >= min
+          const candidate = availableTickets - minTicketPurchase;
+          // candidate puede ser mayor que MAX_PER_PURCHASE
+          next = Math.min(Math.max(minTicketPurchase, candidate), MAX_PER_PURCHASE);
+        }
+      }
       return next;
     });
   };
   const dec = () => { if (disabledAll) return; setQty((q) => Math.max(minTicketPurchase, q - 1)); };
   const handleQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const val = Math.max(minTicketPurchase, Math.min(Number(e.target.value || minTicketPurchase), availableTickets));
+    const raw = Number(e.target.value || minTicketPurchase);
+    let val = Math.max(minTicketPurchase, Math.min(raw, availableTickets, MAX_PER_PURCHASE));
+    if (!isFree) {
+      const remainder = availableTickets - val;
+      if (remainder > 0 && remainder < minTicketPurchase) {
+        const candidate = availableTickets - minTicketPurchase;
+        val = Math.min(Math.max(minTicketPurchase, candidate), MAX_PER_PURCHASE);
+      }
+    }
     setQty(val);
   };
   // Actualizar el número de tickets disponibles al montar y cuando cambie la rifa
@@ -234,7 +254,13 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
       } else {
         // Flujo directo: reservar en lotes para soportar cantidades grandes
         try {
-          const desired = Math.max(minTicketPurchase, Math.min(qty, availableTickets));
+          // Aplicar reglas: máximo 1000 y evitar resto < mínimo
+          let desired = Math.max(minTicketPurchase, Math.min(qty, availableTickets, MAX_PER_PURCHASE));
+          const remainder = availableTickets - desired;
+          if (remainder > 0 && remainder < minTicketPurchase) {
+            const candidate = availableTickets - minTicketPurchase;
+            desired = Math.min(Math.max(minTicketPurchase, candidate), MAX_PER_PURCHASE);
+          }
           const CHUNK = 1000;
           let remaining = desired;
           let aggregated: any[] = [];

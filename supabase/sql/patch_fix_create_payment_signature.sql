@@ -24,6 +24,18 @@ BEGIN
 	) THEN
 		EXECUTE 'DROP FUNCTION public.create_payment_for_session(uuid, uuid, numeric, numeric, text, text, text, text, text, text, text, text, text)';
 	END IF;
+
+	-- Si existe la versión previa con 14 parámetros (mismos tipos) donde los nombres difieren
+	-- (p_instagram al final y p_currency antes), hay que dropearla para poder cambiar
+	-- los nombres/orden de parámetros (CREATE OR REPLACE no permite renombrarlos).
+	IF EXISTS (
+		SELECT 1 FROM pg_proc p
+		JOIN pg_namespace n ON n.oid = p.pronamespace
+		WHERE n.nspname = 'public' AND p.proname = 'create_payment_for_session'
+			AND pg_get_function_identity_arguments(p.oid) = 'uuid, uuid, text, text, text, text, text, text, numeric, numeric, text, text, text, text'
+	) THEN
+		EXECUTE 'DROP FUNCTION public.create_payment_for_session(uuid, uuid, text, text, text, text, text, text, numeric, numeric, text, text, text, text)';
+	END IF;
 END$$;
 
 -- Create authoritative function aligned with frontend args
@@ -39,9 +51,9 @@ CREATE OR REPLACE FUNCTION public.create_payment_for_session(
 	p_amount_ves numeric,
 	p_rate_used numeric,
 	p_rate_source text,
+	p_instagram text,
 	p_currency text default 'VES',
-	p_ci text default null,
-	p_instagram text
+	p_ci text default null
 ) RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER

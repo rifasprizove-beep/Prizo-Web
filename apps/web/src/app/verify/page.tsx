@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { verifyTicketsClient } from '@/lib/rpc';
 
 type VerifyRow = {
   raffle_id: string;
@@ -58,14 +59,9 @@ export default function VerifyPage() {
     }
     setBusy(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || '';
-      if (!base) throw new Error('API no configurada. Define NEXT_PUBLIC_API_URL');
-      // Añadimos el modo como parámetro extra (si backend lo ignora, no afecta)
-      const url = `${base}/verify?q=${encodeURIComponent(term)}&include_pending=true&mode=${mode}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const j = await res.json();
-      const rows: VerifyRow[] = j?.data ?? [];
+      // Usar cliente con fallback: intenta API y si falla por CORS/timeout, usa Supabase RPC
+      const result = await verifyTicketsClient(term, true);
+      const rows: VerifyRow[] = (result ?? []) as VerifyRow[];
       setData(rows);
       // si hay exactamente una rifa en los resultados, seleccionarla por defecto
       const raffleIds = Array.from(new Set(rows.map(r => r.raffle_id)));

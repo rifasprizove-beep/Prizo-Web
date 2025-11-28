@@ -195,13 +195,14 @@ export function CheckoutForm({
   const totalVES = useMemo(() => round2(unitVES * count), [unitVES, count]);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-3 sm:p-4 bg-surface-700 text-white shadow-sm">
-      <h2 className="text-xl md:text-2xl font-semibold text-center">Confirmar pago</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+    <form onSubmit={onSubmit} className="space-y-6 max-w-screen-md mx-auto w-full border border-brand-500/30 rounded-xl p-4 sm:p-6 bg-surface-700 text-white shadow-sm">
+      <h2 className="text-2xl md:text-3xl font-semibold text-center tracking-wide">Confirmar pago</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2 flex flex-col items-center text-center">
-          <label className="block text-sm font-medium">Método de pago</label>
+          <label className="block text-base font-medium" htmlFor="method_select">Método de pago</label>
           <select
-            className="mt-1 border rounded-lg p-2 bg-surface-800 inline-block mx-auto min-w-[220px]"
+            id="method_select"
+            className="mt-2 w-full max-w-xs border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
             value={methodLocal}
             onChange={(e) => { setMethodLocal(e.target.value); setValue('method', e.target.value, { shouldValidate: true }); }}
           >
@@ -223,59 +224,59 @@ export function CheckoutForm({
           return (
             <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700 text-white">
               {/* Evitar redundancia: no repetir el nombre del método seleccionado aquí */}
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-base">
                 {current.bank && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Banco</div>
-                      <div className="font-semibold">{current.bank}</div>
+                      <div className="font-semibold break-words">{current.bank}</div>
                     </div>
-                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
+                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.account && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Cuenta</div>
-                      <div className="font-semibold">{current.account}</div>
+                      <div className="font-semibold break-words">{current.account}</div>
                     </div>
-                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.account!); setCopiedField('account'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'account' ? 'COPIADO' : 'COPIAR'}</button>
+                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.account!); setCopiedField('account'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'account' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.phone && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Teléfono</div>
-                      <div className="font-semibold">{current.phone}</div>
+                      <div className="font-semibold break-words">{current.phone}</div>
                     </div>
-                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
+                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.phone!); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'phone' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.id_number && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Cédula/RIF</div>
-                      <div className="font-semibold">{current.id_number}</div>
+                      <div className="font-semibold break-words">{current.id_number}</div>
                     </div>
-                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
+                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.id_number!); setCopiedField('id_number'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'id_number' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.holder && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Titular</div>
-                      <div className="font-semibold">{current.holder}</div>
+                      <div className="font-semibold break-words">{current.holder}</div>
                     </div>
-                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
+                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.holder!); setCopiedField('holder'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'holder' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.type && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Tipo</div>
-                      <div className="font-semibold">{current.type}</div>
+                      <div className="font-semibold break-words">{current.type}</div>
                     </div>
-                    <button type="button" className="px-2 py-1 rounded bg-transparent border border-brand-500/40 text-brand-200" onClick={async () => { await navigator.clipboard.writeText(current.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
+                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.type!); setCopiedField('type'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'type' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.active === false && (
@@ -292,7 +293,7 @@ export function CheckoutForm({
 
       {/* Resumen de pago arriba de los inputs */}
       {count > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-base">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Cantidad</div>
             <div className="font-semibold">{count}</div>
@@ -311,13 +312,14 @@ export function CheckoutForm({
         <p className="text-xs text-gray-400">Tasa BCV del día: {Number(bcvInfo.rate).toFixed(2)} Bs/USD</p>
       )}
 
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium">Email</label>
+          <label className="block text-base font-medium" htmlFor="email_field">Email</label>
           <input
             type="email"
             autoComplete="email"
-            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
+            id="email_field"
+            className="mt-2 w-full border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
             placeholder="tucorreo@mail.com"
             required
             {...register('email')}
@@ -325,13 +327,14 @@ export function CheckoutForm({
           {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Teléfono</label>
+          <label className="block text-base font-medium" htmlFor="phone_field">Teléfono</label>
           <input
             type="tel"
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={11}
-            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
+            id="phone_field"
+            className="mt-2 w-full border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
             placeholder="04121234567"
             required
             {...register('phone')}
@@ -343,14 +346,14 @@ export function CheckoutForm({
           {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Usuario de Instagram</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="@tuusuario" required {...register('instagram')} />
+          <label className="block text-base font-medium" htmlFor="instagram_field">Usuario de Instagram</label>
+          <input type="text" id="instagram_field" className="mt-2 w-full border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800" placeholder="@tuusuario" required {...register('instagram')} />
           {errors.instagram && <p className="text-xs text-red-600 mt-1">{errors.instagram.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Cédula</label>
+          <label className="block text-base font-medium">Cédula</label>
           <div className="mt-1 flex gap-2 w-full">
-            <select className="w-20 sm:w-24 border rounded-lg p-3 text-base bg-surface-800" required {...register('ciPrefix')}>
+            <select className="w-20 sm:w-24 border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800" required {...register('ciPrefix')}>
               <option value="V">V</option>
               <option value="E">E</option>
             </select>
@@ -359,7 +362,7 @@ export function CheckoutForm({
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={10}
-              className="flex-1 min-w-0 border rounded-lg p-3 text-base bg-surface-800"
+              className="flex-1 min-w-0 border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
               placeholder="12345678"
               required
               {...register('ciNumber')}
@@ -369,9 +372,10 @@ export function CheckoutForm({
           {errors.ciNumber && <p className="text-xs text-red-600 mt-1">{errors.ciNumber.message as string}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium">Ciudad</label>
+          <label className="block text-base font-medium" htmlFor="city_select">Ciudad</label>
           <select
-            className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800"
+            id="city_select"
+            className="mt-2 w-full border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
             value={citySelect || ''}
             onChange={(e) => {
               const val = e.target.value;
@@ -392,7 +396,7 @@ export function CheckoutForm({
           {citySelect === 'OTRA' && (
             <input
               type="text"
-              className="mt-2 w-full border rounded-lg p-3 text-base bg-surface-800"
+              className="mt-2 w-full border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
               placeholder="Escribe tu ciudad"
               required
               {...register('city')}
@@ -402,14 +406,14 @@ export function CheckoutForm({
         </div>
         {/* Campo visible de método removido por redundante */}
         <div>
-          <label className="block text-sm font-medium">Referencia</label>
-          <input type="text" className="mt-1 w-full border rounded-lg p-3 text-base bg-surface-800" placeholder="N° referencia o hash" required {...register('reference')} />
+          <label className="block text-base font-medium" htmlFor="reference_field">Referencia</label>
+          <input type="text" id="reference_field" className="mt-2 w-full border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800" placeholder="N° referencia o hash" required {...register('reference')} />
           {errors.reference && <p className="text-xs text-red-600 mt-1">{errors.reference.message as string}</p>}
         </div>
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
   <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
         <div className="sm:col-span-2 flex flex-col items-center">
-          <label className="block text-sm font-medium w-full text-center">Evidencia (JPG, PNG o WEBP máx 5MB) — Obligatoria</label>
+          <label className="block text-base font-medium w-full text-center">Evidencia (JPG, PNG o WEBP máx 5MB) — Obligatoria</label>
           {/* Input real oculto */}
           <input
             ref={fileInputRef}
@@ -421,18 +425,18 @@ export function CheckoutForm({
               if (f) setValue('evidence', f as any, { shouldValidate: false });
             }}
           />
-          <div className="mt-3 flex flex-wrap justify-center items-center gap-3 w-full">
+          <div className="mt-4 flex flex-wrap justify-center items-center gap-4 w-full">
             <button
               type="button"
-              className="px-4 py-2 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors min-w-[160px] text-center tap-safe"
+              className="px-5 py-3 rounded-lg border border-brand-500/40 text-brand-200 hover:bg-brand-500 hover:text-black transition-colors min-w-[180px] text-center tap-safe min-h-[48px]"
               onClick={() => fileInputRef.current?.click()}
             >Seleccionar archivo</button>
             {evidence && typeof evidence !== 'string' && (
               <>
-                <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[14rem] text-center">{(evidence as File).name}</span>
+                <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[16rem] text-center">{(evidence as File).name}</span>
                 <button
                   type="button"
-                  className="text-xs text-red-300 hover:text-red-200 underline tap-safe"
+                  className="text-xs text-red-300 hover:text-red-200 underline tap-safe min-h-[32px]"
                   onClick={() => {
                     setValue('evidence', undefined as any, { shouldValidate: false });
                     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -446,15 +450,15 @@ export function CheckoutForm({
         </div>
       </div>
       {/* Aceptación de Términos y Condiciones */}
-      <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-        <input id="termsAccepted" type="checkbox" className="h-4 w-4" required {...register('termsAccepted')} />
+      <div className="mt-4 flex items-center justify-center gap-3 text-base">
+        <input id="termsAccepted" type="checkbox" className="h-5 w-5" required {...register('termsAccepted')} />
         <label htmlFor="termsAccepted" className="select-none">
           Acepto los <a href="/terms" className="underline">Términos y Condiciones</a>
         </label>
       </div>
       {errors.termsAccepted && <p className="text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
       <div className="flex items-center justify-center gap-3">
-        <button type="submit" className="btn-neon w-full sm:w-auto disabled:opacity-60 tap-safe" disabled={disabled || submitting}>
+        <button type="submit" className="btn-neon w-full sm:w-auto disabled:opacity-60 tap-safe min-h-[52px] text-base" disabled={disabled || submitting}>
           {submitting ? 'Enviando…' : 'Enviar pago'}
         </button>
       </div>

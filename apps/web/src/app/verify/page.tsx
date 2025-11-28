@@ -86,17 +86,17 @@ export default function VerifyPage() {
   useEffect(() => { setPage(1); }, [data?.length]);
 
   return (
-    <main className="mt-6 space-y-6 max-w-4xl mx-auto">
+    <main className="mt-4 space-y-8 max-w-screen-md mx-auto w-full px-4 pb-20 md:pb-8">
       <h1 className="text-2xl font-bold flex items-center gap-2 title-neon">
         Verificar tickets
       </h1>
 
       {/* Barra de búsqueda mejorada */}
-      <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
-        <label className="block space-y-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-stretch sm:items-end">
+        <label className="block space-y-3">
           {/* Toggle estilo CurrencyToggle */}
           <div
-            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm select-none"
+            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm select-none w-full max-w-xs"
             role="group"
             aria-label="Modo de búsqueda"
           >
@@ -110,7 +110,7 @@ export default function VerifyPage() {
               type="button"
               onClick={() => setMode('email')}
               aria-pressed={mode === 'email'}
-              className={`relative z-10 px-4 py-1.5 text-xs font-semibold transition-colors ${
+              className={`relative z-10 px-4 py-2 min-h-[44px] text-sm font-semibold transition-colors flex-1 text-center rounded-full ${
                 mode === 'email' ? 'text-black' : 'text-brand-200 hover:text-white/90'
               }`}
             >Correo</button>
@@ -118,23 +118,23 @@ export default function VerifyPage() {
               type="button"
               onClick={() => setMode('cedula')}
               aria-pressed={mode === 'cedula'}
-              className={`relative z-10 px-4 py-1.5 text-xs font-semibold transition-colors ${
+              className={`relative z-10 px-4 py-2 min-h-[44px] text-sm font-semibold transition-colors flex-1 text-center rounded-full ${
                 mode === 'cedula' ? 'text-black' : 'text-brand-200 hover:text-white/90'
               }`}
             >Cédula</button>
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-3 py-2 shadow-sm">
+          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCheck(); }}
-              className="w-full outline-none bg-transparent text-black placeholder:text-gray-500"
+              className="w-full outline-none bg-transparent text-black placeholder:text-gray-500 text-base"
               placeholder={placeholder}
             />
           </div>
         </label>
         <button
-          className="px-5 py-2.5 rounded-lg bg-black text-white flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-glowSm"
+          className="px-6 py-3 rounded-xl bg-black text-white flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-glowSm min-h-[48px] text-base font-semibold"
           onClick={handleCheck}
           disabled={busy}
           aria-label="Buscar"
@@ -202,20 +202,20 @@ export default function VerifyPage() {
           })()}
 
           {/* Resumen */}
-          <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-wrap items-center gap-3 shadow-sm">
+          <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-col gap-4 shadow-sm">
             {(() => {
               const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
               const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
               return (
                 <>
-                  <span className="font-semibold">Resultados: {visibleRows.length}</span>
-                  <span className="inline-flex items-center gap-2 text-xs">
-                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Aprobado: {visibleRows.filter(r => r.payment_status === 'approved').length}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">En revisión: {visibleRows.filter(r => r.payment_status === 'pending').length}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800">Rechazado: {visibleRows.filter(r => r.payment_status === 'rejected').length}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800" title="Monto recibido menor al debido">Monto menor: {visibleRows.filter(r => r.payment_status === 'underpaid').length}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Monto recibido mayor al debido">Monto mayor: {visibleRows.filter(r => r.payment_status === 'overpaid').length}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800" title="La referencia no coincide o no se puede verificar">Ref. inválida: {visibleRows.filter(r => r.payment_status === 'ref_mismatch').length}</span>
+                  <span className="font-semibold text-base">Resultados: {visibleRows.length}</span>
+                  <span className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-full bg-green-100 text-green-800">Aprobado: {visibleRows.filter(r => r.payment_status === 'approved').length}</span>
+                    <span className="px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">En revisión: {visibleRows.filter(r => r.payment_status === 'pending').length}</span>
+                    <span className="px-2.5 py-1 rounded-full bg-red-100 text-red-800">Rechazado: {visibleRows.filter(r => r.payment_status === 'rejected').length}</span>
+                    <span className="px-2.5 py-1 rounded-full bg-orange-100 text-orange-800" title="Monto recibido menor al debido">Monto menor: {visibleRows.filter(r => r.payment_status === 'underpaid').length}</span>
+                    <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800" title="Monto recibido mayor al debido">Monto mayor: {visibleRows.filter(r => r.payment_status === 'overpaid').length}</span>
+                    <span className="px-2.5 py-1 rounded-full bg-fuchsia-100 text-fuchsia-800" title="La referencia no coincide o no se puede verificar">Ref. inválida: {visibleRows.filter(r => r.payment_status === 'ref_mismatch').length}</span>
                   </span>
                   {/* Indicador de página removido del resumen a pedido */}
                 </>
@@ -226,23 +226,23 @@ export default function VerifyPage() {
           {/* Controles de paginación se moverán abajo */}
 
           {/* Vista tarjetas para móvil */}
-          <div className="sm:hidden grid grid-cols-1 gap-3">
+          <div className="sm:hidden grid grid-cols-1 gap-4">
             {(() => {
               const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
               const start = (page - 1) * pageSize;
               const paged = visibleRows.slice(start, start + pageSize);
               return paged;
             })().map((r) => (
-              <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-xl border bg-white p-3 text-black shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold">{r.raffle_name}</div>
-                  <div className="text-xs text-gray-600">#{r.ticket_number}</div>
+              <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-2xl border bg-white p-4 text-black shadow-sm space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold text-base leading-tight">{r.raffle_name}</div>
+                  <div className="text-xs text-gray-600 font-mono">#{r.ticket_number}</div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">Ticket: {r.ticket_status === 'sold' ? 'VENDIDO' : r.ticket_status === 'reserved' ? 'RESERVADO' : r.ticket_status === 'available' ? 'DISPONIBLE' : String(r.ticket_status).toUpperCase()}</span>
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-800 border border-gray-200">Ticket: {r.ticket_status === 'sold' ? 'VENDIDO' : r.ticket_status === 'reserved' ? 'RESERVADO' : r.ticket_status === 'available' ? 'DISPONIBLE' : String(r.ticket_status).toUpperCase()}</span>
                   <span
                     className={
-                      `px-2 py-0.5 rounded-full border text-xs ` +
+                      `px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide ` +
                       (r.payment_status === 'approved'
                         ? 'bg-green-100 text-green-800 border-green-200'
                         : r.payment_status === 'pending'
@@ -278,7 +278,7 @@ export default function VerifyPage() {
                     }
                   </span>
                 </div>
-                <div className="mt-2 text-xs text-gray-600">{new Date(r.created_at).toLocaleString()}</div>
+                <div className="text-[11px] text-gray-600">{new Date(r.created_at).toLocaleString()}</div>
               </div>
             ))}
           </div>
@@ -359,11 +359,11 @@ export default function VerifyPage() {
             const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
             const goLast = () => setPage(totalPages);
             return (
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex items-center justify-center gap-3 pt-4 pb-2 sticky bottom-0 bg-gradient-to-t from-[#0b0b0e] to-transparent backdrop-blur-sm">
                 {/* Inicio */}
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  className="inline-flex items-center justify-center h-11 w-11 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
                   onClick={goFirst}
                   disabled={page <= 1}
                   aria-label="Ir al inicio"
@@ -376,7 +376,7 @@ export default function VerifyPage() {
                 {/* Anterior */}
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  className="inline-flex items-center justify-center h-11 w-11 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
                   onClick={goPrev}
                   disabled={page <= 1}
                   aria-label="Página anterior"
@@ -385,11 +385,11 @@ export default function VerifyPage() {
                     <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
-                <div className="mx-1 text-xs text-white/90">Página {page} de {totalPages}</div>
+                <div className="mx-1 text-sm font-medium text-white/90">{page}/{totalPages}</div>
                 {/* Siguiente */}
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  className="inline-flex items-center justify-center h-11 w-11 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
                   onClick={goNext}
                   disabled={page >= totalPages}
                   aria-label="Página siguiente"
@@ -401,7 +401,7 @@ export default function VerifyPage() {
                 {/* Final */}
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  className="inline-flex items-center justify-center h-11 w-11 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
                   onClick={goLast}
                   disabled={page >= totalPages}
                   aria-label="Ir al final"

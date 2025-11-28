@@ -85,17 +85,17 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   }, [isDrawnEffective, hasWinner, showWinners, autoActivated]);
 
   return (
-    <header className="space-y-6">
-      <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
+    <header className="space-y-6 max-w-screen-md mx-auto w-full px-4">
+      <div className="rounded-2xl border p-4 md:p-6 bg-brand-500 text-white shadow-sm">
         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
         {raffle.image_url && (
-          <div className="relative w-full h-64 md:h-80 rounded-xl mt-3 overflow-hidden bg-white">
-            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="100vw" />
+          <div className="relative w-full aspect-[4/3] md:aspect-[16/9] min-h-[220px] rounded-xl mt-3 overflow-hidden bg-white">
+            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 768px" />
           </div>
         )}
 
         {raffle.description && (
-          <p className="mt-3 text-sm text-white/90 leading-relaxed">
+          <p className="mt-3 text-base text-white/90 leading-relaxed">
             {raffle.description}
           </p>
         )}
@@ -154,12 +154,13 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-4">
-          <div className="rounded-full bg-brand-600/50 p-1.5 border border-white/20">
+          <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
             <div className="flex flex-row items-center gap-1">
               <a
                 href="#sec-buy"
                 onClick={() => { setShowWinners(false); setShowTopBuyers(false); if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search); }}
-                className={`flex-1 text-center font-semibold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
+                className={`flex-1 text-center font-semibold px-4 py-3 min-h-[44px] rounded-full text-sm tap-safe ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
+                aria-label={isFree ? 'Participar en la rifa' : 'Comprar tickets'}
               >
                 {isFree ? 'PARTICIPAR' : 'COMPRAR'}
               </a>
@@ -174,7 +175,8 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     if (typeof window !== 'undefined') window.location.hash = '#top';
                   } catch {}
                 }}
-                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
+                className={`flex-1 text-center font-extrabold px-4 py-3 min-h-[44px] rounded-full text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
+                aria-label="Ver top compradores"
               >
                 TOP COMPRADORES
               </button>
@@ -192,11 +194,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     if (typeof window !== 'undefined') window.location.hash = '#ganador';
                   } catch {}
                 }}
-                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners
+                className={`flex-1 text-center font-extrabold px-4 py-3 min-h-[44px] rounded-full text-sm tap-safe ${showWinners
                   ? 'bg-white text-brand-700'
                   : ((isDrawnEffective || hasWinner)
                     ? 'text-white/80 hover:text-white border border-white/30'
                     : 'text-white/50 border border-white/20')}`}
+                aria-label="Ver ganadores"
               >
                 GANADORES
               </button>
@@ -260,43 +263,54 @@ function TopBuyersInline({ raffleId }: { raffleId: string }) {
   // Limitar a los primeros 3 únicamente
   const topRows = rows.slice(0, 3);
   return (
-    <section className="space-y-3 text-sm">
-      <h3 className="text-base font-semibold text-white">Top compradores</h3>
-      <div className="rounded-xl border border-brand-500/30 bg-white/95 p-3">
-        <ol className="space-y-2">
+    <section className="space-y-4 text-base">
+      <h3 className="text-lg font-semibold text-white">Top compradores</h3>
+      <div className="rounded-xl border border-brand-500/30 bg-white/95 p-4">
+        <ol className="space-y-3">
           {topRows.map((r, i) => {
             const rawIg = (r as any).instagram ?? (r as any).instagram_user;
             const igClean = typeof rawIg === 'string' ? rawIg.replace(/^@+/, '').trim() : '';
             const emailLocalRaw = (r.buyer_email ?? '').split('@')[0].trim();
             let display = '';
-            if (igClean && igClean.length >= 2) display = `@${igClean}`;
+            let isInstagram = false;
+            if (igClean && igClean.length >= 2) { display = `@${igClean}`; isInstagram = true; }
             else if (emailLocalRaw) display = emailLocalRaw;
             else display = 'Usuario';
+            const colorRank = i === 0
+              ? 'bg-gradient-to-br from-brand-500 to-pink-600 text-white'
+              : i === 1
+              ? 'bg-brand-500/90 text-white'
+              : 'bg-brand-500/70 text-white';
             return (
               <li
                 key={r.buyer_email || i}
-                className="flex items-center gap-4 p-2 rounded-lg bg-white/90 border border-brand-500/10 hover:border-brand-500/30 transition-colors"
+                className="flex items-center gap-4 p-3 rounded-xl bg-white/90 border border-brand-500/10 hover:border-brand-500/40 transition-colors"
               >
                 <span
-                  className={"inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold tabular-nums shadow-sm " +
-                  (i === 0
-                    ? 'bg-gradient-to-br from-brand-500 to-pink-600 text-white'
-                    : i === 1
-                    ? 'bg-brand-500/90 text-white'
-                    : 'bg-brand-500/70 text-white')}
+                  className={"inline-flex items-center justify-center w-11 h-11 rounded-full text-sm font-bold tabular-nums shadow-sm " + colorRank}
                   aria-label={`Ranking posición ${i + 1}`}
                 >
                   {i + 1}
                 </span>
-                <span className="text-sm font-medium tracking-wide break-all text-gray-900">
-                  {display}
-                </span>
+                {isInstagram ? (
+                  <a
+                    href={`https://instagram.com/${igClean}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium tracking-wide break-all text-brand-600 hover:text-brand-700 underline underline-offset-2"
+                    aria-label={`Perfil de Instagram ${display}`}
+                  >
+                    {display}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium tracking-wide break-all text-gray-900" aria-label={`Usuario ${display}`}>{display}</span>
+                )}
               </li>
             );
           })}
         </ol>
       </div>
-      <div className="text-xs mt-1 text-gray-400">Mostrando solo los 3 primeros (ranking y usuario).</div>
+      <div className="text-xs mt-1 text-gray-500">Mostrando los 3 primeros (por tickets aprobados).</div>
     </section>
   );
 }

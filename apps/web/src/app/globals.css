@@ -92,5 +92,22 @@ body {
   .tap-safe {
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
+    min-height: 44px; /* Asegura área táctil suficiente */
+    line-height: 1.25;
+  }
+
+  /* Ajustes tipográficos móviles para mejorar legibilidad */
+  @media (max-width: 480px) {
+    body {
+      font-size: 16px; /* Garantizar tamaño mínimo legible */
+    }
+    h1, .title-neon { font-size: 1.4rem; }
+    h2 { font-size: 1.3rem; }
+    h3 { font-size: 1.15rem; }
+  }
+
+  /* Evitar saturación: espaciar secciones en móvil muy estrecho */
+  @media (max-width: 380px) {
+    .space-y-6 > * + * { margin-top: 1.5rem !important; }
   }
 }

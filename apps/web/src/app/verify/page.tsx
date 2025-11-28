@@ -96,12 +96,12 @@ export default function VerifyPage() {
         <label className="block space-y-3 mx-auto w-full max-w-sm sm:max-w-none sm:mx-0">
           {/* Toggle estilo CurrencyToggle */}
           <div
-            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm select-none w-full max-w-xs mx-auto sm:mx-0"
+            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-0.5 shadow-glowSm select-none w-[240px] mx-auto sm:mx-0 sm:w-[300px]"
             role="group"
             aria-label="Modo de búsqueda"
           >
             <span
-              className={`absolute top-1 bottom-1 rounded-full bg-brand-500 transition-all duration-300 ease-out ${
+              className={`absolute top-0.5 bottom-0.5 rounded-full bg-brand-500 transition-all duration-300 ease-out ${
                 mode === 'cedula' ? 'left-1/2 right-1' : 'left-1 right-1/2'
               }`}
               aria-hidden="true"
@@ -110,7 +110,7 @@ export default function VerifyPage() {
               type="button"
               onClick={() => setMode('email')}
               aria-pressed={mode === 'email'}
-              className={`relative z-10 px-4 py-2 min-h-[44px] text-sm font-semibold transition-colors flex-1 text-center rounded-full ${
+              className={`relative z-10 px-2.5 py-1 min-h-[36px] text-[12px] font-semibold transition-colors flex-1 text-center rounded-full ${
                 mode === 'email' ? 'text-black' : 'text-brand-200 hover:text-white/90'
               }`}
             >Correo</button>
@@ -118,7 +118,7 @@ export default function VerifyPage() {
               type="button"
               onClick={() => setMode('cedula')}
               aria-pressed={mode === 'cedula'}
-              className={`relative z-10 px-4 py-2 min-h-[44px] text-sm font-semibold transition-colors flex-1 text-center rounded-full ${
+              className={`relative z-10 px-2.5 py-1 min-h-[36px] text-[12px] font-semibold transition-colors flex-1 text-center rounded-full ${
                 mode === 'cedula' ? 'text-black' : 'text-brand-200 hover:text-white/90'
               }`}
             >Cédula</button>
@@ -159,13 +159,13 @@ export default function VerifyPage() {
         <div className="p-3 rounded-lg border bg-white text-black text-sm shadow-sm">Buscando…</div>
       )}
       {data && data.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 -mt-14 sm:-mt-16">
           {/* Filtrado por rifa (solo si hay más de una) */}
           {Array.from(new Set(data.map(d => d.raffle_id))).length > 1 && (
-            <div className="space-y-1">
+            <div className="space-y-2 mx-auto w-full max-w-md text-center">
               <div className="text-sm font-medium text-white">Filtrar por rifa</div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center w-full max-w-xs rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-3 py-2 shadow-sm">
+              <div className="flex items-center justify-center">
+                <div className="flex items-center w-full max-w-sm rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm">
                   <select
                     value={selectedRaffle}
                     onChange={(e) => setSelectedRaffle(e.target.value)}

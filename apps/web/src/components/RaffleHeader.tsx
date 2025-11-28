@@ -85,17 +85,17 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   }, [isDrawnEffective, hasWinner, showWinners, autoActivated]);
 
   return (
-    <header className="space-y-6 max-w-screen-md mx-auto w-full px-4">
-      <div className="rounded-2xl border p-4 md:p-6 bg-brand-500 text-white shadow-sm">
+    <header className="space-y-6">
+      <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
         {raffle.image_url && (
-          <div className="relative w-full aspect-[4/3] md:aspect-[16/9] min-h-[220px] rounded-xl mt-3 overflow-hidden bg-white">
-            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 768px" />
+          <div className="relative w-full h-64 md:h-80 rounded-xl mt-3 overflow-hidden bg-white">
+            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="100vw" />
           </div>
         )}
 
         {raffle.description && (
-          <p className="mt-3 text-base text-white/90 leading-relaxed">
+          <p className="mt-3 text-sm text-white/90 leading-relaxed">
             {raffle.description}
           </p>
         )}
@@ -154,13 +154,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         )}
 
         <div className="mt-4">
-          <div className="rounded-full bg-brand-600/50 p-2 border border-white/20">
+          <div className="rounded-full bg-brand-600/50 p-1.5 border border-white/20">
             <div className="flex flex-row items-center gap-1">
               <a
                 href="#sec-buy"
                 onClick={() => { setShowWinners(false); setShowTopBuyers(false); if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search); }}
-                className={`flex-1 text-center font-semibold px-4 py-3 min-h-[44px] rounded-full text-sm tap-safe ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
-                aria-label={isFree ? 'Participar en la rifa' : 'Comprar tickets'}
+                className={`flex-1 text-center font-semibold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners || showTopBuyers ? 'text-white/70 border border-white/30' : 'bg-white text-brand-700'}`}
               >
                 {isFree ? 'PARTICIPAR' : 'COMPRAR'}
               </a>
@@ -175,8 +174,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     if (typeof window !== 'undefined') window.location.hash = '#top';
                   } catch {}
                 }}
-                className={`flex-1 text-center font-extrabold px-4 py-3 min-h-[44px] rounded-full text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
-                aria-label="Ver top compradores"
+                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
               >
                 TOP COMPRADORES
               </button>
@@ -194,14 +192,13 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     if (typeof window !== 'undefined') window.location.hash = '#ganador';
                   } catch {}
                 }}
-                className={`flex-1 text-center font-extrabold px-4 py-3 min-h-[44px] rounded-full text-sm tap-safe ${showWinners
+                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners
                   ? 'bg-white text-brand-700'
                   : ((isDrawnEffective || hasWinner)
                     ? 'text-white/80 hover:text-white border border-white/30'
                     : 'text-white/50 border border-white/20')}`}
-                aria-label="Ver ganadores"
               >
-                GANADORES
+                GANADOR
               </button>
             </div>
           </div>

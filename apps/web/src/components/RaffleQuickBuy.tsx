@@ -7,7 +7,7 @@ import { getSessionId } from "@/lib/session";
 import { CheckoutForm } from "./CheckoutForm";
 import { FreeParticipationForm } from "./FreeParticipationForm";
 
-export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, paymentMethods, isFree = false, disabledAll = false }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo?: RafflePaymentInfo; paymentMethods?: RafflePaymentMethod[]; isFree?: boolean; disabledAll?: boolean }) {
+export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, unitPriceCents, minTicketPurchase = 1, paymentInfo, paymentMethods, isFree = false, disabledAll = false, bootCycle = 0, onBootReady }: { raffleId: string; currency: string; totalTickets: number; unitPriceCents: number; minTicketPurchase?: number; paymentInfo?: RafflePaymentInfo; paymentMethods?: RafflePaymentMethod[]; isFree?: boolean; disabledAll?: boolean; bootCycle?: number; onBootReady?: () => void }) {
   const sessionId = getSessionId();
   const debugReservations = process.env.NEXT_PUBLIC_DEBUG_RESERVATIONS === '1';
   // Obtener la rifa desde el backend o props (aquí asumimos que paymentInfo tiene la rifa o agregar prop si es necesario)
@@ -180,8 +180,8 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
       } catch (e) {
         console.warn('Could not load existing reservations:', e);
       }
-    })();
-  }, [raffleId, sessionId, isFree, storageKey]);
+    })().finally(() => { try { onBootReady?.(); } catch {} });
+  }, [raffleId, sessionId, isFree, storageKey, bootCycle]);
 
   // Persistir IDs y deadline mínimo en localStorage cuando cambia la reserva
   useEffect(() => {
@@ -652,10 +652,10 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowCancelConfirm(false)} />
-          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl text-black">
+          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl text-black text-center">
             <h3 className="text-lg font-semibold">¿Cancelar y liberar tus tickets?</h3>
             <p className="mt-2 text-sm text-gray-600">Si cancelas ahora, perderás los tickets reservados y volverán a estar disponibles para otros usuarios.</p>
-            <div className="mt-5 flex items-center justify-end gap-2">
+            <div className="mt-5 flex items-center justify-center gap-2">
               <button
                 type="button"
                 className="px-4 py-2 rounded-lg border text-black"

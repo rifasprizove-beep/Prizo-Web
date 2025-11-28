@@ -10,7 +10,7 @@ import { CheckoutForm } from './CheckoutForm';
 import { FreeParticipationForm } from './FreeParticipationForm';
 import type { RafflePaymentInfo } from '@/lib/data/paymentConfig';
 
-export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicketPurchase = 1, paymentInfo, isFree = false, disabledAll = false }: { raffleId: string; currency: string; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean; disabledAll?: boolean }) {
+export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicketPurchase = 1, paymentInfo, isFree = false, disabledAll = false, bootCycle = 0, onBootReady }: { raffleId: string; currency: string; unitPriceCents: number; minTicketPurchase?: number; paymentInfo: RafflePaymentInfo | null; isFree?: boolean; disabledAll?: boolean; bootCycle?: number; onBootReady?: () => void }) {
   const qc = useQueryClient();
   const sessionId = getSessionId();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -130,8 +130,8 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
       } catch (e) {
         if (process.env.NEXT_PUBLIC_DEBUG === '1') console.warn('manual restore load failed:', e);
       }
-    })();
-  }, [raffleId, sessionId, storageKey]);
+    })().finally(() => { try { onBootReady?.(); } catch {} });
+  }, [raffleId, sessionId, storageKey, bootCycle]);
 
   const handleClick = async (id: string, status: string) => {
     if (disabledAll) return; // bloqueado (ej. rifa sorteada)
@@ -483,10 +483,10 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowCancelConfirm(false)} />
-          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl text-black">
+          <div className="relative z-10 w-[95%] max-w-md rounded-xl bg-white p-5 shadow-xl text-black text-center">
             <h3 className="text-lg font-semibold">¿Cancelar y liberar tus tickets?</h3>
             <p className="mt-2 text-sm text-gray-600">Si cancelas ahora, perderás los tickets reservados y volverán a estar disponibles para otros usuarios.</p>
-            <div className="mt-5 flex items-center justify-end gap-2">
+            <div className="mt-5 flex items-center justify-center gap-2">
               <button
                 type="button"
                 className="px-4 py-2 rounded-lg border text-black"

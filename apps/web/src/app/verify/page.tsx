@@ -20,6 +20,8 @@ export default function VerifyPage() {
   const [data, setData] = useState<VerifyRow[] | null>(null);
   const [selectedRaffle, setSelectedRaffle] = useState<string>('all');
   const [mode, setMode] = useState<'email' | 'cedula'>('email');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   // Placeholder dinámico
   const placeholder = mode === 'email'
@@ -38,6 +40,7 @@ export default function VerifyPage() {
   const handleCheck = async () => {
     setErr(null);
     setData(null);
+    setPage(1);
     const term = q.trim();
     // Validaciones según modo
     if (!term) {
@@ -77,6 +80,10 @@ export default function VerifyPage() {
       setBusy(false);
     }
   };
+
+  // Resetear a la primera página cuando cambian los filtros/datos
+  useEffect(() => { setPage(1); }, [selectedRaffle]);
+  useEffect(() => { setPage(1); }, [data?.length]);
 
   return (
     <main className="mt-6 space-y-6 max-w-4xl mx-auto">
@@ -174,7 +181,7 @@ export default function VerifyPage() {
             </div>
           )}
 
-          {/* Preparar filas visibles */}
+          {/* Datos derivados: visibles por rifa y paginados */}
           {(() => {
             return null;
           })()}
@@ -197,7 +204,8 @@ export default function VerifyPage() {
           {/* Resumen */}
           <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-wrap items-center gap-3 shadow-sm">
             {(() => {
-              const visibleRows = selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle);
+              const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
+              const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
               return (
                 <>
                   <span className="font-semibold">Resultados: {visibleRows.length}</span>
@@ -209,14 +217,44 @@ export default function VerifyPage() {
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Monto recibido mayor al debido">Monto mayor: {visibleRows.filter(r => r.payment_status === 'overpaid').length}</span>
                     <span className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800" title="La referencia no coincide o no se puede verificar">Ref. inválida: {visibleRows.filter(r => r.payment_status === 'ref_mismatch').length}</span>
                   </span>
+                  {/* Indicador de página removido del resumen a pedido */}
                 </>
               );
             })()}
           </div>
 
+          {/* Controles de paginación */}
+          {(() => {
+            const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
+            const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+            if (totalPages <= 1) return null;
+            return (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded border bg-white text-black disabled:opacity-50"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                >Anterior</button>
+                <div className="text-xs text-white/90">Página {page} de {totalPages}</div>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded border bg-white text-black disabled:opacity-50"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >Siguiente</button>
+              </div>
+            );
+          })()}
+
           {/* Vista tarjetas para móvil */}
           <div className="sm:hidden grid grid-cols-1 gap-3">
-            {(selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)).map((r) => (
+            {(() => {
+              const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
+              const start = (page - 1) * pageSize;
+              const paged = visibleRows.slice(start, start + pageSize);
+              return paged;
+            })().map((r) => (
               <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-xl border bg-white p-3 text-black shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="font-semibold">{r.raffle_name}</div>
@@ -280,7 +318,12 @@ export default function VerifyPage() {
                 </tr>
               </thead>
               <tbody>
-                {(selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)).map((r) => (
+                {(() => {
+                  const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
+                  const start = (page - 1) * pageSize;
+                  const paged = visibleRows.slice(start, start + pageSize);
+                  return paged;
+                })().map((r) => (
                   <tr key={`${r.payment_id}-${r.ticket_id}`} className="odd:bg-white even:bg-gray-50">
                     <td className="p-3 border-b">{r.raffle_name}</td>
                     <td className="p-3 border-b">{r.ticket_number}</td>

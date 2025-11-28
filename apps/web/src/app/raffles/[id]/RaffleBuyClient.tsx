@@ -6,8 +6,13 @@ import { getLastDraw } from '@/lib/data/draws';
 import { RaffleBuyTabs } from '@/components/RaffleBuyTabs';
 import { getRafflePaymentInfo, getRafflePaymentMethods, type RafflePaymentMethod } from '@/lib/data/paymentConfig';
 import { effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 
 export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
+  // Mostrar overlay hasta que la restauración inicial (si existe) termine
+  const [booting, setBooting] = useState(true);
+  // Reinicia ciclo de restauración al volver desde overlays (#top/#ganador)
+  const [bootCycle, setBootCycle] = useState(0);
   const raffleQ = useQuery({
     queryKey: ['raffle', raffleId],
     queryFn: () => getRaffle(raffleId),
@@ -18,7 +23,15 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
   // Ocultar sección cuando el header muestra GANADOR (#ganador) o TOP COMPRADORES (#top)
   const [hiddenByOverlay, setHiddenByOverlay] = useState<boolean>(() => typeof window !== 'undefined' && (window.location.hash === '#ganador' || window.location.hash === '#top'));
   useEffect(() => {
-    const handler = () => setHiddenByOverlay(typeof window !== 'undefined' && (window.location.hash === '#ganador' || window.location.hash === '#top'));
+    const handler = () => {
+      const hidden = typeof window !== 'undefined' && (window.location.hash === '#ganador' || window.location.hash === '#top');
+      setHiddenByOverlay(hidden);
+      // Al volver a mostrar la compra, activar loader y reiniciar el ciclo de restauración
+      if (!hidden) {
+        setBooting(true);
+        setBootCycle((c) => c + 1);
+      }
+    };
     if (typeof window !== 'undefined') {
       window.addEventListener('hashchange', handler);
       handler();
@@ -116,6 +129,7 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
 
   return (
     <div className="space-y-3">
+      {booting && <LoadingOverlay />}
       {noneAvailable && (
         <div className="rounded-2xl border p-4 bg-white text-center text-gray-700">
           No hay tickets disponibles en este momento. Espera a que se liberen reservas.
@@ -139,6 +153,8 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
         allowManual={allowManual}
         isFree={isFree}
         disabledAll={disabledAll}
+        bootCycle={bootCycle}
+        onBootReady={() => setBooting(false)}
         
       />
     </div>

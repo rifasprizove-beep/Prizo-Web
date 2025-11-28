@@ -196,7 +196,7 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-3 sm:p-4 bg-surface-700 text-white shadow-sm">
-      <h2 className="text-lg font-semibold">Confirmar pago</h2>
+      <h2 className="text-xl md:text-2xl font-semibold text-center">Confirmar pago</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         <div className="sm:col-span-2 flex flex-col items-center text-center">
           <label className="block text-sm font-medium">Método de pago</label>

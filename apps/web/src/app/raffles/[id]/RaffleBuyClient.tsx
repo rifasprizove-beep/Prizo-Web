@@ -96,7 +96,9 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
       </div>
     );
   }
+  // Mostrar estado de cierre solo en la pestaña COMPRAR (no en overlays #top / #ganador)
   if (phase === 'awaiting_winner' || soldOut) {
+    if (hiddenByOverlay) return null;
     return (
       <div className="rounded-2xl border p-4 bg-yellow-500/10 border-yellow-500/30 text-center text-yellow-100">
         {soldOut ? 'Agotado — ventas cerradas' : 'Ventas cerradas — esperando ganador'}

@@ -198,16 +198,58 @@ export async function verifyTicketsClient(q: string, includePending: boolean = t
     const res = await fetch(`/api/verify?q=${encodeURIComponent(query)}&include_pending=${includePending ? 'true' : 'false'}`, { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json().catch(() => null);
-      if (json && Array.isArray(json.data)) return json.data as any[];
+      if (json && Array.isArray(json.data)) {
+        const initial = json.data as any[];
+        // Si la respuesta del proxy alcanza exactamente 1000 filas, intentar paginación extendida vía RPC
+        if (initial.length >= 1000) {
+          try {
+            const supabase = getSupabase();
+            const PAGE = 1000;
+            let from = 0;
+            let all: any[] = [];
+            for (let pageIdx = 0; pageIdx < 50; pageIdx++) { // ampliar límite a 50k potenciales
+              const to = from + PAGE - 1;
+              const rq = supabase
+                .rpc('verify_tickets', { p_query: query, p_include_pending: includePending })
+                .range(from, to);
+              const { data, error } = await rq;
+              if (error) break;
+              const chunk = (data ?? []) as any[];
+              all = all.concat(chunk);
+              if (chunk.length < PAGE) break;
+              from += PAGE;
+            }
+            if (all.length > initial.length) return all;
+          } catch {}
+        }
+        return initial;
+      }
     }
   } catch {}
 
-  // Último fallback: RPC con anon key
+  // Último fallback / paginación manual para superar límite de 1000 filas
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase.rpc('verify_tickets', { p_query: query, p_include_pending: includePending });
-    if (error) return null;
-    return (data ?? []) as any[];
+    const PAGE = 1000;
+    let from = 0;
+    let all: any[] = [];
+    for (let pageIdx = 0; pageIdx < 30; pageIdx++) { // seguridad: máximo 30k filas
+      const to = from + PAGE - 1;
+      // Supabase permite range() sobre RPC que retorna TABLE
+      const rq = supabase
+        .rpc('verify_tickets', { p_query: query, p_include_pending: includePending })
+        .range(from, to);
+      const { data, error } = await rq;
+      if (error) {
+        // Si hubo algún error y no tenemos resultados previos, devolver null
+        return all.length ? all : null;
+      }
+      const chunk = (data ?? []) as any[];
+      all = all.concat(chunk);
+      if (chunk.length < PAGE) break; // última página
+      from += PAGE;
+    }
+    return all;
   } catch {
     return null;
   }

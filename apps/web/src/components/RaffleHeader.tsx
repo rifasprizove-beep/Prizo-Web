@@ -61,8 +61,28 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
   // Estado visual según la rifa
   const isDrawnEffective = raffle.status === 'drawn';
+  // Cargar ganadores para saber si hay alguno asignado
+  const winnersPreQ = useQuery({
+    queryKey: ['winners-pre', raffle.id],
+    queryFn: () => listWinners(raffle.id),
+    enabled: !!raffle.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const hasWinner = (winnersPreQ.data && winnersPreQ.data.length > 0);
   const [showWinners, setShowWinners] = useState(false);
   const [showTopBuyers, setShowTopBuyers] = useState(false);
+  // Activación automática inicial del tab GANADOR (solo una vez) si la rifa está en drawn o ya hay ganador
+  const [autoActivated, setAutoActivated] = useState(false);
+  useEffect(() => {
+    if ((isDrawnEffective || hasWinner) && !showWinners && !autoActivated) {
+      setShowTopBuyers(false);
+      setShowWinners(true);
+      setAutoActivated(true); // evitar que al cambiar a TOP o COMPRAR se re-fuerce GANADOR
+      try { if (typeof window !== 'undefined') window.location.hash = '#ganador'; } catch {}
+    }
+  }, [isDrawnEffective, hasWinner, showWinners, autoActivated]);
 
   return (
     <header className="space-y-6">
@@ -151,7 +171,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                   setShowWinners(false);
                   setShowTopBuyers(true);
                   try {
-                    if (typeof window !== 'undefined') window.location.hash = 'top';
+                    if (typeof window !== 'undefined') window.location.hash = '#top';
                   } catch {}
                 }}
                 className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
@@ -160,20 +180,25 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               </button>
               <button
                 type="button"
-                disabled={!isDrawnEffective}
+                // Habilitar si la rifa está en drawn O si ya se detectó algún ganador
+                disabled={!(isDrawnEffective || hasWinner)}
                 onClick={() => {
-                  if (!isDrawnEffective) return;
+                  if (!(isDrawnEffective || hasWinner)) return;
                   // Si ya estamos en GANADOR, no hacer toggle (quedarse)
                   if (showWinners) return;
                   setShowTopBuyers(false);
                   setShowWinners(true);
                   try {
-                    if (typeof window !== 'undefined') window.location.hash = 'ganador';
+                    if (typeof window !== 'undefined') window.location.hash = '#ganador';
                   } catch {}
                 }}
-                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners ? 'bg-white text-brand-700' : (isDrawnEffective ? 'text-white/80 hover:text-white border border-white/30' : 'text-white/50 border border-white/20')}`}
+                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners
+                  ? 'bg-white text-brand-700'
+                  : ((isDrawnEffective || hasWinner)
+                    ? 'text-white/80 hover:text-white border border-white/30'
+                    : 'text-white/50 border border-white/20')}`}
               >
-                GANADOR
+                GANADORES
               </button>
             </div>
           </div>

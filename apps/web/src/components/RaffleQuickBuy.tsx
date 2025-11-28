@@ -243,9 +243,10 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             const mine = (fresh ?? []).filter((t: any) => t.reserved_by === sessionId && t.status === 'reserved' && manualIds.includes(t.id));
             newReserved = mine;
           } catch {}
-          if ((newReserved?.length ?? 0) < manualIds.length) {
-            setInfo(`Solo pudimos reservar ${newReserved.length} de ${manualIds.length} seleccionados.`);
-          }
+          // Mensaje de reserva parcial omitido por requerimiento
+          // if ((newReserved?.length ?? 0) < manualIds.length) {
+          //   setInfo(`Solo pudimos reservar ${newReserved.length} de ${manualIds.length} seleccionados.`);
+          // }
         } catch (e: any) {
           if (debugReservations) console.error('reserveTickets(manualIds) failed:', e);
           const msg = e?.message || String(e);
@@ -273,9 +274,10 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             if (arr.length < take) break; // backend no devolvió suficientes
           }
           newReserved = aggregated.slice(0, desired);
-          if (newReserved.length < desired) {
-            setInfo(`Solo pudimos reservar ${newReserved.length} de ${desired} solicitados.`);
-          }
+          // Mensaje de reserva parcial omitido por requerimiento
+          // if (newReserved.length < desired) {
+          //   setInfo(`Solo pudimos reservar ${newReserved.length} de ${desired} solicitados.`);
+          // }
         } catch (e: any) {
           if (debugReservations) console.error('ensureAndReserveRandomTickets failed:', e);
           const msg = e?.message || String(e);
@@ -284,7 +286,8 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
       }
 
       if (!newReserved.length) {
-        setError((prev) => prev ?? "No se pudieron reservar tickets. Puede que no haya disponibilidad suficiente o que tu usuario no tenga permiso para ejecutar la reserva.");
+        // Ajuste: mensaje simplificado (se quita la parte de permisos a solicitud del usuario)
+        setError((prev) => prev ?? "No se pudieron reservar tickets. Puede que no haya disponibilidad suficiente.");
       } else {
         setReserved(newReserved);
       }
@@ -451,7 +454,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           try { await releaseTickets(ids, sessionId); } catch {}
         }
         setReserved([]);
-        setInfo('Reserva expirada — liberada automáticamente (fallback).');
+        setInfo(null);
         try {
           localStorage.removeItem(storageKey);
           localStorage.removeItem(`prizo_manual_${raffleId}`);

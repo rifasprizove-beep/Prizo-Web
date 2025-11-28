@@ -223,29 +223,7 @@ export default function VerifyPage() {
             })()}
           </div>
 
-          {/* Controles de paginación */}
-          {(() => {
-            const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
-            const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
-            if (totalPages <= 1) return null;
-            return (
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  type="button"
-                  className="px-3 py-1.5 rounded border bg-white text-black disabled:opacity-50"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                >Anterior</button>
-                <div className="text-xs text-white/90">Página {page} de {totalPages}</div>
-                <button
-                  type="button"
-                  className="px-3 py-1.5 rounded border bg-white text-black disabled:opacity-50"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                >Siguiente</button>
-              </div>
-            );
-          })()}
+          {/* Controles de paginación se moverán abajo */}
 
           {/* Vista tarjetas para móvil */}
           <div className="sm:hidden grid grid-cols-1 gap-3">
@@ -370,6 +348,72 @@ export default function VerifyPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Controles de paginación (abajo) */}
+          {(() => {
+            const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
+            const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+            if (totalPages <= 1) return null;
+            const goFirst = () => setPage(1);
+            const goPrev = () => setPage((p) => Math.max(1, p - 1));
+            const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
+            const goLast = () => setPage(totalPages);
+            return (
+              <div className="flex items-center justify-center gap-3 pt-2">
+                {/* Inicio */}
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  onClick={goFirst}
+                  disabled={page <= 1}
+                  aria-label="Ir al inicio"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 17l-5-5 5-5" />
+                    <path d="M18 17l-5-5 5-5" />
+                  </svg>
+                </button>
+                {/* Anterior */}
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  onClick={goPrev}
+                  disabled={page <= 1}
+                  aria-label="Página anterior"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <div className="mx-1 text-xs text-white/90">Página {page} de {totalPages}</div>
+                {/* Siguiente */}
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  onClick={goNext}
+                  disabled={page >= totalPages}
+                  aria-label="Página siguiente"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+                {/* Final */}
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black ring-1 ring-brand-500/30 shadow-glowSm disabled:opacity-50"
+                  onClick={goLast}
+                  disabled={page >= totalPages}
+                  aria-label="Ir al final"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13 17l5-5-5-5" />
+                    <path d="M6 17l5-5-5-5" />
+                  </svg>
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
     </main>

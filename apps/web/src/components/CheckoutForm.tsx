@@ -198,10 +198,10 @@ export function CheckoutForm({
     <form onSubmit={onSubmit} className="space-y-4 border border-brand-500/30 rounded-xl p-3 sm:p-4 bg-surface-700 text-white shadow-sm">
       <h2 className="text-lg font-semibold">Confirmar pago</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-        <div>
+        <div className="sm:col-span-2 flex flex-col items-center text-center">
           <label className="block text-sm font-medium">Método de pago</label>
           <select
-            className="mt-1 w-full border rounded-lg p-2 bg-surface-800"
+            className="mt-1 border rounded-lg p-2 bg-surface-800 inline-block mx-auto min-w-[220px]"
             value={methodLocal}
             onChange={(e) => { setMethodLocal(e.target.value); setValue('method', e.target.value, { shouldValidate: true }); }}
           >
@@ -222,7 +222,7 @@ export function CheckoutForm({
           if (!current) return null;
           return (
             <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700 text-white">
-              <div className="font-semibold mb-2">{current.method_label ?? 'Datos de pago'}</div>
+              {/* Evitar redundancia: no repetir el nombre del método seleccionado aquí */}
               <div className="space-y-2 text-sm">
                 {current.bank && (
                   <div className="flex items-center gap-2">
@@ -299,7 +299,11 @@ export function CheckoutForm({
           </div>
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Total (Bs)</div>
-            <div className="font-semibold">{fallbackRate ? totalVES.toFixed(2) : '—'} Bs</div>
+            <div className="font-semibold">
+              {fallbackRate
+                ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalVES)} Bs`
+                : '—'}
+            </div>
           </div>
         </div>
       )}

@@ -146,18 +146,13 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               <button
                 type="button"
                 onClick={() => {
-                  setShowTopBuyers((v) => {
-                    const next = !v;
-                    setShowWinners(false);
-                    try {
-                      if (next) {
-                        if (typeof window !== 'undefined') window.location.hash = 'top';
-                      } else {
-                        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                      }
-                    } catch {}
-                    return next;
-                  });
+                  // Si ya estamos en TOP COMPRADORES, no hacer toggle (quedarse)
+                  if (showTopBuyers) return;
+                  setShowWinners(false);
+                  setShowTopBuyers(true);
+                  try {
+                    if (typeof window !== 'undefined') window.location.hash = 'top';
+                  } catch {}
                 }}
                 className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
               >
@@ -168,18 +163,13 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                 disabled={!isDrawnEffective}
                 onClick={() => {
                   if (!isDrawnEffective) return;
-                  setShowWinners((v) => {
-                    const next = !v;
-                    setShowTopBuyers(false);
-                    try {
-                      if (next) {
-                        if (typeof window !== 'undefined') window.location.hash = 'ganador';
-                      } else {
-                        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                      }
-                    } catch {}
-                    return next;
-                  });
+                  // Si ya estamos en GANADOR, no hacer toggle (quedarse)
+                  if (showWinners) return;
+                  setShowTopBuyers(false);
+                  setShowWinners(true);
+                  try {
+                    if (typeof window !== 'undefined') window.location.hash = 'ganador';
+                  } catch {}
                 }}
                 className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showWinners ? 'bg-white text-brand-700' : (isDrawnEffective ? 'text-white/80 hover:text-white border border-white/30' : 'text-white/50 border border-white/20')}`}
               >

@@ -22,8 +22,8 @@ as $$
     max(p.created_at) as last_payment,
     -- obtener el último instagram asociado a ese email dentro de la misma rifa
     (
-      select instagram_user from payments p2
-      where p2.raffle_id = p_raffle_id and p2.email = p.email and p2.instagram_user is not null
+      select COALESCE(p2.instagram_user, p2.instagram) from payments p2
+      where p2.raffle_id = p_raffle_id and p2.email = p.email and COALESCE(p2.instagram_user, p2.instagram) is not null
       order by p2.created_at desc
       limit 1
     ) as instagram

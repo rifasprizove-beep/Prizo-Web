@@ -86,17 +86,17 @@ export default function VerifyPage() {
   useEffect(() => { setPage(1); }, [data?.length]);
 
   return (
-    <main className="mt-4 space-y-8 max-w-screen-md mx-auto w-full px-4 pb-20 md:pb-8">
+    <main className="mt-4 space-y-8 max-w-4xl mx-auto w-full px-4 pb-20 md:pb-8">
       <h1 className="text-2xl font-bold flex items-center gap-2 title-neon">
         Verificar tickets
       </h1>
 
       {/* Barra de búsqueda mejorada */}
       <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-stretch sm:items-end">
-        <label className="block space-y-3">
+        <label className="block space-y-3 mx-auto w-full max-w-sm sm:max-w-none sm:mx-0">
           {/* Toggle estilo CurrencyToggle */}
           <div
-            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm select-none w-full max-w-xs"
+            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm select-none w-full max-w-xs mx-auto sm:mx-0"
             role="group"
             aria-label="Modo de búsqueda"
           >
@@ -123,7 +123,7 @@ export default function VerifyPage() {
               }`}
             >Cédula</button>
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm mx-auto w-full max-w-sm sm:max-w-none sm:mx-0">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -202,14 +202,14 @@ export default function VerifyPage() {
           })()}
 
           {/* Resumen */}
-          <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-col gap-4 shadow-sm">
+          <div className="rounded-xl border bg-white p-4 text-sm text-black flex flex-col gap-4 shadow-sm mx-auto w-full max-w-md text-center sm:max-w-none sm:mx-0 sm:text-left">
             {(() => {
               const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
               const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
               return (
                 <>
                   <span className="font-semibold text-base">Resultados: {visibleRows.length}</span>
-                  <span className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="flex flex-wrap items-center justify-center gap-2 text-xs">
                     <span className="px-2.5 py-1 rounded-full bg-green-100 text-green-800">Aprobado: {visibleRows.filter(r => r.payment_status === 'approved').length}</span>
                     <span className="px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">En revisión: {visibleRows.filter(r => r.payment_status === 'pending').length}</span>
                     <span className="px-2.5 py-1 rounded-full bg-red-100 text-red-800">Rechazado: {visibleRows.filter(r => r.payment_status === 'rejected').length}</span>

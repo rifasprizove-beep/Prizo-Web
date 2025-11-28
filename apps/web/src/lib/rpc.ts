@@ -187,25 +187,25 @@ export async function ensureSession(p_session_id: string) {
 
 // Verificar por email o cédula si ya hay tickets/pagos relacionados
 export async function verifyTicketsClient(q: string, includePending: boolean = true): Promise<any[] | null> {
-  const base = apiBase();
-  if (base) {
-    try {
-      const res = await fetch(`${base}/verify?q=${encodeURIComponent(q)}&include_pending=${includePending ? 'true' : 'false'}`, { cache: 'no-store' });
-      // Si la API responde con error, forzar fallback lanzando excepción
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`verify api failed: ${res.status} ${txt}`.trim());
-      }
-      const json = await res.json().catch(() => null);
-      return json && json.data ? (json.data as any[]) : [];
-    } catch {
-      // sigue al fallback
-    }
+  // Normalización ligera de cédula: quitar espacios y mayúsculas
+  let query = q.trim();
+  if (/^(?:[VE]-)?\d{5,10}$/i.test(query)) {
+    query = query.toUpperCase();
   }
-  // Fallback: intentar RPC directo en Supabase si existe
+
+  // Preferir proxy local para evitar CORS y usar service key
+  try {
+    const res = await fetch(`/api/verify?q=${encodeURIComponent(query)}&include_pending=${includePending ? 'true' : 'false'}`, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json().catch(() => null);
+      if (json && Array.isArray(json.data)) return json.data as any[];
+    }
+  } catch {}
+
+  // Último fallback: RPC con anon key
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase.rpc('verify_tickets', { p_query: q, p_include_pending: includePending });
+    const { data, error } = await supabase.rpc('verify_tickets', { p_query: query, p_include_pending: includePending });
     if (error) return null;
     return (data ?? []) as any[];
   } catch {

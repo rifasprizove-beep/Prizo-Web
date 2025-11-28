@@ -61,7 +61,10 @@ export default function VerifyPage() {
     try {
       // Usar cliente con fallback: intenta API y si falla por CORS/timeout, usa Supabase RPC
       const result = await verifyTicketsClient(term, true);
-      const rows: VerifyRow[] = (result ?? []) as VerifyRow[];
+      if (result === null) {
+        throw new Error('No se pudo consultar (permiso o servicio no disponible).');
+      }
+      const rows: VerifyRow[] = result as VerifyRow[];
       setData(rows);
       // si hay exactamente una rifa en los resultados, seleccionarla por defecto
       const raffleIds = Array.from(new Set(rows.map(r => r.raffle_id)));

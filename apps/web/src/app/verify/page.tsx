@@ -93,10 +93,10 @@ export default function VerifyPage() {
 
       {/* Barra de búsqueda mejorada */}
       <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-stretch sm:items-end">
-        <label className="block space-y-3 mx-auto w-full max-w-sm sm:max-w-none sm:mx-0">
+        <label className="block space-y-3">
           {/* Toggle estilo CurrencyToggle */}
           <div
-            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-0.5 shadow-glowSm select-none w-[240px] mx-auto sm:mx-0 sm:w-[300px]"
+            className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-0.5 shadow-glowSm select-none w-[220px] mx-auto sm:mx-0 sm:w-[280px]"
             role="group"
             aria-label="Modo de búsqueda"
           >
@@ -110,7 +110,7 @@ export default function VerifyPage() {
               type="button"
               onClick={() => setMode('email')}
               aria-pressed={mode === 'email'}
-              className={`relative z-10 px-2.5 py-1 min-h-[36px] text-[12px] font-semibold transition-colors flex-1 text-center rounded-full ${
+              className={`relative z-10 px-2 py-1 min-h-[32px] text-[12px] font-semibold transition-colors flex-1 text-center rounded-full ${
                 mode === 'email' ? 'text-black' : 'text-brand-200 hover:text-white/90'
               }`}
             >Correo</button>
@@ -118,12 +118,12 @@ export default function VerifyPage() {
               type="button"
               onClick={() => setMode('cedula')}
               aria-pressed={mode === 'cedula'}
-              className={`relative z-10 px-2.5 py-1 min-h-[36px] text-[12px] font-semibold transition-colors flex-1 text-center rounded-full ${
+              className={`relative z-10 px-2 py-1 min-h-[32px] text-[12px] font-semibold transition-colors flex-1 text-center rounded-full ${
                 mode === 'cedula' ? 'text-black' : 'text-brand-200 hover:text-white/90'
               }`}
             >Cédula</button>
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm mx-auto w-full max-w-sm sm:max-w-none sm:mx-0">
+          <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm w-full max-w-sm sm:max-w-none">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}

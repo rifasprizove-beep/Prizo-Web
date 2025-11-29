@@ -21,7 +21,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
 
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const { unitVES, unitUsdAtBcv, prizeVES, prizeUsdAtBcv, topBuyerVES, topBuyerUsdAtBcv } = useMemo(() => {
+  const { unitVES, unitUsdAtBcv, prizeUsdStatic, topBuyerVES, topBuyerUsdAtBcv } = useMemo(() => {
     const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
     const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
     const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
@@ -31,14 +31,14 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
     const topBuyerVESCalc = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
 
     const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(unitUSDBase);
-    const prizeUsdAtBcvCalc = bcvRate && prizeVESCalc ? round1(prizeVESCalc / bcvRate) : round1(prizeUSDBase);
+    // Premio estático en USD: siempre mostrar el monto original en dólares
+    const prizeUsdStaticCalc = round1(prizeUSDBase);
     const topBuyerUsdAtBcvCalc = bcvRate && topBuyerVESCalc ? round1(topBuyerVESCalc / bcvRate) : round1(topBuyerUSDBase);
 
     return {
       unitVES: unitVESCalc,
       unitUsdAtBcv: unitUsdAtBcvCalc,
-      prizeVES: prizeVESCalc,
-      prizeUsdAtBcv: prizeUsdAtBcvCalc,
+      prizeUsdStatic: prizeUsdStaticCalc,
       topBuyerVES: topBuyerVESCalc,
       topBuyerUsdAtBcv: topBuyerUsdAtBcvCalc,
     } as const;
@@ -114,9 +114,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {currency === 'USD'
-                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${prizeUsdAtBcv.toFixed(1)}`)
-                : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
+              <span className="opacity-90">Premio:</span> {`$${prizeUsdStatic.toFixed(1)}`}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
@@ -176,7 +174,8 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                 }}
                 className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
               >
-                TOP COMPRADORES
+                <span className="sm:hidden">TOP</span>
+                <span className="hidden sm:inline">TOP COMPRADORES</span>
               </button>
               <button
                 type="button"

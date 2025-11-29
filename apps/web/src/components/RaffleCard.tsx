@@ -32,8 +32,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
     isFree,
     unitVES,
     unitUsdAtBcv,
-    prizeVES,
-    prizeUsdAtBcv,
+    prizeUsdStatic,
   } = useMemo(() => {
     const isFreeCalc = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
     const ticketUsdBase = centsToUsd(raffle.ticket_price_cents);
@@ -42,15 +41,14 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
     const unitVESCalc = fallbackRate ? round0(ticketUsdBase * fallbackRate) : 0;
     const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(ticketUsdBase);
 
-    const prizeVESCalc = fallbackRate ? round0(prizeUsdBase * fallbackRate) : 0;
-    const prizeUsdAtBcvCalc = bcvRate && prizeVESCalc ? round1(prizeVESCalc / bcvRate) : round1(prizeUsdBase);
+    // Premio estático en USD: siempre mostrar el monto original en dólares
+    const prizeUsdStaticCalc = round1(prizeUsdBase);
 
     return {
       isFree: isFreeCalc,
       unitVES: unitVESCalc,
       unitUsdAtBcv: unitUsdAtBcvCalc,
-      prizeVES: prizeVESCalc,
-      prizeUsdAtBcv: prizeUsdAtBcvCalc,
+      prizeUsdStatic: prizeUsdStaticCalc,
     } as const;
   }, [raffle.ticket_price_cents, raffle.prize_amount_cents, fallbackRate, bcvRate]);
   // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
@@ -127,9 +125,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
       {(raffle.prize_amount_cents ?? 0) > 0 && (
         <div className="px-4 py-2 mt-4">
           <div className="text-xl sm:text-2xl font-extrabold leading-tight">
-            {currency === 'USD'
-              ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${prizeUsdAtBcv.toFixed(1)}`)
-              : (prizeVES ? formatVES(prizeVES) : <Skeleton className="w-16 h-5 align-middle" />)}
+            {`$${prizeUsdStatic.toFixed(1)}`}
           </div>
         </div>
       )}

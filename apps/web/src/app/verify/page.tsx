@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { verifyTicketsClient } from '@/lib/rpc';
 
 type VerifyRow = {
@@ -194,7 +194,7 @@ export default function VerifyPage() {
             const rejectedCount = visibleRows.filter(r => r.payment_status === 'rejected').length;
             const overpaidCount = visibleRows.filter(r => r.payment_status === 'overpaid').length;
 
-            const notices: JSX.Element[] = [];
+            const notices: React.ReactNode[] = [];
             // Pendientes: solo cuando se elige una rifa específica y no hay aprobados
             if (selectedRaffle !== 'all' && pendingCount > 0 && approvedCount === 0) {
               notices.push(

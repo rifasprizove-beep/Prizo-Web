@@ -42,7 +42,7 @@ export function SegmentedControl({ options, value, onChange }: { options: Array<
 	return (
 		<div
 			ref={containerRef}
-			className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1.5 py-1 shadow-glowSm"
+			className="relative inline-flex items-center rounded-full border border-brand-300 text-brand-200 bg-transparent px-1 py-1 shadow-glowSm"
 			role="tablist"
 		>
 			<span style={{ left: pillStyle.left, width: pillStyle.width }} className="absolute top-1 bottom-1 rounded-full bg-brand-500 transition-all duration-300 ease-out" aria-hidden="true" />

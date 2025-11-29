@@ -96,7 +96,7 @@ export default function VerifyPage() {
       <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-stretch sm:items-end">
         <label className="block space-y-3">
           {/* Toggle compacto reutilizando SegmentedControl para igualar estilo */}
-          <div className="w-[220px] mx-auto sm:mx-0 sm:w-[260px]">
+          <div className="w-[260px] mx-auto sm:mx-0">
             <SegmentedControl
               options={[
                 { key: 'email', label: 'Correo' },

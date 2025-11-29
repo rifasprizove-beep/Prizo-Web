@@ -172,6 +172,7 @@ export function CheckoutForm({
       p_city: values.city,
       p_ci: ciCombined,
       p_instagram: values.instagram,
+      p_instagram_user: values.instagram, // compatibilidad con versiones antiguas
       p_method: values.method,
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,

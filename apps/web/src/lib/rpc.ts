@@ -37,6 +37,8 @@ export async function createPaymentForSession(args: {
   p_currency?: string;
   p_ci?: string | null;
   p_instagram?: string | null;
+  // Compatibilidad con despliegues antiguos que usaban instagram_user
+  p_instagram_user?: string | null;
 }): Promise<string> {
   const supabase = getSupabase();
   const { data, error } = await supabase.rpc('create_payment_for_session', args);

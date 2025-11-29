@@ -190,15 +190,46 @@ export default function VerifyPage() {
             const visibleRows = selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle);
             const approvedCount = visibleRows.filter(r => r.payment_status === 'approved').length;
             const pendingCount = visibleRows.filter(r => r.payment_status === 'pending').length;
-            // Mostrar banner SOLO si se eligió una rifa específica y hay pendientes pero ninguno aprobado
+            const underpaidCount = visibleRows.filter(r => r.payment_status === 'underpaid').length;
+            const rejectedCount = visibleRows.filter(r => r.payment_status === 'rejected').length;
+            const overpaidCount = visibleRows.filter(r => r.payment_status === 'overpaid').length;
+
+            const notices: JSX.Element[] = [];
+            // Pendientes: solo cuando se elige una rifa específica y no hay aprobados
             if (selectedRaffle !== 'all' && pendingCount > 0 && approvedCount === 0) {
-              return (
-                <div className="p-3 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 text-sm">
+              notices.push(
+                <div key="pending" className="p-3 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 text-sm">
                   Esta rifa tiene pagos pendientes de aprobación.
                 </div>
               );
             }
-            return null;
+            // Monto menor
+            if (underpaidCount > 0) {
+              notices.push(
+                <div key="underpaid" className="p-3 rounded-lg border border-orange-300 bg-orange-50 text-orange-800 text-sm">
+                  Hay pagos registrados con monto menor. Por favor, contacta a soporte para pagar la diferencia.
+                </div>
+              );
+            }
+            // Rechazados
+            if (rejectedCount > 0) {
+              notices.push(
+                <div key="rejected" className="p-3 rounded-lg border border-red-300 bg-red-50 text-red-800 text-sm">
+                  Hay pagos rechazados. Por favor, contacta a soporte; de lo contrario, los tickets serán liberados en las próximas 24 horas.
+                </div>
+              );
+            }
+            // Monto mayor
+            if (overpaidCount > 0) {
+              notices.push(
+                <div key="overpaid" className="p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm">
+                  Hay pagos con monto mayor al debido. Por favor, contacta a soporte para gestionar la devolución de la diferencia.
+                </div>
+              );
+            }
+
+            if (!notices.length) return null;
+            return <div className="space-y-2">{notices}</div>;
           })()}
 
           {/* Resumen */}

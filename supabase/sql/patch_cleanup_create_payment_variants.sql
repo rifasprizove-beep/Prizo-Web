@@ -26,7 +26,7 @@ DROP FUNCTION IF EXISTS public.create_payment_for_session(p_raffle_id uuid, p_se
 
 -- 2) Re-creación única (14 args) si no existe ya con search_path
 -- Comprobación rápida: solo recrear si NO existe una firma con 14 argumentos
-DO $$
+DO $do$
 DECLARE
   v_exists boolean;
 BEGIN
@@ -38,7 +38,7 @@ BEGIN
       AND pg_get_function_identity_arguments(p.oid) = 'uuid, uuid, text, text, text, text, text, text, numeric, numeric, text, text, text, text'
   ) INTO v_exists;
   IF NOT v_exists THEN
-    EXECUTE $$
+    EXECUTE $fn$
       CREATE OR REPLACE FUNCTION public.create_payment_for_session(
         p_raffle_id uuid,
         p_session_id uuid,
@@ -58,7 +58,7 @@ BEGIN
       LANGUAGE plpgsql
       SECURITY DEFINER
       SET search_path = public
-      AS $$$$
+      AS $body$
       DECLARE
         v_payment_id uuid;
       BEGIN
@@ -75,10 +75,12 @@ BEGIN
          WHERE t.id IN (SELECT pt.ticket_id FROM payment_tickets pt WHERE pt.payment_id = v_payment_id)
            AND t.status = 'reserved';
         RETURN v_payment_id;
-      END;$$$$;
-    $$;
+      END;
+      $body$;
+    $fn$;
   END IF;
-END;$$;
+END;
+$do$;
 
 -- 3) Grant explícito (idempotente)
 GRANT EXECUTE ON FUNCTION public.create_payment_for_session(uuid,uuid,text,text,text,text,text,text,numeric,numeric,text,text,text,text) TO anon, authenticated;

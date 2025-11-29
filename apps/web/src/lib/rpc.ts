@@ -31,8 +31,8 @@ export async function createPaymentForSession(args: {
   p_method: string | null;
   p_reference: string | null;
   p_evidence_url: string | null;
-  p_amount_ves: string | null;
-  p_rate_used: string | null;
+  p_amount_ves: number | null;
+  p_rate_used: number | null;
   p_rate_source: string | null;
   p_currency?: string;
   p_ci?: string | null;
@@ -41,9 +41,53 @@ export async function createPaymentForSession(args: {
   p_instagram_user?: string | null;
 }): Promise<string> {
   const supabase = getSupabase();
-  const { data, error } = await supabase.rpc('create_payment_for_session', args);
-  if (error) throw error;
-  return data as string;
+  // Limpiar payload: usar sólo parámetros válidos y normalizar números
+  const clean: any = {
+    p_raffle_id: args.p_raffle_id,
+    p_session_id: args.p_session_id,
+    p_email: args.p_email ?? null,
+    p_phone: args.p_phone ?? null,
+    p_city: args.p_city ?? null,
+    p_method: args.p_method ?? null,
+    p_reference: args.p_reference ?? null,
+    p_evidence_url: args.p_evidence_url ?? null,
+    p_amount_ves: args.p_amount_ves == null ? null : Number(args.p_amount_ves),
+    p_rate_used: args.p_rate_used == null ? null : Number(args.p_rate_used),
+    p_rate_source: args.p_rate_source ?? null,
+    p_currency: args.p_currency ?? 'VES',
+    p_ci: args.p_ci ?? null,
+    p_instagram: args.p_instagram ?? null,
+  };
+
+  try {
+    const { data, error } = await supabase.rpc('create_payment_for_session', clean);
+    if (error) throw error;
+    return data as string;
+  } catch (err: any) {
+    // Fallback para instalaciones antiguas: reintentar sin p_instagram o con p_instagram_user
+    const msg = (err?.message || err?.toString?.() || '') as string;
+    const isNotFound = msg.includes('Could not find the function') || msg.includes('PGRST202');
+    if (!isNotFound) throw err;
+
+    // 1) Reintentar cambiando a p_instagram_user
+    const legacy: any = { ...clean };
+    if (legacy.p_instagram != null) {
+      legacy.p_instagram_user = legacy.p_instagram;
+    }
+    delete legacy.p_instagram;
+    try {
+      const { data, error } = await supabase.rpc('create_payment_for_session', legacy);
+      if (error) throw error;
+      return data as string;
+    } catch (err2) {
+      // 2) Último intento: sin instagram del todo
+      const noIg: any = { ...legacy };
+      delete noIg.p_instagram_user;
+      const { data, error } = await supabase.rpc('create_payment_for_session', noIg);
+      if (error) throw error;
+      return data as string;
+    }
+  }
 }
 
 export async function reserveRandomTickets(args: {

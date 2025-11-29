@@ -157,8 +157,8 @@ export function CheckoutForm({
     const unitUSD = centsToUsd(unitPriceCents ?? 0);
     const count = quantity ?? 0;
     const totalUSD = round2(unitUSD * count);
-  const rateUsed = fallbackRate ?? 0;
-  const amountVES = rateUsed ? String(round0(totalUSD * rateUsed)) : null;
+    const rateUsed = fallbackRate ?? 0;
+    const amountVESNum = rateUsed ? round0(totalUSD * rateUsed) : null;
     // Asegurar que la sesión exista antes de crear el pago
     try { await ensureSession(sessionId); } catch {}
     const ciCombined = (values.ciNumber as string | undefined)?.trim()
@@ -172,13 +172,12 @@ export function CheckoutForm({
       p_city: values.city,
       p_ci: ciCombined,
       p_instagram: values.instagram,
-      p_instagram_user: values.instagram, // compatibilidad con versiones antiguas
       p_method: values.method,
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,
-      p_amount_ves: amountVES,
-  p_rate_used: rateUsed ? String(rateUsed) : null,
-  p_rate_source: fallbackRate ? 'env' : null,
+      p_amount_ves: amountVESNum,
+      p_rate_used: rateUsed || null,
+      p_rate_source: fallbackRate ? 'env' : null,
       p_currency: currency,
     });
     onCreated?.(paymentId);

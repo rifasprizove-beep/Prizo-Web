@@ -93,7 +93,7 @@ export default function VerifyPage() {
       </h1>
 
       {/* Barra de búsqueda mejorada */}
-      <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-stretch sm:items-end">
+      <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-center sm:items-end">
         <label className="flex flex-col items-center sm:items-start space-y-3 w-full">
           {/* Toggle compacto reutilizando SegmentedControl para igualar estilo */}
           <div className="w-full flex justify-center sm:w-auto sm:justify-start">

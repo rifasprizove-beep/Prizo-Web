@@ -94,17 +94,19 @@ export default function VerifyPage() {
 
       {/* Barra de búsqueda mejorada */}
       <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] gap-4 items-stretch sm:items-end">
-        <label className="flex flex-col items-center sm:items-start space-y-3">
+        <label className="flex flex-col items-center sm:items-start space-y-3 w-full">
           {/* Toggle compacto reutilizando SegmentedControl para igualar estilo */}
-          <div className="w-[260px] mx-auto sm:mx-0">
-            <SegmentedControl
+          <div className="w-full flex justify-center sm:w-auto sm:justify-start">
+            <div className="w-[260px]">
+              <SegmentedControl
               options={[
                 { key: 'email', label: 'Correo' },
                 { key: 'cedula', label: 'Cédula' },
               ]}
               value={mode}
               onChange={(v) => setMode(v as 'email' | 'cedula')}
-            />
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-300 focus-within:ring-2 focus-within:ring-brand-500 px-4 py-3 shadow-sm w-full max-w-sm sm:max-w-none">
             <input

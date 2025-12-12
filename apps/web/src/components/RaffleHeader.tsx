@@ -79,6 +79,8 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
   // Estado visual según la rifa
   const isDrawnEffective = srcRaffle.status === 'drawn';
+  const startsAt = (srcRaffle as any)?.starts_at ? Date.parse((srcRaffle as any).starts_at as any) : null;
+  const notStartedYetPublished = srcRaffle.status === 'published' && typeof startsAt === 'number' && Date.now() < startsAt;
   // Cargar ganadores para saber si hay alguno asignado
   const winnersPreQ = useQuery({
     queryKey: ['winners-pre', srcRaffle.id],
@@ -193,7 +195,10 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               </a>
               <button
                 type="button"
+                disabled={notStartedYetPublished}
                 onClick={() => {
+                  // Si aún no inicia y está published, no permitir abrir Top Compradores
+                  if (notStartedYetPublished) return;
                   // Si ya estamos en TOP COMPRADORES, no hacer toggle (quedarse)
                   if (showTopBuyers) return;
                   setShowWinners(false);
@@ -202,7 +207,9 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                     if (typeof window !== 'undefined') window.location.hash = '#top';
                   } catch {}
                 }}
-                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
+                className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers
+                  ? 'bg-white text-brand-700'
+                  : (notStartedYetPublished ? 'text-white/50 border border-white/20' : 'text-white/80 hover:text-white border border-white/30')}`}
               >
                 <span className="hidden sm:inline">TOP COMPRADORES</span>
                 <span className="sm:hidden">TOP</span>
@@ -234,7 +241,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
         </div>
         {/* Estado removido por solicitud del cliente */}
       </div>
-      {showTopBuyers && (
+      {showTopBuyers && !notStartedYetPublished && (
         <div>
           <TopBuyersInline raffleId={raffle.id} />
         </div>

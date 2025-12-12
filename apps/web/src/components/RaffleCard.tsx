@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1 } from '@/lib/data/rate';
-import { formatVES, effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
+import { formatMoney, effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
 import { Skeleton } from './Skeleton';
@@ -60,76 +60,75 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const isFinished = phase === 'finished';
   return (
     <>
-    <Link
-      href={cardHref}
-      className="relative block rounded-3xl border border-brand-500/20 bg-surface-700 text-white transition-shadow hover:shadow-glowSm"
-    >
-      {/* Logos en esquina superior derecha (más pequeños en móvil) */}
-      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-1 sm:gap-2 z-10">
-        <Link href="https://tripletachira.com/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
-          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940209/Untitled_design_zynbxm.png" alt="Triple Gana" className="h-5 sm:h-7 w-auto object-contain" />
-        </Link>
-        <Link href="https://www.conalot.gob.ve" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
-          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/3_cvgejv.png" alt="Conalot" className="h-5 sm:h-7 w-auto object-contain" />
-        </Link>
-        <Link href="https://supergana.com.ve/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
-          <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/2_uaee43.png" alt="Super Gana" className="h-5 sm:h-7 w-auto object-contain" />
-        </Link>
-      </div>
-  <div className="p-4 pb-0 space-y-2 mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          {isFree ? (
-            <BadgePill tone="brand">Gratis</BadgePill>
-          ) : (
-            <>
-              <BadgePill>
-                {currency === 'USD'
-                  ? (bcvRate === null ? <Skeleton className="w-10 h-4 align-middle" /> : `$${unitUsdAtBcv.toFixed(1)}`)
-                  : (unitVES ? formatVES(unitVES) : <Skeleton className="w-10 h-4 align-middle" />)}
-              </BadgePill>
-            </>
-          )}
-          {(effStatus === 'published' || effStatus === 'selling') && (
-            <BadgePill tone="brand">Abierta</BadgePill>
-          )}
-          {effStatus === 'drawn' && (
-            <BadgePill tone="brand">Sorteando</BadgePill>
-          )}
-          {isClosed && (
-            <BadgePill tone="brand">Cerrada</BadgePill>
-          )}
-          {raffle.top_buyer_prize_cents ? (
-            <BadgePill tone="brand">Top comprador</BadgePill>
-          ) : null}
-        </div>
-        <h3 className="text-xl font-bold leading-tight line-clamp-2">{raffle.name}</h3>
-        <p className="text-sm text-gray-300 line-clamp-2 min-h-[40px]">{raffle.description ?? ''}</p>
-      </div>
-      {raffle.image_url ? (
-        <div className="relative w-full aspect-[16/11] rounded-3xl overflow-hidden -mb-2">
-          <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={false} />
-        </div>
-      ) : (
-        <div className="w-full aspect-[16/11] bg-surface-800 rounded-3xl -mb-2" />
-      )}
-      {awaiting && !isClosed && (
-        <div className="px-4 py-2 bg-yellow-500/10 text-yellow-200 text-xs border-t border-yellow-500/20">
-          Ventas cerradas — sorteando
-        </div>
-      )}
-      {isFinished && isClosed && (
-        <div className="px-4 py-2 bg-red-500/10 text-red-200 text-xs border-t border-red-500/30">
-          Rifa cerrada — ganador publicado
-        </div>
-      )}
-      {(raffle.prize_amount_cents ?? 0) > 0 && (
-        <div className="px-4 py-2 mt-4">
-          <div className="text-xl sm:text-2xl font-extrabold leading-tight">
-            {`$${prizeUsdStatic.toFixed(1)}`}
+      <Link
+        href={cardHref}
+        className="relative block rounded-3xl border border-brand-500/20 bg-surface-700 text-white transition-shadow hover:shadow-glowSm"
+      >
+        <div className="p-4 pb-0 space-y-2 mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {isFree ? (
+              <BadgePill tone="brand">Gratis</BadgePill>
+            ) : (
+              <>
+                <BadgePill>
+                  {currency === 'USD'
+                    ? (bcvRate === null ? <Skeleton className="w-10 h-4 align-middle" /> : formatMoney(unitUsdAtBcv, 'USD'))
+                    : (unitVES ? formatMoney(unitVES, 'VES') : <Skeleton className="w-10 h-4 align-middle" />)}
+                </BadgePill>
+              </>
+            )}
+            {(effStatus === 'published' || effStatus === 'selling') && (
+              <BadgePill tone="brand">Abierta</BadgePill>
+            )}
+            {effStatus === 'drawn' && (
+              <BadgePill tone="brand">Sorteando</BadgePill>
+            )}
+            {isClosed && (
+              <BadgePill tone="brand">Cerrada</BadgePill>
+            )}
+            {raffle.top_buyer_prize_cents ? (
+              <BadgePill tone="brand">Top comprador</BadgePill>
+            ) : null}
           </div>
+          <h3 className="text-xl font-bold leading-tight line-clamp-2">{raffle.name}</h3>
+          <p className="text-sm text-gray-300 line-clamp-2 min-h-[40px]">{raffle.description ?? ''}</p>
         </div>
-      )}
-    </Link>
+        {raffle.image_url ? (
+          <div className="relative w-full aspect-[16/11] rounded-3xl overflow-hidden -mb-2">
+            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={false} />
+          </div>
+        ) : (
+          <div className="w-full aspect-[16/11] bg-surface-800 rounded-3xl -mb-2" />
+        )}
+        {awaiting && !isClosed && (
+          <div className="px-4 py-2 bg-yellow-500/10 text-yellow-200 text-xs border-t border-yellow-500/20">
+            Ventas cerradas — sorteando
+          </div>
+        )}
+        {isFinished && isClosed && (
+          <div className="px-4 py-2 bg-red-500/10 text-red-200 text-xs border-t border-red-500/30">
+            Rifa cerrada — ganador publicado
+          </div>
+        )}
+        {(raffle.prize_amount_cents ?? 0) > 0 && (
+          <div className="px-4 py-2 mt-4 flex items-center justify-between gap-3">
+            <div className="text-xl sm:text-2xl font-extrabold leading-tight">
+              {formatMoney(prizeUsdStatic, 'USD')}
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Link href="https://tripletachira.com/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+                <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940209/Untitled_design_zynbxm.png" alt="Triple Gana" className="h-5 sm:h-7 w-auto object-contain" />
+              </Link>
+              <Link href="https://www.conalot.gob.ve" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+                <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/3_cvgejv.png" alt="Conalot" className="h-5 sm:h-7 w-auto object-contain" />
+              </Link>
+              <Link href="https://supergana.com.ve/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+                <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/2_uaee43.png" alt="Super Gana" className="h-5 sm:h-7 w-auto object-contain" />
+              </Link>
+            </div>
+          </div>
+        )}
+      </Link>
     </>
   );
 }

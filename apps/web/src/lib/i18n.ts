@@ -57,10 +57,15 @@ export function uiRafflePhase(r: Raffle): RaffleUiPhase {
   }
 }
 
-export function formatVES(amount: number): string {
+export function formatMoney(amount: number, currency: 'USD' | 'VES'): string {
   try {
-    return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES', maximumFractionDigits: 2 }).format(amount);
+    const formatted = new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    return currency === 'USD' ? `$${formatted}` : `Bs.${formatted}`;
   } catch {
-    return `${amount.toFixed(2)} Bs`;
+    return currency === 'USD' ? `$${amount.toFixed(2)}` : `Bs.${amount.toFixed(2)}`;
   }
+}
+
+export function formatVES(amount: number): string {
+  return formatMoney(amount, 'VES');
 }

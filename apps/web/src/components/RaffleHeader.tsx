@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1 } from "@/lib/data/rate";
-import { formatVES } from "@/lib/i18n";
+import { formatMoney } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
@@ -21,26 +21,24 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
 
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const { unitVES, unitUsdAtBcv, prizeUsdStatic, topBuyerVES, topBuyerUsdAtBcv } = useMemo(() => {
+  const { unitVES, unitUsdAtBcv, prizeUsdStatic, topBuyerUsdStatic } = useMemo(() => {
     const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
     const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
     const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
 
     const unitVESCalc = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
     const prizeVESCalc = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
-    const topBuyerVESCalc = fallbackRate ? round0(topBuyerUSDBase * fallbackRate) : 0;
 
     const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(unitUSDBase);
     // Premio estático en USD: siempre mostrar el monto original en dólares
     const prizeUsdStaticCalc = round1(prizeUSDBase);
-    const topBuyerUsdAtBcvCalc = bcvRate && topBuyerVESCalc ? round1(topBuyerVESCalc / bcvRate) : round1(topBuyerUSDBase);
+    const topBuyerUsdStaticCalc = round1(topBuyerUSDBase);
 
     return {
       unitVES: unitVESCalc,
       unitUsdAtBcv: unitUsdAtBcvCalc,
       prizeUsdStatic: prizeUsdStaticCalc,
-      topBuyerVES: topBuyerVESCalc,
-      topBuyerUsdAtBcv: topBuyerUsdAtBcvCalc,
+      topBuyerUsdStatic: topBuyerUsdStaticCalc,
     } as const;
   }, [raffle.ticket_price_cents, raffle.prize_amount_cents, raffle.top_buyer_prize_cents, fallbackRate, bcvRate]);
   // Defensive conversion: Supabase may return numeric fields as strings.
@@ -107,21 +105,19 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               ? 'Gratis'
               : (
                 currency === 'USD'
-                  ? (bcvRate === null ? <Skeleton className="w-12 h-5 align-middle" /> : `$${unitUsdAtBcv.toFixed(1)}`)
-                  : (unitVES ? formatVES(unitVES) : <Skeleton className="w-12 h-5 align-middle" />)
+                  ? (bcvRate === null ? <Skeleton className="w-12 h-5 align-middle" /> : formatMoney(unitUsdAtBcv, 'USD'))
+                  : (unitVES ? formatMoney(unitVES, 'VES') : <Skeleton className="w-12 h-5 align-middle" />)
               )
             }
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {`$${prizeUsdStatic.toFixed(1)}`}
+              <span className="opacity-90">Premio:</span> {formatMoney(prizeUsdStatic, 'USD')}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="text-brand-300">Top comprador:</span> {currency === 'USD'
-                ? (bcvRate === null ? <Skeleton className="w-16 h-5 align-middle" /> : `$${topBuyerUsdAtBcv.toFixed(1)}`)
-                : (topBuyerVES ? formatVES(topBuyerVES) : <Skeleton className="w-16 h-5 align-middle" />)}
+              <span className="text-brand-300">Top comprador:</span> {formatMoney(topBuyerUsdStatic, 'USD')}
             </div>
           )}
         </div>

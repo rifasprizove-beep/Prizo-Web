@@ -472,7 +472,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   const reservedCount = reserved.length || (restoring && restoreIds ? restoreIds.length : 0);
 
   return (
-    <div className="rounded-2xl border border-brand-500/20 p-3 sm:p-4 pb-20 bg-surface-800 text-white">
+    <div className="rounded-2xl border border-brand-500/20 p-3 sm:p-4 pb-6 sm:pb-20 bg-surface-800 text-white">
   {!isFree && <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase text-center">¿Cuántos tickets quieres?</h2>}
 
       {error && (
@@ -483,7 +483,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
       )}
 
       {!reserved.length && !restoring ? (
-        <div className="mt-4 max-w-md mx-auto">
+        <div className="mt-4 max-w-md mx-auto text-center">
           {!isFree ? (
             <>
               <div className="mt-2 flex justify-center">
@@ -496,7 +496,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     disabled={busy || disabledAll}
                   >−</button>
                   <input
-                    className="w-20 sm:w-24 h-12 sm:h-14 text-center text-2xl sm:text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
+                    className="w-24 sm:w-28 h-12 sm:h-14 text-center text-2xl sm:text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
                     type="number"
                     min={minTicketPurchase}
                     max={availableTickets}
@@ -532,7 +532,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             <div className="mt-2 flex items-center justify-center">
               <button
                 type="button"
-                className="btn-neon w-full sm:w-auto disabled:opacity-60"
+                className="btn-neon w-full sm:w-auto disabled:opacity-60 max-w-md"
                 onClick={async () => { setQty(minTicketPurchase); await handleContinue(); }}
                 disabled={disabledAll || busy || (!isFree && availableTickets <= 0)}
               >
@@ -544,7 +544,8 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
             </div>
           )}
 
-          <p className="mt-4 text-center text-sm text-gray-300">
+          <div className="max-w-md mx-auto text-center pb-6 sm:pb-0">
+          <p className="mt-4 text-center text-sm sm:text-base text-gray-300">
             {isFree ? (
               <>
                 Al continuar, registraremos tu participación. Solo te pediremos tus datos. Es <b>GRATIS</b>, no debes pagar nada.
@@ -561,13 +562,14 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
           )}
 
           {!isFree && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <button type="button" className="btn-neon w-full sm:w-auto disabled:opacity-60 flex items-center justify-center gap-2" onClick={handleContinue} disabled={busy}>
+            <div className="mt-5 sm:mt-5 flex items-center justify-center gap-3">
+              <button type="button" className="btn-neon w-full sm:w-auto max-w-[280px] sm:max-w-md disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px] sm:min-h-[52px] text-base" onClick={handleContinue} disabled={busy}>
                 {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
                 Continuar
               </button>
             </div>
           )}
+          </div>
         </div>
       ) : (
         <div className="mt-4 space-y-4 max-w-xl mx-auto">

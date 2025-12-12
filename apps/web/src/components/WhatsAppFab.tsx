@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function WhatsAppFab() {
   const phone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP;
@@ -10,6 +10,19 @@ export function WhatsAppFab() {
   const hrefCreate = `${base}?text=${encodeURIComponent("Hola, quisiera crear mi propia web.")}`;
 
   const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleDocClick(e: MouseEvent) {
+      const target = e.target as Node | null;
+      const inBtn = btnRef.current && target && btnRef.current.contains(target);
+      const inMenu = menuRef.current && target && menuRef.current.contains(target);
+      if (!inBtn && !inMenu) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, [open]);
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-50">
@@ -18,6 +31,7 @@ export function WhatsAppFab() {
           type="button"
           aria-label="WhatsApp"
           onClick={() => setOpen((v) => !v)}
+          ref={btnRef}
           className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] text-white shadow-lg ring-1 ring-black/10 hover:translate-y-[-1px] active:translate-y-[0] transition-transform focus:outline-none"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden="true" shapeRendering="geometricPrecision">
@@ -26,13 +40,13 @@ export function WhatsAppFab() {
         </button>
 
         {open && (
-          <div className="absolute bottom-[60px] right-0 sm:bottom-[70px] w-56 rounded-xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden">
+          <div ref={menuRef} className="absolute bottom-[60px] right-0 sm:bottom-[70px] w-44 rounded-xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden transition-all">
             <div className="py-1">
-              <a href={hrefSupport} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2.5 text-sm text-black hover:bg-gray-50">
+              <a href={hrefSupport} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-base text-black hover:bg-gray-50">
                 <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]" />
                 <span className="font-medium">Soporte</span>
               </a>
-              <a href={hrefCreate} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2.5 text-sm text-black hover:bg-gray-50">
+              <a href={hrefCreate} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-base text-black hover:bg-gray-50">
                 <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]" />
                 <span className="font-medium">Crea tu web</span>
               </a>

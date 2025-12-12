@@ -9,46 +9,33 @@ import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
 import { Skeleton } from './Skeleton';
 
-function useRates() {
-  const [bcvRate, setBcvRate] = useState<number | null>(null);
-  const fallbackRate = getEnvFallbackRate();
-  useEffect(() => {
-    (async () => {
-      try {
-        const info = await getBcvRatePreferApi();
-        if (info?.rate) setBcvRate(info.rate);
-      } catch {}
-    })();
-  }, []);
-  return { fallbackRate, bcvRate } as const;
-}
-
 export function RaffleCard({ raffle }: { raffle: Raffle }) {
   const { currency } = useCurrency();
-  const { fallbackRate, bcvRate } = useRates();
+  const fallbackRate = getEnvFallbackRate();
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
+  useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
 
   // Derivados y formatos memoizados para evitar recalcular y re-render innecesarios
   const {
     isFree,
     unitVES,
     unitUsdAtBcv,
-    prizeUsdStatic,
+    prizeUsd,
   } = useMemo(() => {
     const isFreeCalc = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-    const ticketUsdBase = centsToUsd(raffle.ticket_price_cents);
+    const ticketUsdBase = centsToUsd(raffle.ticket_price_cents ?? 0);
     const prizeUsdBase = centsToUsd(raffle.prize_amount_cents ?? 0);
 
-    const unitVESCalc = fallbackRate ? round0(ticketUsdBase * fallbackRate) : 0;
-    const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(ticketUsdBase);
-
-    // Premio estático en USD: siempre mostrar el monto original en dólares
-    const prizeUsdStaticCalc = round1(prizeUsdBase);
+    // Unificar lógica con el header: VES = USD * (fallback || BCV || 225)
+    const effectiveVesRate = fallbackRate ?? bcvRate ?? 225;
+    const unitVESCalc = round0(ticketUsdBase * effectiveVesRate);
+    const unitUsdAtBcvCalc = bcvRate ? round1(unitVESCalc / bcvRate) : round1(ticketUsdBase);
 
     return {
       isFree: isFreeCalc,
       unitVES: unitVESCalc,
       unitUsdAtBcv: unitUsdAtBcvCalc,
-      prizeUsdStatic: prizeUsdStaticCalc,
+      prizeUsd: prizeUsdBase,
     } as const;
   }, [raffle.ticket_price_cents, raffle.prize_amount_cents, fallbackRate, bcvRate]);
   // Siempre enviamos al detalle; si está "drawn" el header tendrá el botón GANADOR activo
@@ -95,7 +82,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         </div>
         {raffle.image_url ? (
           <div className="relative w-full aspect-[16/11] rounded-3xl overflow-hidden -mb-2">
-            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={false} />
+            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
           </div>
         ) : (
           <div className="w-full aspect-[16/11] bg-surface-800 rounded-3xl -mb-2" />
@@ -113,18 +100,33 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
         {(raffle.prize_amount_cents ?? 0) > 0 && (
           <div className="px-4 py-2 mt-4 flex items-center justify-between gap-3">
             <div className="text-xl sm:text-2xl font-extrabold leading-tight">
-              {formatMoney(prizeUsdStatic, 'USD')}
+              {formatMoney(prizeUsd, 'USD')}
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <Link href="https://tripletachira.com/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+              <button
+                type="button"
+                onClick={() => { try { window.open('https://tripletachira.com/resultados.php', '_blank', 'noopener,noreferrer'); } catch {} }}
+                className="inline-flex items-center px-1"
+                aria-label="Abrir resultados Triple Gana"
+              >
                 <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940209/Untitled_design_zynbxm.png" alt="Triple Gana" className="h-5 sm:h-7 w-auto object-contain" />
-              </Link>
-              <Link href="https://www.conalot.gob.ve" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => { try { window.open('https://www.conalot.gob.ve', '_blank', 'noopener,noreferrer'); } catch {} }}
+                className="inline-flex items-center px-1"
+                aria-label="Abrir sitio Conalot"
+              >
                 <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/3_cvgejv.png" alt="Conalot" className="h-5 sm:h-7 w-auto object-contain" />
-              </Link>
-              <Link href="https://supergana.com.ve/resultados.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => { try { window.open('https://supergana.com.ve/resultados.php', '_blank', 'noopener,noreferrer'); } catch {} }}
+                className="inline-flex items-center px-1"
+                aria-label="Abrir resultados Super Gana"
+              >
                 <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1763940064/2_uaee43.png" alt="Super Gana" className="h-5 sm:h-7 w-auto object-contain" />
-              </Link>
+              </button>
             </div>
           </div>
         )}

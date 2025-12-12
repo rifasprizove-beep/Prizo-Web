@@ -16,31 +16,39 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const { currency } = useCurrency();
   // Tasa de referencia (entorno) para calcular VES mostrados
   const fallbackRate = getEnvFallbackRate();
-  // Tasa BCV para mostrar equivalentes en USD
   const [bcvRate, setBcvRate] = useState<number | null>(null);
   useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
 
   const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-  const { unitVES, unitUsdAtBcv, prizeUsdStatic, topBuyerUsdStatic } = useMemo(() => {
+  const { unitVES, unitUsdAtBcv, prizeUsd, topBuyerUsd } = useMemo(() => {
     const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
     const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
     const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
 
-    const unitVESCalc = fallbackRate ? round0(unitUSDBase * fallbackRate) : 0;
-    const prizeVESCalc = fallbackRate ? round0(prizeUSDBase * fallbackRate) : 0;
-
-    const unitUsdAtBcvCalc = bcvRate && unitVESCalc ? round1(unitVESCalc / bcvRate) : round1(unitUSDBase);
-    // Premio estático en USD: siempre mostrar el monto original en dólares
-    const prizeUsdStaticCalc = round1(prizeUSDBase);
-    const topBuyerUsdStaticCalc = round1(topBuyerUSDBase);
+    // Si no hay tasa de entorno, intenta usar BCV para estimar VES; como último recurso usa 225.
+    const effectiveVesRate = fallbackRate ?? bcvRate ?? 225;
+    const unitVESCalc = round0(unitUSDBase * effectiveVesRate);
+    const unitUsdAtBcvCalc = bcvRate ? round1(unitVESCalc / bcvRate) : round1(unitUSDBase);
 
     return {
       unitVES: unitVESCalc,
       unitUsdAtBcv: unitUsdAtBcvCalc,
-      prizeUsdStatic: prizeUsdStaticCalc,
-      topBuyerUsdStatic: topBuyerUsdStaticCalc,
+      prizeUsd: prizeUSDBase,
+      topBuyerUsd: topBuyerUSDBase,
     } as const;
   }, [raffle.ticket_price_cents, raffle.prize_amount_cents, raffle.top_buyer_prize_cents, fallbackRate, bcvRate]);
+  if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+    try {
+      console.debug('[HeaderPriceDebug]', {
+        ticket_price_cents: raffle.ticket_price_cents,
+        unitUSDBase: centsToUsd(raffle.ticket_price_cents ?? 0),
+        fallbackRate,
+        bcvRate,
+        unitVES,
+        unitUsdAtBcv,
+      });
+    } catch {}
+  }
   // Defensive conversion: Supabase may return numeric fields as strings.
   const soldNum = counters ? Number((counters as any).sold ?? 0) : 0;
   const totalNum = counters ? Number((counters as any).total_tickets ?? 0) : 0;
@@ -86,9 +94,23 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
     <header className="space-y-6">
       <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
         <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
-        {raffle.image_url && (
-          <div className="relative w-full h-64 md:h-80 rounded-xl mt-3 overflow-hidden bg-white">
-            <Image src={raffle.image_url} alt={raffle.name} fill className="object-cover" sizes="100vw" />
+        {raffle.image_url ? (
+          <div className="relative w-full rounded-xl mt-3 overflow-hidden bg-white aspect-[16/9] md:aspect-[21/9]">
+            <Image
+              src={raffle.image_url}
+              alt={raffle.name}
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+              unoptimized
+            />
+          </div>
+        ) : (
+          <div className="relative w-full rounded-xl mt-3 overflow-hidden aspect-[16/9] md:aspect-[21/9] bg-gradient-to-br from-brand-400/40 via-brand-500/30 to-pink-500/30 border border-white/20">
+            <div className="absolute inset-0 flex items-center justify-center text-white/80 text-sm font-semibold">
+              Imagen no disponible
+            </div>
           </div>
         )}
 
@@ -98,26 +120,26 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </p>
         )}
 
-  <div className="mt-3 text-sm space-y-1">
+        <div className="mt-3 text-sm space-y-1">
           <div>
             <span className="opacity-90">Ticket:</span>{' '}
-            {isFree
-              ? 'Gratis'
-              : (
-                currency === 'USD'
-                  ? (bcvRate === null ? <Skeleton className="w-12 h-5 align-middle" /> : formatMoney(unitUsdAtBcv, 'USD'))
-                  : (unitVES ? formatMoney(unitVES, 'VES') : <Skeleton className="w-12 h-5 align-middle" />)
-              )
-            }
+            {isFree ? (
+              'Gratis'
+            ) : currency === 'USD' ? (
+              // Mostrar siempre el precio en USD calculado; si no hay BCV, usamos el base.
+              formatMoney(unitUsdAtBcv, 'USD')
+            ) : (
+              formatMoney(unitVES, 'VES')
+            )}
           </div>
           {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {formatMoney(prizeUsdStatic, 'USD')}
+              <span className="opacity-90">Premio:</span> {formatMoney(prizeUsd, 'USD')}
             </div>
           )}
           {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="text-brand-300">Top comprador:</span> {formatMoney(topBuyerUsdStatic, 'USD')}
+              <span className="text-brand-300">Top comprador:</span> {formatMoney(topBuyerUsd, 'USD')}
             </div>
           )}
         </div>
@@ -170,8 +192,8 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
                 }}
                 className={`flex-1 text-center font-extrabold px-3 py-2 rounded-full text-xs sm:text-sm tap-safe ${showTopBuyers ? 'bg-white text-brand-700' : 'text-white/80 hover:text-white border border-white/30'}`}
               >
-                <span className="sm:hidden">TOP</span>
                 <span className="hidden sm:inline">TOP COMPRADORES</span>
+                <span className="sm:hidden">TOP</span>
               </button>
               <button
                 type="button"

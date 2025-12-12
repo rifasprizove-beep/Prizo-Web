@@ -48,6 +48,7 @@ export function CheckoutForm({
   unitPriceCents,
   methodLabel,
   paymentMethods,
+  onClickLiberar,
 }: {
   raffleId: string;
   sessionId: string;
@@ -58,6 +59,7 @@ export function CheckoutForm({
   unitPriceCents?: number;
   methodLabel?: string;
   paymentMethods?: RafflePaymentMethod[];
+  onClickLiberar?: () => void;
 }) {
   const { register, handleSubmit, setValue, formState: { errors }, watch, reset, getValues } = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -413,7 +415,7 @@ export function CheckoutForm({
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
   <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
         <div className="sm:col-span-2 flex flex-col items-center">
-          <label className="block text-base font-medium w-full text-center">Evidencia (JPG, PNG o WEBP máx 5MB) — Obligatoria</label>
+          <label className="block text-base font-medium w-full text-center">Enviar capture (JPG, PNG o WEBP máx 5MB) — Obligatoria</label>
           {/* Input real oculto */}
           <input
             ref={fileInputRef}
@@ -457,10 +459,16 @@ export function CheckoutForm({
         </label>
       </div>
       {errors.termsAccepted && <p className="text-xs text-red-500">{String(errors.termsAccepted.message ?? '')}</p>}
-      <div className="flex items-center justify-center gap-3">
-        <button type="submit" className="btn-neon w-full sm:w-auto disabled:opacity-60 tap-safe min-h-[52px] text-base" disabled={disabled || submitting}>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 w-full">
+        <div />
+        <button type="submit" className="btn-neon justify-self-center disabled:opacity-60 tap-safe min-h-[52px] text-base" disabled={disabled || submitting}>
           {submitting ? 'Enviando…' : 'Enviar pago'}
         </button>
+        {onClickLiberar ? (
+          <button type="button" className="justify-self-end text-base px-4 py-2 rounded-lg border-2 border-red-500 text-red-200 hover:bg-red-600 hover:text-white transition-colors shadow-sm tap-safe" onClick={onClickLiberar} disabled={disabled || submitting}>Liberar</button>
+        ) : (
+          <div />
+        )}
       </div>
     </form>
   );

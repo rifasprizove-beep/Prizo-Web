@@ -5,6 +5,7 @@ import { Space_Grotesk } from 'next/font/google'
 import { TermsConsent } from '../components/TermsConsent'
 import { Footer } from '../components/Footer'
 import { WhatsAppHelp } from '../components/WhatsAppHelp'
+import { WhatsAppCreateWeb } from '../components/WhatsAppCreateWeb'
 import Image from 'next/image'
 import { CurrencyProvider } from '../lib/currency'
 import { HeaderActions } from '../components/HeaderActions'
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TermsConsent />
         <Footer />
         <WhatsAppHelp />
+        <WhatsAppCreateWeb />
         </CurrencyProvider>
         </ThemeProvider>
       </body>

@@ -151,7 +151,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           )}
           {srcRaffle.top_buyer_prize_cents != null && srcRaffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="text-brand-300">Top comprador:</span> {formatMoney(topBuyerUsd, 'USD')}
+              <span className="opacity-90">Top comprador:</span> {formatMoney(topBuyerUsd, 'USD')}
             </div>
           )}
         </div>

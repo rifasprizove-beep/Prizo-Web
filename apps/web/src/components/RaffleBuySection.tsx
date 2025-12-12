@@ -462,20 +462,12 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
                 unitPriceCents={unitPriceCents}
                 methodLabel={paymentInfo ? (paymentInfo.method_label ?? 'Pago') : 'Pago'}
                 onCreated={() => {}}
+                onClickLiberar={() => setShowCancelConfirm(true)}
               />
             </>
           )}
 
-          {!isFree && (
-            <div className="flex items-center justify-end">
-              <button
-                type="button"
-                className="text-base px-4 py-2 rounded-lg border-2 border-red-500 text-red-200 hover:bg-red-600 hover:text-white transition-colors shadow-sm"
-                onClick={() => setShowCancelConfirm(true)}
-                disabled={busy}
-              >Liberar y cerrar</button>
-            </div>
-          )}
+          {/* Botón 'Liberar' ahora se muestra junto a 'Enviar pago' dentro de CheckoutForm */}
         </div>
       )}
 

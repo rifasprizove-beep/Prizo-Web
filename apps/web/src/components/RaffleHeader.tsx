@@ -149,6 +149,11 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               <span className="opacity-90">Premio:</span> {formatMoney(prizeUsd, 'USD')}
             </div>
           )}
+          {srcRaffle.prize_amount_cents != null && srcRaffle.prize_amount_cents > 0 && typeof (srcRaffle as any).winners_count === 'number' && (srcRaffle as any).winners_count > 0 && (
+            <div>
+              <span className="opacity-90">Número de ganadores:</span> {(srcRaffle as any).winners_count}
+            </div>
+          )}
           {srcRaffle.top_buyer_prize_cents != null && srcRaffle.top_buyer_prize_cents > 0 && (
             <div>
               <span className="opacity-90">Top comprador:</span> {formatMoney(topBuyerUsd, 'USD')}
@@ -156,21 +161,16 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           )}
         </div>
 
-        {!isFree && srcRaffle.allow_manual === false && (
-          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white text-brand-700 text-xs font-semibold border border-white/40">
-            <span>🔀</span>
-            <span>Asignación aleatoria de números</span>
-          </div>
-        )}
+        {/* Contenedor redundante removido: la instrucción de asignación aleatoria ya se muestra abajo */}
 
         {!isFree && (
           <div className="mt-2">
-            <div className="flex items-center justify-between text-xs opacity-90 mb-1">
+            <div className="flex items-center justify-between text-sm md:text-base font-semibold opacity-100 mb-1">
               <span>Avance del sorteo</span>
-              <span>{percent.toFixed(1)}%</span>
+              <span className="tabular-nums">{percent.toFixed(1)}%</span>
             </div>
-            <div className="h-3 w-full rounded-full bg-white/30">
-              <div className="h-3 rounded-full bg-white" style={{ width: `${percent}%` }} />
+            <div className="h-3 md:h-4 w-full rounded-full bg-white/30">
+              <div className="h-3 md:h-4 rounded-full bg-white" style={{ width: `${percent}%` }} />
             </div>
             {soldOut && (
               <div className="mt-2 text-xs font-semibold inline-block px-2 py-1 rounded bg-white text-brand-700">Agotado</div>

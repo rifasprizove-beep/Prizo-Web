@@ -8,6 +8,7 @@ import { formatMoney } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
+import { getRaffle } from "@/lib/data/raffles";
 import { listTopBuyers } from "@/lib/data/top_buyers";
 import WinnerTable from "./WinnerTable";
 import { Skeleton } from "./Skeleton";
@@ -19,11 +20,22 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const [bcvRate, setBcvRate] = useState<number | null>(null);
   useEffect(() => { (async () => { try { const info = await getBcvRatePreferApi(); if (info?.rate) setBcvRate(info.rate); } catch {} })(); }, []);
 
-  const isFree = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
+  // Refetch de la rifa en cliente para reflejar imagen y precios actualizados
+  const raffleQ = useQuery({
+    queryKey: ['raffle-header', raffle.id],
+    queryFn: () => getRaffle(raffle.id),
+    enabled: !!raffle.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const srcRaffle = raffleQ.data ?? raffle;
+
+  const isFree = (srcRaffle as any).is_free === true || (srcRaffle.ticket_price_cents ?? 0) === 0;
   const { unitVES, unitUsdAtBcv, prizeUsd, topBuyerUsd } = useMemo(() => {
-    const unitUSDBase = centsToUsd(raffle.ticket_price_cents ?? 0);
-    const prizeUSDBase = centsToUsd(raffle.prize_amount_cents ?? 0);
-    const topBuyerUSDBase = centsToUsd(raffle.top_buyer_prize_cents ?? 0);
+    const unitUSDBase = centsToUsd(srcRaffle.ticket_price_cents ?? 0);
+    const prizeUSDBase = centsToUsd(srcRaffle.prize_amount_cents ?? 0);
+    const topBuyerUSDBase = centsToUsd(srcRaffle.top_buyer_prize_cents ?? 0);
 
     // Si no hay tasa de entorno, intenta usar BCV para estimar VES; como último recurso usa 225.
     const effectiveVesRate = fallbackRate ?? bcvRate ?? 225;
@@ -36,12 +48,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
       prizeUsd: prizeUSDBase,
       topBuyerUsd: topBuyerUSDBase,
     } as const;
-  }, [raffle.ticket_price_cents, raffle.prize_amount_cents, raffle.top_buyer_prize_cents, fallbackRate, bcvRate]);
+  }, [srcRaffle.ticket_price_cents, srcRaffle.prize_amount_cents, srcRaffle.top_buyer_prize_cents, fallbackRate, bcvRate]);
   if (process.env.NEXT_PUBLIC_DEBUG === '1') {
     try {
       console.debug('[HeaderPriceDebug]', {
-        ticket_price_cents: raffle.ticket_price_cents,
-        unitUSDBase: centsToUsd(raffle.ticket_price_cents ?? 0),
+        ticket_price_cents: srcRaffle.ticket_price_cents,
+        unitUSDBase: centsToUsd(srcRaffle.ticket_price_cents ?? 0),
         fallbackRate,
         bcvRate,
         unitVES,
@@ -66,12 +78,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   }
 
   // Estado visual según la rifa
-  const isDrawnEffective = raffle.status === 'drawn';
+  const isDrawnEffective = srcRaffle.status === 'drawn';
   // Cargar ganadores para saber si hay alguno asignado
   const winnersPreQ = useQuery({
-    queryKey: ['winners-pre', raffle.id],
-    queryFn: () => listWinners(raffle.id),
-    enabled: !!raffle.id,
+    queryKey: ['winners-pre', srcRaffle.id],
+    queryFn: () => listWinners(srcRaffle.id),
+    enabled: !!srcRaffle.id,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
@@ -93,12 +105,12 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   return (
     <header className="space-y-6">
       <div className="rounded-2xl border p-4 bg-brand-500 text-white shadow-sm">
-        <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{raffle.name}</h1>
-        {raffle.image_url ? (
+        <h1 className="text-xl md:text-2xl font-extrabold tracking-wide uppercase">{srcRaffle.name}</h1>
+        {srcRaffle.image_url ? (
           <div className="relative w-full rounded-xl mt-3 overflow-hidden bg-white aspect-[16/9] md:aspect-[21/9]">
             <Image
-              src={raffle.image_url}
-              alt={raffle.name}
+              src={srcRaffle.image_url}
+              alt={srcRaffle.name}
               fill
               className="object-cover"
               sizes="100vw"
@@ -114,9 +126,9 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
         )}
 
-        {raffle.description && (
+        {srcRaffle.description && (
           <p className="mt-3 text-sm text-white/90 leading-relaxed">
-            {raffle.description}
+            {srcRaffle.description}
           </p>
         )}
 
@@ -132,19 +144,19 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
               formatMoney(unitVES, 'VES')
             )}
           </div>
-          {raffle.prize_amount_cents != null && raffle.prize_amount_cents > 0 && (
+          {srcRaffle.prize_amount_cents != null && srcRaffle.prize_amount_cents > 0 && (
             <div>
               <span className="opacity-90">Premio:</span> {formatMoney(prizeUsd, 'USD')}
             </div>
           )}
-          {raffle.top_buyer_prize_cents != null && raffle.top_buyer_prize_cents > 0 && (
+          {srcRaffle.top_buyer_prize_cents != null && srcRaffle.top_buyer_prize_cents > 0 && (
             <div>
               <span className="text-brand-300">Top comprador:</span> {formatMoney(topBuyerUsd, 'USD')}
             </div>
           )}
         </div>
 
-        {!isFree && raffle.allow_manual === false && (
+        {!isFree && srcRaffle.allow_manual === false && (
           <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white text-brand-700 text-xs font-semibold border border-white/40">
             <span>🔀</span>
             <span>Asignación aleatoria de números</span>

@@ -4,8 +4,7 @@ import { ReactQueryClientProvider } from '../lib/query'
 import { Space_Grotesk } from 'next/font/google'
 import { TermsConsent } from '../components/TermsConsent'
 import { Footer } from '../components/Footer'
-import { WhatsAppHelp } from '../components/WhatsAppHelp'
-import { WhatsAppCreateWeb } from '../components/WhatsAppCreateWeb'
+import { WhatsAppFab } from '../components/WhatsAppFab'
 import Image from 'next/image'
 import { CurrencyProvider } from '../lib/currency'
 import { HeaderActions } from '../components/HeaderActions'
@@ -85,8 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Modal de TyC bloqueante al entrar */}
         <TermsConsent />
         <Footer />
-        <WhatsAppHelp />
-        <WhatsAppCreateWeb />
+        <WhatsAppFab />
         </CurrencyProvider>
         </ThemeProvider>
       </body>

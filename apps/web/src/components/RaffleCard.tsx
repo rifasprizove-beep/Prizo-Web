@@ -76,9 +76,7 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
             {raffle.top_buyer_prize_cents ? (
               <BadgePill tone="brand">Top comprador</BadgePill>
             ) : null}
-            {typeof (raffle as any).winners_count === 'number' && (raffle as any).winners_count > 0 ? (
-              <BadgePill tone="brand">Ganadores: {(raffle as any).winners_count}</BadgePill>
-            ) : null}
+            {/* Ganadores badge removido: se mostrará solo en RaffleHeader */}
           </div>
           <h3 className="text-xl font-bold leading-tight line-clamp-2">{raffle.name}</h3>
           <p className="text-sm text-gray-300 line-clamp-2 min-h-[40px]">{raffle.description ?? ''}</p>

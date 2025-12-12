@@ -39,20 +39,24 @@ export function WhatsAppFab() {
           </svg>
         </button>
 
-        {open && (
-          <div ref={menuRef} className="absolute bottom-[60px] right-0 sm:bottom-[70px] w-44 rounded-xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden transition-all">
-            <div className="py-1">
-              <a href={hrefSupport} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-base text-black hover:bg-gray-50">
-                <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]" />
-                <span className="font-medium">Soporte</span>
-              </a>
-              <a href={hrefCreate} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-base text-black hover:bg-gray-50">
-                <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]" />
-                <span className="font-medium">Crea tu web</span>
-              </a>
-            </div>
+        <div
+          ref={menuRef}
+          className={
+            "absolute bottom-[60px] right-0 sm:bottom-[70px] w-44 rounded-xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden transition-all duration-200 " +
+            (open ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none")
+          }
+        >
+          <div className="py-1">
+            <a href={hrefSupport} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-base text-black hover:bg-gray-50">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]" />
+              <span className="font-medium">Soporte</span>
+            </a>
+            <a href={hrefCreate} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-base text-black hover:bg-gray-50">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]" />
+              <span className="font-medium">Crea tu web</span>
+            </a>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -472,7 +472,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
   const reservedCount = reserved.length || (restoring && restoreIds ? restoreIds.length : 0);
 
   return (
-    <div className="rounded-2xl border border-brand-500/20 p-3 sm:p-4 pb-6 sm:pb-20 bg-surface-800 text-white">
+    <div className="rounded-2xl border border-brand-500/20 p-3 sm:p-4 pb-6 sm:pb-12 bg-surface-800 text-white">
   {!isFree && <h2 className="text-lg md:text-xl font-extrabold tracking-wide uppercase text-center">¿Cuántos tickets quieres?</h2>}
 
       {error && (
@@ -563,7 +563,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
           {!isFree && (
             <div className="mt-5 sm:mt-5 flex items-center justify-center gap-3">
-              <button type="button" className="btn-neon w-full sm:w-auto max-w-[280px] sm:max-w-md disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px] sm:min-h-[52px] text-base" onClick={handleContinue} disabled={busy}>
+              <button type="button" className="btn-neon w-full sm:w-auto max-w-[280px] sm:max-w-md disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px] sm:min-h-[52px] md:min-h-[56px] text-base md:text-lg md:px-8 md:shadow-lg" onClick={handleContinue} disabled={busy}>
                 {busy && <span className="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />}
                 Continuar
               </button>

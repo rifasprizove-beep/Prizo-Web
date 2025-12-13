@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { listWinners } from "@/lib/data/winners";
-import { getRaffle } from "@/lib/data/raffles";
+import { getRaffle, getRaffleCounters } from "@/lib/data/raffles";
 import { listTopBuyers } from "@/lib/data/top_buyers";
 import WinnerTable from "./WinnerTable";
 import { Skeleton } from "./Skeleton";

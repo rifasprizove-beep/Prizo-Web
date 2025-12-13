@@ -65,15 +65,29 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const soldNum = counters ? Number((counters as any).sold ?? 0) : 0;
   const totalNum = counters ? Number((counters as any).total_tickets ?? 0) : 0;
   const reservedNum = counters ? Number((counters as any).reserved ?? 0) : 0;
-  const percent = totalNum > 0 ? Math.max(0, Math.min(100, (soldNum / totalNum) * 100)) : 0;
+  // Refetch periódico de counters para mantener el avance actualizado
+  const countersQ = useQuery({
+    queryKey: ['raffle-counters', raffle.id],
+    queryFn: () => getRaffleCounters(raffle.id),
+    enabled: !!raffle.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  });
+  const effCounters = countersQ.data ?? counters;
+  const soldEff = effCounters ? Number((effCounters as any).sold ?? 0) : soldNum;
+  const totalEff = effCounters ? Number((effCounters as any).total_tickets ?? 0) : totalNum;
+  const reservedEff = effCounters ? Number((effCounters as any).reserved ?? 0) : reservedNum;
+  const percent = totalEff > 0 ? Math.max(0, Math.min(100, (soldEff / totalEff) * 100)) : 0;
   const isPaid = !(isFree);
-  const soldOut = isPaid && totalNum > 0 && soldNum >= totalNum;
-  const noneAvailable = isPaid && totalNum > 0 && (Math.max(0, totalNum - (soldNum + reservedNum)) <= 0) && !soldOut;
+  const soldOut = isPaid && totalEff > 0 && soldEff >= totalEff;
+  const noneAvailable = isPaid && totalEff > 0 && (Math.max(0, totalEff - (soldEff + reservedEff)) <= 0) && !soldOut;
 
   if (process.env.NEXT_PUBLIC_DEBUG === '1') {
     try {
       // eslint-disable-next-line no-console
-      console.debug('[RaffleHeader] counters:', counters, 'soldNum:', soldNum, 'totalNum:', totalNum, 'percent:', percent);
+      console.debug('[RaffleHeader] counters:', effCounters, 'soldNum:', soldEff, 'totalNum:', totalEff, 'percent:', percent);
     } catch {}
   }
 

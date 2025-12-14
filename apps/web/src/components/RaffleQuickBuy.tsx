@@ -329,7 +329,16 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
     try {
       try { await ensureSession(sessionId); } catch {}
       // Intentar reservar exactamente esos IDs
-      const remainingMinutes = restoreDeadline ? Math.max(1, Math.ceil((restoreDeadline - Date.now()) / 60000)) : 10;
+      const remainingMinutes = restoreDeadline ? Math.max(0, Math.ceil((restoreDeadline - Date.now()) / 60000)) : 10;
+      if (restoreDeadline && remainingMinutes <= 0) {
+        // Reserva expirada: no otorgar tiempo adicional. Forzar re-selección.
+        setRestoreIds(null);
+        setReserved([]);
+        setRehydrated(false);
+        setRestoring(false);
+        setError('La reserva expiró. Vuelve a seleccionar tus tickets.');
+        return;
+      }
       let arr = await reserveTickets(restoreIds, sessionId, remainingMinutes);
       arr = Array.isArray(arr) ? arr : [];
       if (arr.length > qty) {

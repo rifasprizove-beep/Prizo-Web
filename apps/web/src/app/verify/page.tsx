@@ -241,7 +241,7 @@ export default function VerifyPage() {
 
           {/* Controles de paginación se moverán abajo */}
 
-          {/* Vista tarjetas para móvil */}
+          {/* Vista tarjetas para móvil: enfoque en el número de ticket */}
           <div className="sm:hidden grid grid-cols-1 gap-4">
             {(() => {
               const visibleRows = (selectedRaffle === 'all' ? data : data.filter(r => r.raffle_id === selectedRaffle)) as VerifyRow[];
@@ -249,52 +249,75 @@ export default function VerifyPage() {
               const paged = visibleRows.slice(start, start + pageSize);
               return paged;
             })().map((r) => (
-              <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-2xl border bg-white p-4 text-black shadow-sm space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold text-base leading-tight">{r.raffle_name}</div>
-                  <div className="text-xs text-gray-600 font-mono">#{r.ticket_number}</div>
+              <div key={`${r.payment_id}-${r.ticket_id}`} className="rounded-2xl border bg-white p-4 text-black shadow-sm">
+                {/* Encabezado */}
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="font-semibold text-[15px] leading-tight line-clamp-1">{r.raffle_name}</div>
+                  <div className="text-[11px] text-gray-500">{new Date(r.created_at).toLocaleString()}</div>
                 </div>
-                <div className="flex flex-wrap gap-2 text-[11px]">
-                  <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-800 border border-gray-200">Ticket: {r.ticket_status === 'sold' ? 'VENDIDO' : r.ticket_status === 'reserved' ? 'RESERVADO' : r.ticket_status === 'available' ? 'DISPONIBLE' : String(r.ticket_status).toUpperCase()}</span>
-                  <span
-                    className={
-                      `px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide ` +
-                      (r.payment_status === 'approved'
-                        ? 'bg-green-100 text-green-800 border-green-200'
-                        : r.payment_status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                        : r.payment_status === 'rejected'
-                        ? 'bg-red-100 text-red-800 border-red-200'
-                        : r.payment_status === 'underpaid'
-                        ? 'bg-orange-100 text-orange-800 border-orange-200'
-                        : r.payment_status === 'overpaid'
-                        ? 'bg-amber-100 text-amber-800 border-amber-200'
-                        : r.payment_status === 'ref_mismatch'
-                        ? 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200'
+
+                {/* Cuerpo: Ticket destacado + estados */}
+                <div className="flex items-stretch gap-3">
+                  {/* Ticket destacado */}
+                  <div className="flex-1 rounded-xl border border-brand-500/20 bg-gradient-to-br from-brand-50 to-white p-3">
+                    <div className="text-xs uppercase tracking-wide text-gray-500 text-center">Ticket</div>
+                    <div className="mt-2 flex items-center justify-center">
+                      <div className="text-4xl font-extrabold tabular-nums font-mono text-brand-700 leading-none">#{r.ticket_number}</div>
+                    </div>
+                  </div>
+                  {/* Estados */}
+                  <div className="flex flex-col gap-2 min-w-[120px]">
+                    {/* Estado de pago */}
+                    <span
+                      className={
+                        'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-center border ' +
+                        (r.payment_status === 'approved'
+                          ? 'bg-green-100 text-green-800 border-green-200'
+                          : r.payment_status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          : r.payment_status === 'rejected'
+                          ? 'bg-red-100 text-red-800 border-red-200'
+                          : r.payment_status === 'underpaid'
+                          ? 'bg-orange-100 text-orange-800 border-orange-200'
+                          : r.payment_status === 'overpaid'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : r.payment_status === 'ref_mismatch'
+                          ? 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200'
+                          : 'bg-gray-100 text-gray-800 border-gray-200')
+                      }
+                      title={
+                        r.payment_status === 'underpaid'
+                          ? 'Monto recibido menor al debido'
+                          : r.payment_status === 'overpaid'
+                          ? 'Monto recibido mayor al debido'
+                          : r.payment_status === 'ref_mismatch'
+                          ? 'La referencia no coincide o no se puede verificar'
+                          : undefined
+                      }
+                    >
+                      {r.payment_status === 'approved' ? 'Pago: APROBADO'
+                        : r.payment_status === 'pending' ? 'Pago: EN REVISIÓN'
+                        : r.payment_status === 'rejected' ? 'Pago: RECHAZADO'
+                        : r.payment_status === 'underpaid' ? 'Pago: MONTO MENOR'
+                        : r.payment_status === 'overpaid' ? 'Pago: MONTO MAYOR'
+                        : r.payment_status === 'ref_mismatch' ? 'Pago: REF. INVÁLIDA'
+                        : 'Pago: CANCELADO'}
+                    </span>
+                    {/* Estado de ticket */}
+                    <span className={
+                      'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-center border ' +
+                      (r.ticket_status === 'sold' ? 'bg-green-100 text-green-800 border-green-200'
+                        : r.ticket_status === 'reserved' ? 'bg-blue-100 text-blue-800 border-blue-200'
+                        : r.ticket_status === 'available' ? 'bg-gray-100 text-gray-800 border-gray-200'
                         : 'bg-gray-100 text-gray-800 border-gray-200')
-                    }
-                    title={
-                      r.payment_status === 'underpaid'
-                        ? 'Monto recibido menor al debido'
-                        : r.payment_status === 'overpaid'
-                        ? 'Monto recibido mayor al debido'
-                        : r.payment_status === 'ref_mismatch'
-                        ? 'La referencia no coincide o no se puede verificar'
-                        : undefined
-                    }
-                  >
-                    Pago: {
-                      r.payment_status === 'approved' ? 'APROBADO' :
-                      r.payment_status === 'pending' ? 'EN REVISIÓN' :
-                      r.payment_status === 'rejected' ? 'RECHAZADO' :
-                      r.payment_status === 'underpaid' ? 'MONTO MENOR' :
-                      r.payment_status === 'overpaid' ? 'MONTO MAYOR' :
-                      r.payment_status === 'ref_mismatch' ? 'REF. NO COINCIDE' :
-                      'CANCELADO'
-                    }
-                  </span>
+                    }>
+                      {r.ticket_status === 'sold' ? 'Ticket: VENDIDO'
+                        : r.ticket_status === 'reserved' ? 'Ticket: RESERVADO'
+                        : r.ticket_status === 'available' ? 'Ticket: DISPONIBLE'
+                        : `Ticket: ${String(r.ticket_status).toUpperCase()}`}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-[11px] text-gray-600">{new Date(r.created_at).toLocaleString()}</div>
               </div>
             ))}
           </div>

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { uploadEvidence } from '@/lib/data/payments';
 import { createPaymentForSession, ensureSession } from '@/lib/rpc';
-import { centsToUsd, getBcvRatePreferApi, getEnvFallbackRate, round0, round1, round2 } from '@/lib/data/rate';
+import { computeTicketPrice, getBcvRatePreferApi, getEnvFallbackRate, round0, round2 } from '@/lib/data/rate';
 import { VE_CITIES } from '@/lib/data/cities';
 import type { RafflePaymentMethod } from '@/lib/data/paymentConfig';
 
@@ -155,12 +155,12 @@ export function CheckoutForm({
       setEvidenceError(null);
       evidence_url = await uploadEvidence(ev, `evidence/${raffleId}/${sessionId}`);
     }
-    // Calcular montos y tasa usada
-    const unitUSD = centsToUsd(unitPriceCents ?? 0);
+    // Calcular montos con el flujo: USD base -> Bs por fallback -> USD clave por BCV -> Bs mostrados por BCV
+    const priceInfo = computeTicketPrice(unitPriceCents ?? 0, fallbackRate, bcvInfo?.rate ?? null);
     const count = quantity ?? 0;
-    const totalUSD = round2(unitUSD * count);
-    const rateUsed = fallbackRate ?? 0;
-    const amountVESNum = rateUsed ? round0(totalUSD * rateUsed) : null;
+    const totalUSD = round2(priceInfo.usdAtBcv * count);
+    const totalVES = round0(priceInfo.bsAtBcv * count);
+    const rateUsed = bcvInfo?.rate ?? fallbackRate ?? null;
     // Asegurar que la sesión exista antes de crear el pago
     try { await ensureSession(sessionId); } catch {}
     const ciCombined = (values.ciNumber as string | undefined)?.trim()
@@ -177,9 +177,9 @@ export function CheckoutForm({
       p_method: values.method,
       p_reference: values.reference || null,
       p_evidence_url: evidence_url,
-      p_amount_ves: amountVESNum,
-      p_rate_used: rateUsed || null,
-      p_rate_source: fallbackRate ? 'env' : null,
+      p_amount_ves: rateUsed ? totalVES : null,
+      p_rate_used: rateUsed,
+      p_rate_source: rateUsed ? (bcvInfo?.rate ? 'bcv' : 'env') : null,
       p_currency: currency,
     });
     onCreated?.(paymentId);
@@ -192,9 +192,11 @@ export function CheckoutForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const count = quantity ?? 0;
-  const unitUSD = centsToUsd(unitPriceCents ?? 0);
-  const unitVES = useMemo(() => (fallbackRate ? round0(unitUSD * fallbackRate) : 0), [unitUSD, fallbackRate]);
-  const totalVES = useMemo(() => round2(unitVES * count), [unitVES, count]);
+  const priceInfo = useMemo(() => computeTicketPrice(unitPriceCents ?? 0, fallbackRate, bcvInfo?.rate ?? null), [unitPriceCents, fallbackRate, bcvInfo?.rate]);
+  const unitUSD = priceInfo.usdAtBcv;
+  const unitVES = priceInfo.bsAtBcv;
+  const totalUSD = useMemo(() => round2(unitUSD * count), [unitUSD, count]);
+  const totalVES = useMemo(() => round0(unitVES * count), [unitVES, count]);
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 max-w-screen-md mx-auto w-full border border-brand-500/30 rounded-xl p-4 sm:p-6 bg-surface-700 text-white shadow-sm">
@@ -301,11 +303,17 @@ export function CheckoutForm({
             <div className="font-semibold">{count}</div>
           </div>
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
+            <div className="text-xs text-gray-600">Total (USD)</div>
+            <div className="font-semibold">
+              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUSD)} $
+            </div>
+          </div>
+          <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Total (Bs)</div>
             <div className="font-semibold">
-              {fallbackRate
+              {bcvInfo?.rate
                 ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalVES)} Bs`
-                : '—'}
+                : 'Calculando tasa BCV…'}
             </div>
           </div>
         </div>
@@ -413,7 +421,7 @@ export function CheckoutForm({
           {errors.reference && <p className="text-xs text-red-600 mt-1">{errors.reference.message as string}</p>}
         </div>
         {/* Monto en VES calculado automáticamente con la tasa; lo enviamos oculto */}
-  <input type="hidden" value={fallbackRate ? String(totalVES) : ''} {...register('amount_ves')} />
+  <input type="hidden" value={(bcvInfo?.rate || fallbackRate) ? String(totalVES) : ''} {...register('amount_ves')} />
         <div className="sm:col-span-2 flex flex-col items-center">
           <label className="block text-base font-medium w-full text-center">Enviar capture (JPG, PNG o WEBP máx 5MB) — Obligatoria</label>
           {/* Input real oculto */}

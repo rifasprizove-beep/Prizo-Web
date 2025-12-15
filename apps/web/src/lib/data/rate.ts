@@ -9,6 +9,15 @@ export type RateInfo = {
   stale?: boolean;
 };
 
+export type TicketPriceInfo = {
+  baseUsd: number;          // USD calculado directo desde cents (precio base)
+  fallbackRate?: number | null;
+  bcvRate?: number | null;
+  priceBsFromFallback: number | null; // USD base * fallback
+  usdAtBcv: number;         // precio clave en USD tras normalizar por BCV
+  bsAtBcv: number;          // precio en Bs usando la tasa BCV
+};
+
 export function centsToUsd(cents: number | undefined | null): number {
   if (!cents) return 0;
   return Math.round(cents) / 100;
@@ -27,6 +36,35 @@ export function round0(n: number | undefined | null): number {
 export function round1(n: number | undefined | null): number {
   if (!n || !isFinite(n)) return 0;
   return Math.round(n * 10) / 10;
+}
+
+/**
+ * Calcula el precio clave del ticket en USD y Bs siguiendo el flujo solicitado:
+ * 1) Convertir el precio del ticket (centavos) a USD base.
+ * 2) Multiplicar por la tasa de entorno (fallback) para obtener Bs.
+ * 3) Volver a USD usando la tasa BCV; ese USD es el que se muestra/guarda.
+ * 4) Para mostrar en Bs, convertir ese USD a Bs con BCV (o fallback si no hay BCV).
+ */
+export function computeTicketPrice(
+  ticketPriceCents: number,
+  fallbackRate?: number | null,
+  bcvRate?: number | null,
+): TicketPriceInfo {
+  const baseUsd = centsToUsd(ticketPriceCents ?? 0);
+  const fallback = fallbackRate ?? null;
+  const bcv = bcvRate ?? null;
+
+  const priceBsFromFallback = fallback ? round2(baseUsd * fallback) : null;
+  // USD normalizado por BCV; si falta BCV usamos el USD base como respaldo.
+  const usdAtBcv = (priceBsFromFallback != null && bcv)
+    ? round2(priceBsFromFallback / bcv)
+    : round2(baseUsd);
+  // Mostrar Bs usando BCV si existe; si no, caemos a Bs calculados por fallback.
+  const bsAtBcv = bcv
+    ? round0(usdAtBcv * bcv)
+    : (priceBsFromFallback != null ? round0(priceBsFromFallback) : 0);
+
+  return { baseUsd, fallbackRate: fallback, bcvRate: bcv, priceBsFromFallback, usdAtBcv, bsAtBcv };
 }
 
 /**

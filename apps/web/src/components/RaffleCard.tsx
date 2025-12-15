@@ -3,7 +3,7 @@ import type { Raffle } from '@/lib/types';
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1 } from '@/lib/data/rate';
+import { centsToUsd, computeTicketPrice, getEnvFallbackRate, getBcvRatePreferApi } from '@/lib/data/rate';
 import { formatMoney, effectiveRaffleStatus, uiRafflePhase } from '@/lib/i18n';
 import { BadgePill } from './BadgePill';
 import { useCurrency } from '@/lib/currency';
@@ -23,18 +23,13 @@ export function RaffleCard({ raffle }: { raffle: Raffle }) {
     prizeUsd,
   } = useMemo(() => {
     const isFreeCalc = (raffle as any).is_free === true || (raffle.ticket_price_cents ?? 0) === 0;
-    const ticketUsdBase = centsToUsd(raffle.ticket_price_cents ?? 0);
+    const ticketPrice = computeTicketPrice(raffle.ticket_price_cents ?? 0, fallbackRate, bcvRate);
     const prizeUsdBase = centsToUsd(raffle.prize_amount_cents ?? 0);
-
-    // Unificar lógica con el header: VES = USD * (fallback || BCV || 225)
-    const effectiveVesRate = fallbackRate ?? bcvRate ?? 225;
-    const unitVESCalc = round0(ticketUsdBase * effectiveVesRate);
-    const unitUsdAtBcvCalc = bcvRate ? round1(unitVESCalc / bcvRate) : round1(ticketUsdBase);
 
     return {
       isFree: isFreeCalc,
-      unitVES: unitVESCalc,
-      unitUsdAtBcv: unitUsdAtBcvCalc,
+      unitVES: ticketPrice.bsAtBcv,
+      unitUsdAtBcv: ticketPrice.usdAtBcv,
       prizeUsd: prizeUsdBase,
     } as const;
   }, [raffle.ticket_price_cents, raffle.prize_amount_cents, fallbackRate, bcvRate]);

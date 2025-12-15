@@ -3,7 +3,7 @@ import type { Raffle, RaffleTicketCounters } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { centsToUsd, getEnvFallbackRate, getBcvRatePreferApi, round0, round1 } from "@/lib/data/rate";
+import { computeTicketPrice, centsToUsd, getEnvFallbackRate, getBcvRatePreferApi } from "@/lib/data/rate";
 import { formatMoney } from "@/lib/i18n";
 import { useCurrency } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
@@ -33,18 +33,13 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
   const isFree = (srcRaffle as any).is_free === true || (srcRaffle.ticket_price_cents ?? 0) === 0;
   const { unitVES, unitUsdAtBcv, prizeUsd, topBuyerUsd } = useMemo(() => {
-    const unitUSDBase = centsToUsd(srcRaffle.ticket_price_cents ?? 0);
+    const ticketPrice = computeTicketPrice(srcRaffle.ticket_price_cents ?? 0, fallbackRate, bcvRate);
     const prizeUSDBase = centsToUsd(srcRaffle.prize_amount_cents ?? 0);
     const topBuyerUSDBase = centsToUsd(srcRaffle.top_buyer_prize_cents ?? 0);
 
-    // Si no hay tasa de entorno, intenta usar BCV para estimar VES; como último recurso usa 225.
-    const effectiveVesRate = fallbackRate ?? bcvRate ?? 225;
-    const unitVESCalc = round0(unitUSDBase * effectiveVesRate);
-    const unitUsdAtBcvCalc = bcvRate ? round1(unitVESCalc / bcvRate) : round1(unitUSDBase);
-
     return {
-      unitVES: unitVESCalc,
-      unitUsdAtBcv: unitUsdAtBcvCalc,
+      unitVES: ticketPrice.bsAtBcv,
+      unitUsdAtBcv: ticketPrice.usdAtBcv,
       prizeUsd: prizeUSDBase,
       topBuyerUsd: topBuyerUSDBase,
     } as const;

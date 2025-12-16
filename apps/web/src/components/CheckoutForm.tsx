@@ -224,7 +224,9 @@ export function CheckoutForm({
   const unitVES = priceInfo.bsAtBcv;
   const totalUSD = useMemo(() => round2(unitUSD * count), [unitUSD, count]);
   const totalVES = useMemo(() => round0(unitVES * count), [unitVES, count]);
-  const isBinanceSelected = (methodLocal || '').toLowerCase().includes('binance');
+  const isBinanceSelected = (methodLocal || '').toLowerCase().includes('binance') || ((watch('method') as any) || '').toLowerCase().includes('binance');
+  const isZelleSelected = (methodLocal || '').toLowerCase().includes('zelle') || ((watch('method') as any) || '').toLowerCase().includes('zelle');
+  const hideVesAndRate = isBinanceSelected || isZelleSelected;
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 max-w-screen-md mx-auto w-full border border-brand-500/30 rounded-xl p-4 sm:p-6 bg-surface-700 text-white shadow-sm">
@@ -401,17 +403,19 @@ export function CheckoutForm({
               {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUSD)} $
             </div>
           </div>
-          <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
-            <div className="text-xs text-gray-600">Total (Bs)</div>
-            <div className="font-semibold">
-              {bcvInfo?.rate
-                ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalVES)} Bs`
-                : 'Calculando tasa BCV…'}
+          {!hideVesAndRate && (
+            <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
+              <div className="text-xs text-gray-600">Total (Bs)</div>
+              <div className="font-semibold">
+                {bcvInfo?.rate
+                  ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalVES)} Bs`
+                  : 'Calculando tasa BCV…'}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
-      {bcvInfo?.rate && (
+      {bcvInfo?.rate && !hideVesAndRate && (
         <p className="text-xs text-gray-400">Tasa BCV del día: {Number(bcvInfo.rate).toFixed(2)} Bs/USD</p>
       )}
 

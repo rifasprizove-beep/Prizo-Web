@@ -68,8 +68,35 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const storageKey = `prizo_checkout_${raffleId}_${sessionId}`;
-  const [methodLocal, setMethodLocal] = useState<string>(() => (paymentMethods && paymentMethods.length ? (paymentMethods[0].method_label ?? methodLabel ?? 'Pago') : (methodLabel ?? 'Pago')));
+  const getMethodId = (m: RafflePaymentMethod, i: number) => (m.key ?? m.method_label ?? String(i));
+  const getMethodLabel = (m: RafflePaymentMethod, i: number) => (m.method_label ?? `Método ${i+1}`);
+  const preferredId = useMemo(() => {
+    if (paymentMethods && paymentMethods.length) {
+      const visible = paymentMethods.filter((m) => m.active !== false);
+      if (!visible.length) return '';
+      const isPagoMovil = (m: RafflePaymentMethod) => {
+        const key = (m.key || m.method_label || '').toLowerCase();
+        return key.includes('pago') && (key.includes('movil') || key.includes('móvil'));
+      };
+      const pmIndex = visible.findIndex(isPagoMovil);
+      const target = pmIndex >= 0 ? visible[pmIndex] : visible[0];
+      return getMethodId(target, Math.max(0, pmIndex));
+    }
+    return '';
+  }, [paymentMethods, methodLabel]);
+  const [methodLocal, setMethodLocal] = useState<string>('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMethodLocal(preferredId);
+    if (paymentMethods && paymentMethods.length) {
+      const idx = Math.max(0, paymentMethods.findIndex((m) => getMethodId(m, 0) === preferredId));
+      const m = paymentMethods[idx >= 0 ? idx : 0];
+      setValue('method', getMethodLabel(m, idx >= 0 ? idx : 0), { shouldValidate: true });
+    } else if (typeof methodLabel === 'string') {
+      setValue('method', methodLabel, { shouldValidate: true });
+    }
+  }, [preferredId, paymentMethods, methodLabel, setValue]);
 
   // Control del selector de ciudad: si el usuario elige 'OTRA', mostramos campo libre
   const [citySelect, setCitySelect] = useState<string>('');
@@ -90,7 +117,7 @@ export function CheckoutForm({
       const raw = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
       if (!raw) return;
       const data = JSON.parse(raw) as Partial<Record<string, any>>;
-      const fields = ['email','phone','city','ciPrefix','ciNumber','instagram','method','reference','termsAccepted'] as const;
+      const fields = ['email','phone','city','ciPrefix','ciNumber','instagram','reference','termsAccepted'] as const; // no restaurar 'method' para forzar preferido
       fields.forEach((f) => {
         if (data[f] !== undefined) setValue(f as any, data[f] as any, { shouldValidate: false });
       });
@@ -197,45 +224,112 @@ export function CheckoutForm({
   const unitVES = priceInfo.bsAtBcv;
   const totalUSD = useMemo(() => round2(unitUSD * count), [unitUSD, count]);
   const totalVES = useMemo(() => round0(unitVES * count), [unitVES, count]);
+  const isBinanceSelected = (methodLocal || '').toLowerCase().includes('binance');
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 max-w-screen-md mx-auto w-full border border-brand-500/30 rounded-xl p-4 sm:p-6 bg-surface-700 text-white shadow-sm">
       <h2 className="text-2xl md:text-3xl font-semibold text-center tracking-wide">Confirmar pago</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2 flex flex-col items-center text-center">
-          <label className="block text-base font-medium" htmlFor="method_select">Método de pago</label>
-          <select
-            id="method_select"
-            className="mt-2 w-full max-w-xs border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
-            value={methodLocal}
-            onChange={(e) => { setMethodLocal(e.target.value); setValue('method', e.target.value, { shouldValidate: true }); }}
-          >
-            {(paymentMethods && paymentMethods.length ? paymentMethods : [{ method_label: methodLabel ?? 'Pago' }]).map((m, i) => (
-              <option key={m.key ?? i} value={m.method_label ?? `Método ${i+1}`}>{m.method_label ?? `Método ${i+1}`}</option>
-            ))}
-          </select>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-base font-semibold">Método de pago</label>
+          </div>
+
+          {paymentMethods && paymentMethods.length > 0 ? (
+            <div className="w-full flex justify-center items-center">
+              <div className="flex flex-wrap justify-center items-center gap-4 w-fit mx-auto">
+              {useMemo(() => {
+                 if (!paymentMethods) return [] as RafflePaymentMethod[];
+                 const visible = paymentMethods.filter((m) => m.active !== false);
+                 const isPagoMovil = (m: RafflePaymentMethod) => {
+                  const key = (m.key || m.method_label || '').toLowerCase();
+                  return key.includes('pago') && (key.includes('movil') || key.includes('móvil'));
+                };
+                 const pagos = visible.filter(isPagoMovil);
+                 const otros = visible.filter((m) => !isPagoMovil(m));
+                return [...pagos, ...otros];
+              }, [paymentMethods]).map((m, i) => {
+                const id = getMethodId(m, i);
+                const label = getMethodLabel(m, i);
+                const isActive = id === methodLocal;
+                const keyLowerAll = (m.key || m.method_label || '').toLowerCase();
+                const isPM = keyLowerAll.includes('pago') && (keyLowerAll.includes('movil') || keyLowerAll.includes('móvil'));
+                const badge = (() => {
+                  const base = (m.key || label || '').toLowerCase();
+                  if (base.includes('zelle')) return { text: 'Zelle', bg: 'from-[#6D1ED4] to-[#6D1ED4]', fg: 'text-white' };
+                  if (base.includes('binance') || base.includes('usdt')) return { text: 'Binance', bg: 'from-white to-white', fg: 'text-[#1F7A3D]' };
+                  if (base.includes('bizum')) return { text: 'Bizum', bg: 'from-[#E8F5FF] to-[#CFE9FF]', fg: 'text-[#0D5C9C]' };
+                  if (base.includes('pago') || base.includes('movil') || base.includes('móvil')) return { text: 'Pago Móvil', bg: 'from-white to-white', fg: 'text-[#A10063]' };
+                  if (base.includes('transfer')) return { text: 'Transfer', bg: 'from-[#F8FAFF] to-[#E8EEFF]', fg: 'text-[#1D2A5C]' };
+                  return { text: label, bg: 'from-[#F6F7FB] to-[#ECEEF5]', fg: 'text-brand-700' };
+                })();
+                const logo = (() => {
+                  const base = (m.bank || '').toLowerCase();
+                  const keyLower = (m.key || label || '').toLowerCase();
+                  if (base.includes('banesco')) {
+                    return <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1765892651/BANESCO_z8zinq.avif" alt="Banesco" className="h-full w-full object-contain p-1" />;
+                  }
+                  if (keyLower.includes('zelle')) {
+                    return <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/c_crop,w_800,h_800/v1765894302/Zelle_logo.svg_t21wue.png" alt="Zelle" className="h-full w-full object-contain p-1" />;
+                  }
+                  if (keyLower.includes('binance') || keyLower.includes('usdt')) {
+                    return <img src="https://res.cloudinary.com/dzaokhfcw/image/upload/v1765896772/binance_mftr7p.png" alt="Binance" className="h-full w-full object-contain p-1" />;
+                  }
+                  return <span className="z-10 text-sm font-bold">{badge.text.slice(0, 6)}</span>;
+                })();
+                return (
+                  <button
+                    key={m.key ?? i}
+                    type="button"
+                    onClick={() => { setMethodLocal(id); setValue('method', label, { shouldValidate: true }); setCopiedField(null); }}
+                    aria-label={label}
+                    aria-pressed={isActive}
+                    className={`group relative flex flex-col items-center gap-2 rounded-xl px-3 py-3 text-center transition-all ${isActive ? 'bg-surface-700 text-white shadow-lg shadow-brand-900/30' : 'bg-surface-800/60 text-white/80 hover:bg-surface-700 hover:text-white'} ${isPM ? 'order-first' : 'order-last'}`}
+                  >
+                    <div className={`relative h-14 w-14 rounded-2xl bg-gradient-to-br ${badge.bg} flex items-center justify-center text-sm font-bold ${badge.fg} shadow-inner overflow-hidden transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-80'}`}>
+                      {logo}
+                    </div>
+                    <div className="text-sm font-semibold leading-tight line-clamp-2 text-white">{label}</div>
+                    {isActive && <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-brand-400" />}
+                  </button>
+                );
+              })}
+              </div>
+            </div>
+          ) : (
+            <select
+              className="w-full max-w-xs border rounded-lg px-3 py-3 min-h-[48px] text-base bg-surface-800"
+              value={methodLocal}
+              onChange={(e) => { setMethodLocal(e.target.value); setValue('method', e.target.value, { shouldValidate: true }); }}
+            >
+              <option value={methodLocal}>{methodLocal}</option>
+            </select>
+          )}
         </div>
       </div>
-      {/* Resumen de pago se moverá arriba de los inputs */}
-  {/* Guardar método seleccionado para el backend */}
-  <input type="hidden" value={methodLocal ?? ''} {...register('method')} />
+      {/* Guardar método seleccionado para el backend */}
+      <input type="hidden" value={(watch('method') as any) ?? ''} {...register('method')} />
 
       {/* Detalles del método seleccionado (desde paymentMethods) */}
       {paymentMethods && paymentMethods.length > 0 && (
         (() => {
-          const current = paymentMethods.find((m) => (m.method_label ?? '') === (methodLocal ?? '')) ?? paymentMethods[0];
+          const current = (() => {
+            const list = paymentMethods.filter((m) => m.active !== false);
+            const byId = list.find((m, i) => getMethodId(m, i) === methodLocal);
+            if (byId) return byId;
+            const byLabel = list.find((m) => (m.method_label ?? '') === ((watch('method') as any) ?? ''));
+            return byLabel ?? list[0];
+          })();
           if (!current) return null;
           return (
-            <div className="rounded-xl border border-brand-500/30 p-3 bg-surface-700 text-white">
-              {/* Evitar redundancia: no repetir el nombre del método seleccionado aquí */}
-              <div className="space-y-3 text-base">
+            <div className="rounded-2xl border border-brand-500/30 p-4 bg-surface-700 text-white shadow-sm">
+              <div className="grid grid-cols-1 gap-4 text-base">
                 {current.bank && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <div className="text-xs opacity-70">Banco</div>
                       <div className="font-semibold break-words">{current.bank}</div>
                     </div>
-                    <button type="button" className="px-3 py-2 rounded-lg bg-transparent border border-brand-500/40 text-brand-200 text-xs font-semibold min-h-[40px] tap-safe" onClick={async () => { await navigator.clipboard.writeText(current.bank!); setCopiedField('bank'); setTimeout(() => setCopiedField(null), 1500); }}>{copiedField === 'bank' ? 'COPIADO' : 'COPIAR'}</button>
                   </div>
                 )}
                 {current.account && (
@@ -284,12 +378,11 @@ export function CheckoutForm({
                   </div>
                 )}
                 {current.active === false && (
-                  <div className="mt-2 text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2">
+                  <div className="mt-2 text-xs text-yellow-800 bg-yellow-50 border border-yellow-200 rounded p-2 sm:col-span-2">
                     Método configurado — <b>Esta rifa no está activa</b>
                   </div>
                 )}
               </div>
-              {/* Resumen eliminado aquí para evitar duplicado */}
             </div>
           );
         })()

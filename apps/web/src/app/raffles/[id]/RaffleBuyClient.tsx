@@ -72,7 +72,17 @@ export function RaffleBuyClient({ raffleId }: { raffleId: string }) {
     refetchOnWindowFocus: true,
   });
   const [methodIdx, setMethodIdx] = useState<number>(0);
-  const selectedMethod: RafflePaymentMethod | null = (methodsQ.data && methodsQ.data.length) ? methodsQ.data[Math.max(0, Math.min(methodIdx, methodsQ.data.length - 1))] : null;
+  const selectedMethod: RafflePaymentMethod | null = (() => {
+    const list = (methodsQ.data ?? []).filter((m) => m.active !== false);
+    if (!list.length) return null;
+    const isPagoMovil = (m: RafflePaymentMethod) => {
+      const key = (m.key || m.method_label || '').toLowerCase();
+      return key.includes('pago') && (key.includes('movil') || key.includes('móvil'));
+    };
+    const pmIndex = list.findIndex(isPagoMovil);
+    const idx = pmIndex >= 0 ? pmIndex : Math.max(0, Math.min(methodIdx, list.length - 1));
+    return list[idx];
+  })();
   if (raffleQ.isLoading) return <div className="p-4">Cargando…</div>;
   if (!raffleQ.data) return <div className="p-4">Rifa no encontrada.</div>;
   const effStatus = effectiveRaffleStatus(raffleQ.data);

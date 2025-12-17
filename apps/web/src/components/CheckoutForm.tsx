@@ -397,19 +397,12 @@ export function CheckoutForm({
       {/* Resumen de pago arriba de los inputs */}
       {count > 0 && (
         <>
-          <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
-            <div className="text-xs text-gray-600">Monto total a pagar</div>
-            <div className="font-semibold">
-              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUSD)} $
-              {!hideVesAndRate && (
-                <span className="ml-2 text-gray-400">(
-                  {bcvInfo?.rate
-                    ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalVES)} Bs`
-                    : 'Calculando tasa BCV…'}
-                )</span>
-              )}
+          {discountActive && (
+            <div className="p-2 rounded border border-green-500/30 bg-surface-800">
+              <div className="text-xs text-green-300">Promoción</div>
+              <div className="font-semibold text-green-300">30% de descuento</div>
             </div>
-          </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-base">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Cantidad</div>
@@ -421,12 +414,7 @@ export function CheckoutForm({
               {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUSD)} $
             </div>
           </div>
-          {discountActive && (
-            <div className="p-2 rounded border border-green-500/30 bg-surface-800">
-              <div className="text-xs text-green-300">Promoción</div>
-              <div className="font-semibold text-green-300">30% de descuento</div>
-            </div>
-          )}
+          {/* Bloque de promoción inferior eliminado según petición */}
           {!hideVesAndRate && (
             <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
               <div className="text-xs text-gray-600">Total (Bs)</div>

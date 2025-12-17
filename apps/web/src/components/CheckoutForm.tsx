@@ -222,19 +222,23 @@ export function CheckoutForm({
   const priceInfo = useMemo(() => computeTicketPrice(unitPriceCents ?? 0, fallbackRate, bcvInfo?.rate ?? null), [unitPriceCents, fallbackRate, bcvInfo?.rate]);
   const unitUSD = priceInfo.usdAtBcv;
   const unitVES = priceInfo.bsAtBcv;
-  const totalUSD = useMemo(() => round2(unitUSD * count), [unitUSD, count]);
-  const totalVES = useMemo(() => round0(unitVES * count), [unitVES, count]);
   const isBinanceSelected = (methodLocal || '').toLowerCase().includes('binance') || ((watch('method') as any) || '').toLowerCase().includes('binance');
   const isZelleSelected = (methodLocal || '').toLowerCase().includes('zelle') || ((watch('method') as any) || '').toLowerCase().includes('zelle');
-  const hideVesAndRate = isBinanceSelected || isZelleSelected;
+  const discountActive = isBinanceSelected || isZelleSelected;
+  const discountRate = 0.3; // 30%
+  const unitUSDEffective = useMemo(() => discountActive ? round2(unitUSD * (1 - discountRate)) : unitUSD, [unitUSD, discountActive]);
+  const unitVESEffective = useMemo(() => discountActive ? round0(unitVES * (1 - discountRate)) : unitVES, [unitVES, discountActive]);
+  const totalUSD = useMemo(() => round2(unitUSDEffective * count), [unitUSDEffective, count]);
+  const totalVES = useMemo(() => round0(unitVESEffective * count), [unitVESEffective, count]);
+  const hideVesAndRate = discountActive;
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 max-w-screen-md mx-auto w-full border border-brand-500/30 rounded-xl p-4 sm:p-6 bg-surface-700 text-white shadow-sm">
       <h2 className="text-2xl md:text-3xl font-semibold text-center tracking-wide">Confirmar pago</h2>
       <div className="grid grid-cols-1 gap-4">
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <label className="block text-base font-semibold">Método de pago</label>
+          <div className="flex items-center justify-center">
+            <label className="block text-base font-semibold text-center">Método de pago</label>
           </div>
 
           {paymentMethods && paymentMethods.length > 0 ? (
@@ -392,7 +396,21 @@ export function CheckoutForm({
 
       {/* Resumen de pago arriba de los inputs */}
       {count > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-base">
+        <>
+          <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
+            <div className="text-xs text-gray-600">Monto total a pagar</div>
+            <div className="font-semibold">
+              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUSD)} $
+              {!hideVesAndRate && (
+                <span className="ml-2 text-gray-400">(
+                  {bcvInfo?.rate
+                    ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalVES)} Bs`
+                    : 'Calculando tasa BCV…'}
+                )</span>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-base">
           <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
             <div className="text-xs text-gray-600">Cantidad</div>
             <div className="font-semibold">{count}</div>
@@ -403,6 +421,12 @@ export function CheckoutForm({
               {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUSD)} $
             </div>
           </div>
+          {discountActive && (
+            <div className="p-2 rounded border border-green-500/30 bg-surface-800">
+              <div className="text-xs text-green-300">Promoción</div>
+              <div className="font-semibold text-green-300">30% de descuento</div>
+            </div>
+          )}
           {!hideVesAndRate && (
             <div className="p-2 rounded border border-brand-500/20 bg-surface-800">
               <div className="text-xs text-gray-600">Total (Bs)</div>
@@ -413,7 +437,8 @@ export function CheckoutForm({
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </>
       )}
       {bcvInfo?.rate && !hideVesAndRate && (
         <p className="text-xs text-gray-400">Tasa BCV del día: {Number(bcvInfo.rate).toFixed(2)} Bs/USD</p>

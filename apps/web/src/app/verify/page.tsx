@@ -14,6 +14,50 @@ type VerifyRow = {
   created_at: string;
 };
 
+const prio = (status: VerifyRow['payment_status']) => {
+  switch ((status || '').toLowerCase()) {
+    case 'approved': return 4;
+    case 'underpaid': return 3;
+    case 'overpaid': return 3;
+    case 'pending': return 2;
+    case 'ref_mismatch': return 2;
+    case 'rejected': return 1;
+    case 'cancelled': return 0;
+    default: return 0;
+  }
+};
+
+const dedupeAndPrioritize = (rows: VerifyRow[]): VerifyRow[] => {
+  const byTicket: Record<string, VerifyRow> = {};
+  for (const r of rows) {
+    const key = r.ticket_id || r.payment_id || `${r.raffle_id}-${r.ticket_number}`;
+    const prev = byTicket[key];
+    if (!prev) {
+      byTicket[key] = r;
+      continue;
+    }
+    const a = prio(prev.payment_status);
+    const b = prio(r.payment_status);
+    if (b > a) {
+      byTicket[key] = r;
+      continue;
+    }
+    if (b === a) {
+      const ta = prev.created_at ? Date.parse(prev.created_at) : 0;
+      const tb = r.created_at ? Date.parse(r.created_at) : 0;
+      if (tb >= ta) byTicket[key] = r;
+    }
+  }
+  return Object.values(byTicket).sort((a, b) => {
+    const pa = prio(a.payment_status);
+    const pb = prio(b.payment_status);
+    if (pa !== pb) return pb - pa;
+    const ta = a.created_at ? Date.parse(a.created_at) : 0;
+    const tb = b.created_at ? Date.parse(b.created_at) : 0;
+    return tb - ta;
+  });
+};
+
 export default function VerifyPage() {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
@@ -68,7 +112,7 @@ export default function VerifyPage() {
       if (result === null) {
         throw new Error('No se pudo consultar (permiso o servicio no disponible).');
       }
-      const rows: VerifyRow[] = result as VerifyRow[];
+      const rows: VerifyRow[] = dedupeAndPrioritize(result as VerifyRow[]);
       setData(rows);
       // si hay exactamente una rifa en los resultados, seleccionarla por defecto
       const raffleIds = Array.from(new Set(rows.map(r => r.raffle_id)));

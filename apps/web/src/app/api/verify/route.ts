@@ -147,37 +147,3 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ ok: true, data: [] });
 }
-
-function dedupeAndPrioritize(rows: any[]): any[] {
-  const prio = (s: string) => {
-    switch ((s || '').toLowerCase()) {
-      case 'approved': return 3;
-      case 'underpaid': return 2;
-      case 'overpaid': return 2;
-      case 'pending': return 1;
-      case 'ref_mismatch': return 1;
-      case 'rejected': return 0;
-      default: return 0;
-    }
-  };
-  const byTicket: Record<string, any> = {};
-  for (const r of rows) {
-    const key = String(r.ticket_id);
-    const prev = byTicket[key];
-    if (!prev) {
-      byTicket[key] = r;
-    } else {
-      const a = prio(prev.payment_status);
-      const b = prio(r.payment_status);
-      if (b > a) {
-        byTicket[key] = r;
-      } else if (b === a) {
-        // Si misma prioridad, preferir el más reciente
-        const ta = prev.created_at ? Date.parse(prev.created_at) : 0;
-        const tb = r.created_at ? Date.parse(r.created_at) : 0;
-        if (tb >= ta) byTicket[key] = r;
-      }
-    }
-  }
-  return Object.values(byTicket);
-}

@@ -1,12 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+const prio = (s: string) => {
+  switch ((s || '').toLowerCase()) {
+    case 'approved': return 4;
+    case 'underpaid': return 3;
+    case 'overpaid': return 3;
+    case 'pending': return 2;
+    case 'ref_mismatch': return 2;
+    case 'rejected': return 1;
+    case 'cancelled': return 0;
+    default: return 0;
+  }
+};
+
+const dedupeAndPrioritize = (rows: any[]): any[] => {
+  const byTicket: Record<string, any> = {};
+  for (const r of rows || []) {
+    const key = String(r.ticket_id ?? r.payment_id ?? `${r.raffle_id ?? ''}-${r.ticket_number ?? ''}`);
+    const prev = byTicket[key];
+    if (!prev) {
+      byTicket[key] = r;
+      continue;
+    }
+    const a = prio(prev.payment_status);
+    const b = prio(r.payment_status);
+    if (b > a) {
+      byTicket[key] = r;
+      continue;
+    }
+    if (b === a) {
+      const ta = prev.created_at ? Date.parse(prev.created_at) : 0;
+      const tb = r.created_at ? Date.parse(r.created_at) : 0;
+      if (tb >= ta) byTicket[key] = r;
+    }
+  }
+  return Object.values(byTicket).sort((a, b) => {
+    const pa = prio(a.payment_status);
+    const pb = prio(b.payment_status);
+    if (pa !== pb) return pb - pa;
+    const ta = a.created_at ? Date.parse(a.created_at) : 0;
+    const tb = b.created_at ? Date.parse(b.created_at) : 0;
+    return tb - ta;
+  });
+};
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get('q') || '').trim();
-  const includePending = (searchParams.get('include_pending') || 'true') === 'true';
+  const includePending = (searchParams.get('include_pending') || 'false') === 'true';
 
   if (!q) {
     return NextResponse.json({ ok: true, data: [] });
@@ -28,7 +72,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabase.rpc('verify_tickets', { p_query: q, p_include_pending: includePending });
     if (!error && Array.isArray(data)) {
-      return NextResponse.json({ ok: true, data });
+      return NextResponse.json({ ok: true, data: dedupeAndPrioritize(data) });
     }
   } catch {}
 

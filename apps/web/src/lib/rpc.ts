@@ -232,7 +232,7 @@ export async function ensureSession(p_session_id: string) {
 }
 
 // Verificar por email o cédula si ya hay tickets/pagos relacionados
-export async function verifyTicketsClient(q: string, includePending: boolean = true): Promise<any[] | null> {
+export async function verifyTicketsClient(q: string, includePending: boolean = false): Promise<any[] | null> {
   // Normalización ligera de cédula: quitar espacios y mayúsculas
   let query = q.trim();
   if (/^(?:[VE]-)?\d{5,10}$/i.test(query)) {

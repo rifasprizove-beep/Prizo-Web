@@ -78,6 +78,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const isPaid = !(isFree);
   const soldOut = isPaid && totalEff > 0 && soldEff >= totalEff;
   const noneAvailable = isPaid && totalEff > 0 && (Math.max(0, totalEff - (soldEff + reservedEff)) <= 0) && !soldOut;
+  const showProgress = false; // Progress bar hidden per request
 
   if (process.env.NEXT_PUBLIC_DEBUG === '1') {
     try {
@@ -174,7 +175,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
 
         {/* Contenedor redundante removido: la instrucción de asignación aleatoria ya se muestra abajo */}
 
-        {!isFree && (
+        {showProgress && !isFree && (
           <div className="mt-2">
             <div className="flex items-center justify-between text-sm md:text-base font-semibold opacity-100 mb-1">
               <span>Avance del sorteo</span>

@@ -78,7 +78,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const isPaid = !(isFree);
   const soldOut = isPaid && totalEff > 0 && soldEff >= totalEff;
   const noneAvailable = isPaid && totalEff > 0 && (Math.max(0, totalEff - (soldEff + reservedEff)) <= 0) && !soldOut;
-  const showProgress = false; // Progress bar hidden per request
+  const showProgress = true; // Progress bar hidden per request
 
   if (process.env.NEXT_PUBLIC_DEBUG === '1') {
     try {

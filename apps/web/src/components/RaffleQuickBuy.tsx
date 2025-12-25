@@ -31,7 +31,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
 
   
 
-  const MAX_PER_PURCHASE = 1000;
+  const MAX_PER_PURCHASE = 50;
   const inc = (n = 1) => {
     if (disabledAll) return;
     setQty((q) => {
@@ -508,7 +508,7 @@ export function RaffleQuickBuy({ raffleId, currency: _currency, totalTickets, un
                     className="w-24 sm:w-28 h-12 sm:h-14 text-center text-2xl sm:text-3xl font-semibold bg-transparent focus:outline-none no-number-spin"
                     type="number"
                     min={minTicketPurchase}
-                    max={availableTickets}
+                    max={Math.min(availableTickets, MAX_PER_PURCHASE)}
                     value={qty}
                     onChange={handleQtyChange}
                     aria-label="Cantidad de tickets"

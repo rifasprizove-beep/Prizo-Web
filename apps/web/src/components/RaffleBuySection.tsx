@@ -149,7 +149,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
       } else if (status === 'available') {
         // Importante: reserve_tickets en el backend define el CONJUNTO exacto para la sesión,
         // por lo que debemos enviar todos los IDs seleccionados + el nuevo ID, no solo uno.
-        const MAX_PER_PURCHASE = 1000;
+        const MAX_PER_PURCHASE = 50;
         let desired = Array.from(new Set([...selectedIds, id]));
         // Enviar respetando disponibilidad y máximo
         if (desired.length > availableTickets) desired = desired.slice(0, availableTickets);
@@ -244,7 +244,7 @@ export function RaffleBuySection({ raffleId, currency, unitPriceCents, minTicket
   const mm = String(Math.floor(timeLeftMs / 60000)).padStart(2, '0');
   const ss = String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0');
   const countSelected = selectedIds.length || (restoring && restoreIds ? restoreIds.length : 0);
-  const MAX_PER_PURCHASE = 1000;
+  const MAX_PER_PURCHASE = 50;
   const belowMin = !isFree && countSelected > 0 && countSelected < (minTicketPurchase || 1);
   const overMax = !isFree && countSelected > MAX_PER_PURCHASE;
 

@@ -57,12 +57,16 @@ export function uiRafflePhase(r: Raffle): RaffleUiPhase {
   }
 }
 
-export function formatMoney(amount: number, currency: 'USD' | 'VES'): string {
+export function formatMoney(amount: number, currency: 'USD' | 'VES' | 'USDT'): string {
   try {
     const formatted = new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-    return currency === 'USD' ? `$${formatted}` : `Bs.${formatted}`;
+    if (currency === 'USD') return `$${formatted}`;
+    if (currency === 'USDT') return `${formatted} USDT`;
+    return `Bs.${formatted}`;
   } catch {
-    return currency === 'USD' ? `$${amount.toFixed(2)}` : `Bs.${amount.toFixed(2)}`;
+    if (currency === 'USD') return `$${amount.toFixed(2)}`;
+    if (currency === 'USDT') return `${amount.toFixed(2)} USDT`;
+    return `Bs.${amount.toFixed(2)}`;
   }
 }
 

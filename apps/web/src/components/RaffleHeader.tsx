@@ -158,7 +158,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           </div>
           {srcRaffle.prize_amount_cents != null && srcRaffle.prize_amount_cents > 0 && (
             <div>
-              <span className="opacity-90">Premio:</span> {formatMoney(prizeUsd, 'USD')}
+              <span className="opacity-90">Premio:</span> {formatMoney(prizeUsd, 'USDT')}
             </div>
           )}
           {srcRaffle.prize_amount_cents != null && srcRaffle.prize_amount_cents > 0 && typeof (srcRaffle as any).winners_count === 'number' && (srcRaffle as any).winners_count > 0 && (
@@ -168,7 +168,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
           )}
           {srcRaffle.top_buyer_prize_cents != null && srcRaffle.top_buyer_prize_cents > 0 && (
             <div>
-              <span className="opacity-90">Top comprador:</span> {formatMoney(topBuyerUsd, 'USD')}
+              <span className="opacity-90">Top comprador:</span> {formatMoney(topBuyerUsd, 'USDT')}
             </div>
           )}
         </div>

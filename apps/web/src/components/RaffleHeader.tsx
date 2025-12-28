@@ -78,7 +78,7 @@ export function RaffleHeader({ raffle, counters }: { raffle: Raffle; counters: R
   const isPaid = !(isFree);
   const soldOut = isPaid && totalEff > 0 && soldEff >= totalEff;
   const noneAvailable = isPaid && totalEff > 0 && (Math.max(0, totalEff - (soldEff + reservedEff)) <= 0) && !soldOut;
-  const showProgress = true; // Progress bar hidden per request
+  const showProgress = false; // Progress bar hidden per request
 
   if (process.env.NEXT_PUBLIC_DEBUG === '1') {
     try {
@@ -278,11 +278,7 @@ function WinnersInline({ raffleId, raffleImage, raffleName }: { raffleId: string
     <section className="space-y-3 text-sm">
       <h3 className="text-base font-semibold text-white">Ganadores</h3>
       <WinnerTable winners={winnersQ.data ?? []} />
-      {raffleImage && (
-        <div className="mt-2">
-          <img src={raffleImage} alt={`Imagen del sorteo ${raffleName}`} className="w-full rounded-xl border" />
-        </div>
-      )}
+      {/* Imagen eliminada intencionalmente para evitar duplicado en la sección Ganador */}
       <div className="text-xs opacity-80 mt-1 text-white/80">
         Para ver más detalles, visita la página de resultados.
         {' '}<Link href={`/raffles/${raffleId}/result`} className="underline">Abrir resultados</Link>
